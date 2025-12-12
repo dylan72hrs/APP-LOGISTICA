@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -42,6 +42,7 @@ export default function ConsumptionsPage() {
 
   const [productCodeInput, setProductCodeInput] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const productCodeInputRef = useRef<HTMLInputElement>(null);
 
   const warehouseIdToFilter = useMemo(() => {
     let warehouseId: string | undefined;
@@ -79,7 +80,9 @@ export default function ConsumptionsPage() {
   };
 
   const handleProductSearchByCode = () => {
-    if (!productCodeInput) return;
+    const code = productCodeInputRef.current?.value;
+    if (!code) return;
+
     if (!warehouseIdToFilter) {
       toast({
         variant: 'destructive',
@@ -89,7 +92,7 @@ export default function ConsumptionsPage() {
       return;
     }
 
-    const foundItem = availableInventory.find(item => item.code.toLowerCase() === productCodeInput.toLowerCase());
+    const foundItem = availableInventory.find(item => item.code.toLowerCase() === code.toLowerCase());
 
     if (!foundItem) {
       toast({ variant: 'destructive', title: t('error'), description: t('no_product_found') });
@@ -102,6 +105,9 @@ export default function ConsumptionsPage() {
     }
 
     setSelectedItems(prev => [...prev, { ...foundItem, consumeQuantity: 1 }]);
+    if (productCodeInputRef.current) {
+        productCodeInputRef.current.value = '';
+    }
     setProductCodeInput('');
   };
   
@@ -167,7 +173,7 @@ export default function ConsumptionsPage() {
     setSelectedItems([]);
   };
 
-  const isFormComplete = selectedWorker && selectedProject && selectedItems.length > 0;
+  const isFormComplete = !!selectedWorker && !!selectedProject && selectedItems.length > 0;
 
   const consumptionData = {
     id: `VC-${Date.now()}`,
@@ -247,8 +253,8 @@ export default function ConsumptionsPage() {
             <div className="flex w-full max-w-sm items-center space-x-2 mt-2">
                 <Input
                     id="product-code-input"
-                    value={productCodeInput}
-                    onChange={(e) => setProductCodeInput(e.target.value)}
+                    ref={productCodeInputRef}
+                    defaultValue={productCodeInput}
                     placeholder={t('search_product_by_code')}
                     onKeyDown={(e) => e.key === 'Enter' && handleProductSearchByCode()}
                     disabled={!warehouseIdToFilter}
