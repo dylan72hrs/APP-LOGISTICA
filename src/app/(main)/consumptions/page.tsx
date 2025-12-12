@@ -167,8 +167,10 @@ export default function ConsumptionsPage() {
                     </Button>
                 </div>
                 {selectedWorker && (
-                    <div className='mt-2 text-sm text-muted-foreground p-2 bg-muted rounded-md'>
+                    <div className='mt-2 text-sm text-muted-foreground p-3 bg-muted rounded-md space-y-1'>
                         <p><strong>{t('name')}:</strong> {selectedWorker.name}</p>
+                        <p><strong>{t('position')}:</strong> {selectedWorker.position}</p>
+                        <p><strong>{t('department')}:</strong> {selectedWorker.department}</p>
                     </div>
                 )}
             </div>
