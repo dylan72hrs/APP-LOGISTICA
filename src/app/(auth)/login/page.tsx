@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Package } from 'lucide-react';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -55,7 +54,7 @@ export default function LoginPage() {
             src={companyLogo.imageUrl}
             alt={companyLogo.description}
             width={200}
-            height={100}
+            height={200}
             className="mb-8"
             data-ai-hint={companyLogo.imageHint}
             priority
@@ -63,9 +62,6 @@ export default function LoginPage() {
       )}
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Package className="h-8 w-8" />
-          </div>
           <CardTitle className="text-3xl font-bold">EPP Tracker 3.0</CardTitle>
           <CardDescription>Inicia sesión para gestionar tu inventario</CardDescription>
         </CardHeader>
