@@ -21,9 +21,10 @@ import {
   FileText,
   Truck,
   BrainCircuit,
-  Package,
 } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Image from 'next/image';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'operator', 'reports'] },
@@ -40,6 +41,7 @@ const navItems = [
 export function SidebarNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
 
   const filteredNavItems = navItems.filter(item => user && item.roles.includes(user.role));
 
@@ -47,9 +49,15 @@ export function SidebarNav() {
     <>
       <SidebarHeader>
         <div className="flex items-center gap-3 p-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-                <Package className="h-6 w-6 text-primary-foreground" />
-            </div>
+            {companyLogo && (
+              <Image 
+                src={companyLogo.imageUrl}
+                alt={companyLogo.description}
+                width={40}
+                height={40}
+                className='rounded-md'
+              />
+            )}
           <span className="text-xl font-bold text-primary">EPP Tracker 3.0</span>
         </div>
       </SidebarHeader>
