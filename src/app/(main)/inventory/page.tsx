@@ -100,8 +100,8 @@ export default function InventoryPage() {
         setIsDialogOpen(true);
     }
 
-    const handleDeleteItem = (id: string) => {
-        setInventory(inventory.filter(i => i.id !== id));
+    const handleDeleteItem = (id: string, warehouseId: string) => {
+        setInventory(inventory.filter(i => !(i.id === id && i.warehouseId === warehouseId)));
         toast({
           variant: "destructive",
           title: "Producto eliminado",
@@ -145,7 +145,7 @@ export default function InventoryPage() {
                             {inventory.map((item) => {
                                 const stockStatus = getStockStatus(item.quantity);
                                 return (
-                                    <TableRow key={item.id}>
+                                    <TableRow key={`${item.id}-${item.warehouseId}`}>
                                         <TableCell className="font-medium">{item.code}</TableCell>
                                         <TableCell>{item.description}</TableCell>
                                         <TableCell>{item.size}</TableCell>
@@ -167,7 +167,7 @@ export default function InventoryPage() {
                                                         <Pencil className="mr-2 h-4 w-4"/>
                                                         Editar
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleDeleteItem(item.id)} className="text-destructive focus:text-destructive">
+                                                    <DropdownMenuItem onClick={() => handleDeleteItem(item.id, item.warehouseId)} className="text-destructive focus:text-destructive">
                                                         <Trash2 className="mr-2 h-4 w-4"/>
                                                         Eliminar
                                                     </DropdownMenuItem>
