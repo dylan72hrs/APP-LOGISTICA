@@ -47,7 +47,7 @@ export default function ConsumptionsPage() {
   const warehouseIdToFilter = useMemo(() => {
     if (user?.role === 'operator') return user.warehouseId;
     if (user?.role === 'admin' && selectedWarehouseId !== 'all') return selectedWarehouseId;
-    return undefined; // Admin has "All Warehouses" selected or no warehouse context
+    return undefined; // Admin with "All" selected, or no warehouse context
   }, [selectedWarehouseId, user]);
   
   const availableInventory = useMemo(() => {
@@ -154,8 +154,10 @@ export default function ConsumptionsPage() {
         title: t('no_warehouse_selected'),
         description: t('admin_select_warehouse_for_product'),
       });
+      return; // Prevent popover from opening
     }
-    // The popover will only open if the button is not disabled, so we don't need to manually open it here.
+    // If warehouseIdToFilter is valid, the popover will open via its trigger.
+    // No need to manually setIsProductPopoverOpen(true) here.
   };
 
   const isFormComplete = selectedWorker && selectedProject && selectedItems.length > 0;
@@ -236,7 +238,7 @@ export default function ConsumptionsPage() {
             <CardTitle>{t('products_to_consume')}</CardTitle>
             <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" disabled={!warehouseIdToFilter} onClick={handleAddProductClick}>
+                <Button variant="outline" onClick={handleAddProductClick} disabled={!warehouseIdToFilter}>
                   <PlusCircle className="mr-2" />
                   {t('add_product')}
                 </Button>
