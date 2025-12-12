@@ -72,28 +72,30 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
             </section>
 
             <section className="mt-6">
-                <Table className="border border-black">
-                    <TableHeader>
-                        <TableRow className='border-b border-black'>
-                            <TableHead className="text-black border-r border-black">{t('code')}</TableHead>
-                            <TableHead className="text-black border-r border-black">{t('description')}</TableHead>
-                            <TableHead className="text-black text-right border-r border-black">{t('quantity')}</TableHead>
-                            <TableHead className="text-black text-right border-r border-black">{t('unit_cost')}</TableHead>
-                            <TableHead className="text-black text-right">{t('total')}</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {data.items.map(item => (
-                            <TableRow key={item.code} className='border-b border-black last:border-b-0'>
-                                <TableCell className="border-r border-black">{item.code}</TableCell>
-                                <TableCell className="border-r border-black">{item.description}</TableCell>
-                                <TableCell className="text-right border-r border-black">{item.consumeQuantity}</TableCell>
-                                <TableCell className="text-right border-r border-black">${item.cost.toLocaleString(language)}</TableCell>
-                                <TableCell className="text-right">${(item.cost * item.consumeQuantity).toLocaleString(language)}</TableCell>
+                <div className='border-black border-t border-l border-r'>
+                    <Table>
+                        <TableHeader>
+                            <TableRow className='border-b border-black'>
+                                <TableHead className="text-black border-r border-black">{t('code')}</TableHead>
+                                <TableHead className="text-black border-r border-black">{t('description')}</TableHead>
+                                <TableHead className="text-black text-right border-r border-black">{t('quantity')}</TableHead>
+                                <TableHead className="text-black text-right border-r border-black">{t('unit_cost')}</TableHead>
+                                <TableHead className="text-black text-right">{t('total')}</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {data.items.map(item => (
+                                <TableRow key={item.code} className='border-b border-black last:border-b-0'>
+                                    <TableCell className="border-r border-black">{item.code}</TableCell>
+                                    <TableCell className="border-r border-black">{item.description}</TableCell>
+                                    <TableCell className="text-right border-r border-black">{item.consumeQuantity}</TableCell>
+                                    <TableCell className="text-right border-r border-black">${item.cost.toLocaleString(language)}</TableCell>
+                                    <TableCell className="text-right">${(item.cost * item.consumeQuantity).toLocaleString(language)}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             </section>
             
             <section className="flex justify-end mt-4">
@@ -141,7 +143,7 @@ export function ValeConsumoPreview({ data }: ValeConsumoProps) {
                     {t('print')}
                 </Button>
             </div>
-             <div className="border rounded-lg overflow-hidden print:border-none print:rounded-none">
+             <div className="border rounded-lg overflow-hidden print:border-none print:rounded-none" id="printable-content">
                 <ValeConsumo data={data} />
              </div>
         </div>
