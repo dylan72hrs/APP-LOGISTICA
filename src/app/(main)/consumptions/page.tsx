@@ -336,14 +336,14 @@ export default function ConsumptionsPage() {
                     {t('print')}
                 </Button>
             </div>
-            <ScrollArea className="max-h-[70vh] p-6 pt-0">
-              <div id="printable-content-wrapper" className="border rounded-lg overflow-hidden">
-                  <ValeConsumo data={consumptionData} />
+            <ScrollArea className="max-h-[70vh]">
+              <div className="p-6 pt-0">
+                 <ValeConsumo data={consumptionData} />
               </div>
             </ScrollArea>
         </DialogContent>
       </Dialog>
-
+      
       <div className="hidden print:block">
         <ValeConsumo data={consumptionData} />
       </div>

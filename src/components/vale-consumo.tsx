@@ -36,7 +36,7 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
     const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
 
     return (
-        <div ref={ref} className="bg-white text-black p-8 print:shadow-none print:border-none">
+        <div ref={ref} className="bg-white text-black p-8 print:shadow-none print:border-none print:p-0" id="printable-content">
             <header className="flex justify-between items-center pb-4 border-b border-black">
                 <div className='flex items-center gap-4'>
                 {companyLogo && (
@@ -85,7 +85,7 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
                         </TableHeader>
                         <TableBody>
                             {data.items.map(item => (
-                                <TableRow key={item.code} className='border-b border-black last:border-b-0'>
+                                <TableRow key={item.code} className='border-b border-black'>
                                     <TableCell className="border-r border-black">{item.code}</TableCell>
                                     <TableCell className="border-r border-black">{item.description}</TableCell>
                                     <TableCell className="text-right border-r border-black">{item.consumeQuantity}</TableCell>
