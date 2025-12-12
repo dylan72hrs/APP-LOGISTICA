@@ -72,24 +72,24 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
             </section>
 
             <section className="mt-6">
-                <Table>
+                <Table className="border">
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="text-black">{t('code')}</TableHead>
-                            <TableHead className="text-black">{t('description')}</TableHead>
-                            <TableHead className="text-black text-right">{t('quantity')}</TableHead>
-                            <TableHead className="text-black text-right">{t('unit_cost')}</TableHead>
-                            <TableHead className="text-black text-right">{t('total')}</TableHead>
+                            <TableHead className="text-black border">{t('code')}</TableHead>
+                            <TableHead className="text-black border">{t('description')}</TableHead>
+                            <TableHead className="text-black text-right border">{t('quantity')}</TableHead>
+                            <TableHead className="text-black text-right border">{t('unit_cost')}</TableHead>
+                            <TableHead className="text-black text-right border">{t('total')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {data.items.map(item => (
                             <TableRow key={item.code}>
-                                <TableCell>{item.code}</TableCell>
-                                <TableCell>{item.description}</TableCell>
-                                <TableCell className="text-right">{item.consumeQuantity}</TableCell>
-                                <TableCell className="text-right">${item.cost.toLocaleString(language)}</TableCell>
-                                <TableCell className="text-right">${(item.cost * item.consumeQuantity).toLocaleString(language)}</TableCell>
+                                <TableCell className="border">{item.code}</TableCell>
+                                <TableCell className="border">{item.description}</TableCell>
+                                <TableCell className="text-right border">{item.consumeQuantity}</TableCell>
+                                <TableCell className="text-right border">${item.cost.toLocaleString(language)}</TableCell>
+                                <TableCell className="text-right border">${(item.cost * item.consumeQuantity).toLocaleString(language)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -140,7 +140,7 @@ export function ValeConsumoPreview({ data }: ValeConsumoProps) {
                 .map(s => `<link rel="stylesheet" href="${s.href}">`)
                 .join('');
             printWindow?.document.write(styles);
-            printWindow?.document.write('<style>@media print { body { -webkit-print-color-adjust: exact; } }</style>');
+            printWindow?.document.write('<style>@media print { body { -webkit-print-color-adjust: exact; } .border { border: 1px solid black !important; } }</style>');
             printWindow?.document.write('</head><body>');
             printWindow?.document.write(printContent.innerHTML);
             printWindow?.document.write('</body></html>');
