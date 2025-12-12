@@ -14,7 +14,7 @@ import { useLanguage } from '@/lib/hooks/use-language';
 import { useToast } from '@/hooks/use-toast';
 import { Check, ChevronsUpDown, PlusCircle, Trash2, Printer, Eye, UserSearch, Search, PackageSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ValeConsumo, ValeConsumoPreview } from '@/components/vale-consumo';
+import { ValeConsumo } from '@/components/vale-consumo';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { useAuth } from '@/lib/hooks/use-auth';
 
@@ -109,6 +109,7 @@ export default function ConsumptionsPage() {
         productCodeInputRef.current.value = '';
         setProductCodeInput(''); // Also clear the state
     }
+    productCodeInputRef.current?.focus();
   };
   
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
@@ -332,11 +333,19 @@ export default function ConsumptionsPage() {
             <DialogTitle>{t('consumption_voucher_preview')}</DialogTitle>
           </DialogHeader>
           <div className="p-6">
-            <ValeConsumoPreview data={consumptionData} />
+            <div className="flex justify-end mb-4">
+                <Button onClick={() => window.print()}>
+                    <Printer className="mr-2" />
+                    {t('print')}
+                </Button>
+            </div>
+            <div id="printable-content-wrapper" className="border rounded-lg overflow-hidden">
+                <ValeConsumo data={consumptionData} />
+            </div>
           </div>
         </DialogContent>
       </Dialog>
-      <div id="printable-content" className="hidden print:block">
+      <div className="hidden print:block">
         <ValeConsumo data={consumptionData} />
       </div>
     </div>

@@ -85,7 +85,7 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
                         </TableHeader>
                         <TableBody>
                             {data.items.map(item => (
-                                <TableRow key={item.code} className='border-b border-black'>
+                                <TableRow key={item.code} className='border-b border-black last:border-b-0'>
                                     <TableCell className="border-r border-black">{item.code}</TableCell>
                                     <TableCell className="border-r border-black">{item.description}</TableCell>
                                     <TableCell className="text-right border-r border-black">{item.consumeQuantity}</TableCell>
@@ -127,21 +127,3 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
     );
 });
 ValeConsumo.displayName = 'ValeConsumo';
-
-export function ValeConsumoPreview({ data }: ValeConsumoProps) {
-    const { t } = useLanguage();
-    
-    return (
-        <div>
-            <div className="flex justify-end mb-4 print:hidden">
-                <Button onClick={() => window.print()}>
-                    <Printer className="mr-2" />
-                    {t('print')}
-                </Button>
-            </div>
-             <div id="printable-content-wrapper" className="border rounded-lg overflow-hidden print:border-none print:rounded-none" >
-                <ValeConsumo data={data} />
-             </div>
-        </div>
-    );
-}
