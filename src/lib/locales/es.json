@@ -194,5 +194,7 @@
     "signature_supervisor": "Firma Supervisor",
     "worker_rut": "RUT del Trabajador",
     "enter_rut_and_search": "Ingresa RUT y busca",
-    "worker_not_found": "Trabajador no encontrado con el RUT proporcionado."
+    "worker_not_found": "Trabajador no encontrado con el RUT proporcionado.",
+    "enter_project_id_and_search": "Ingresa ID de proyecto y busca",
+    "project_not_found": "Proyecto no encontrado con el ID proporcionado."
 }

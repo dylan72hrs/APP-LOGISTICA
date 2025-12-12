@@ -193,5 +193,7 @@
     "signature_supervisor": "Supervisor Signature",
     "worker_rut": "Worker ID",
     "enter_rut_and_search": "Enter ID and search",
-    "worker_not_found": "Worker not found with the provided ID."
+    "worker_not_found": "Worker not found with the provided ID.",
+    "enter_project_id_and_search": "Enter project ID and search",
+    "project_not_found": "Project not found with the provided ID."
   }

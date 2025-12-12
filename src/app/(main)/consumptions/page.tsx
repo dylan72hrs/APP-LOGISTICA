@@ -12,7 +12,7 @@ import type { Worker, Project, InventoryItem } from '@/lib/types';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useToast } from '@/hooks/use-toast';
-import { Check, ChevronsUpDown, PlusCircle, Trash2, Printer, Eye, UserSearch } from 'lucide-react';
+import { Check, ChevronsUpDown, PlusCircle, Trash2, Printer, Eye, UserSearch, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ValeConsumo, ValeConsumoPreview } from '@/components/vale-consumo';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
@@ -32,7 +32,10 @@ export default function ConsumptionsPage() {
 
   const [rutInput, setRutInput] = useState('');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
+  
+  const [projectIdInput, setProjectIdInput] = useState('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
 
   const [productSearch, setProductSearch] = useState('');
@@ -54,6 +57,16 @@ export default function ConsumptionsPage() {
     } else {
         setSelectedWorker(null);
         toast({ variant: "destructive", title: t('error'), description: t('worker_not_found') });
+    }
+  };
+
+  const handleProjectSearch = () => {
+    const foundProject = projects.find(p => p.id.toLowerCase() === projectIdInput.toLowerCase());
+    if (foundProject) {
+      setSelectedProject(foundProject);
+    } else {
+      setSelectedProject(null);
+      toast({ variant: "destructive", title: t('error'), description: t('project_not_found') });
     }
   };
 
@@ -124,6 +137,7 @@ export default function ConsumptionsPage() {
     // 3. Reset form
     setRutInput('');
     setSelectedWorker(null);
+    setProjectIdInput('');
     setSelectedProject(null);
     setSelectedItems([]);
   };
@@ -175,14 +189,26 @@ export default function ConsumptionsPage() {
                 )}
             </div>
             <div className="space-y-2">
-                <Label>{t('project')}</Label>
-                <Combobox
-                    items={projects.map(p => ({ value: p.id, label: `${p.name} (${p.id})` }))}
-                    selectedValue={selectedProject?.id}
-                    onSelect={(value) => setSelectedProject(projects.find(p => p.id === value) || null)}
-                    placeholder={t('select_project')}
-                    searchPlaceholder={t('search_project')}
-                />
+                <Label htmlFor='project-id-input'>{t('project_id')}</Label>
+                <div className='flex gap-2'>
+                    <Input
+                        id="project-id-input"
+                        value={projectIdInput}
+                        onChange={e => setProjectIdInput(e.target.value)}
+                        placeholder={t('enter_project_id_and_search')}
+                        onKeyDown={(e) => e.key === 'Enter' && handleProjectSearch()}
+                    />
+                    <Button onClick={handleProjectSearch} variant="outline" size="icon">
+                        <Search />
+                    </Button>
+                </div>
+                {selectedProject && (
+                    <div className='mt-2 text-sm text-muted-foreground p-3 bg-muted rounded-md space-y-1'>
+                        <p><strong>{t('project_name')}:</strong> {selectedProject.name}</p>
+                        <p><strong>{t('project_manager')}:</strong> {selectedProject.manager}</p>
+                        <p><strong>{t('project_approver')}:</strong> {selectedProject.approver}</p>
+                    </div>
+                )}
             </div>
         </CardContent>
       </Card>
@@ -350,7 +376,7 @@ function Combobox({ items, selectedValue, onSelect, placeholder, searchPlacehold
     );
 }
 
-function t(key: string){
+function t(key: string, options?: any){
     const { t: translate } = useLanguage();
-    return translate(key);
+    return translate(key, options);
 }
