@@ -174,6 +174,14 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
         setSelectedCountry(country);
         setSelectedWarehouseId(undefined); // Reset warehouse selection
     };
+    
+    const handleRoleChange = (role: UserRole) => {
+        setSelectedRole(role);
+        if (role !== 'operator') {
+            setSelectedCountry(undefined);
+            setSelectedWarehouseId(undefined);
+        }
+    }
 
     return (
         <form action={onSave} className="space-y-4">
@@ -187,7 +195,7 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
             </div>
             <div className="space-y-2">
                 <Label htmlFor="role">Rol</Label>
-                <Select name="role" defaultValue={user?.role} onValueChange={(value) => setSelectedRole(value as UserRole)} required>
+                <Select name="role" defaultValue={user?.role} onValueChange={(value) => handleRoleChange(value as UserRole)} required>
                     <SelectTrigger id="role">
                         <SelectValue placeholder="Selecciona un rol" />
                     </SelectTrigger>
@@ -203,7 +211,7 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
                 <>
                     <div className="space-y-2">
                         <Label htmlFor="country">País</Label>
-                        <Select onValueChange={handleCountryChange} defaultValue={selectedCountry}>
+                        <Select onValueChange={handleCountryChange} value={selectedCountry}>
                             <SelectTrigger id="country">
                                 <SelectValue placeholder="Selecciona un país" />
                             </SelectTrigger>
@@ -218,7 +226,7 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
                     {selectedCountry && (
                          <div className="space-y-2">
                             <Label htmlFor="warehouseId">Bodega Asignada</Label>
-                            <Select name="warehouseId" key={selectedCountry} defaultValue={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+                            <Select name="warehouseId" key={selectedWarehouseId} value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
                                 <SelectTrigger id="warehouseId">
                                     <SelectValue placeholder="Selecciona una bodega" />
                                 </SelectTrigger>
