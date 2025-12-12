@@ -1,10 +1,10 @@
 import type { Warehouse, InventoryItem, UserProfile, Project, Worker, ConsumptionRecord } from './types';
 
 export const mockUsers: UserProfile[] = [
-  { uid: 'admin-user-1', email: 'admin@stockflow.com', name: 'Admin General', role: 'admin' },
-  { uid: 'operator-user-1', email: 'operador.stgo@stockflow.com', name: 'Juan Pérez', role: 'operator', warehouseId: 'stgo-1' },
+  { uid: 'admin-user-1', email: 'Imaulen@masterdrilling.com', name: 'Admin General', role: 'admin' },
+  { uid: 'operator-user-1', email: 'Jcornejo@masterdrilling.com', name: 'Juan Pérez', role: 'operator', warehouseId: 'stgo-1' },
   { uid: 'operator-user-2', email: 'operador.valpo@stockflow.com', name: 'Ana Gómez', role: 'operator', warehouseId: 'valpo-1' },
-  { uid: 'reports-user-1', email: 'reportes@stockflow.com', name: 'María Rojas', role: 'reports' },
+  { uid: 'reports-user-1', email: 'Mzarate@masterdrilling.com', name: 'María Rojas', role: 'reports' },
 ];
 
 export const mockWarehouses: Warehouse[] = [

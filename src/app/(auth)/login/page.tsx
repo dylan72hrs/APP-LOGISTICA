@@ -17,8 +17,12 @@ const fakeLogin = (email: string) => {
     let userRole = 'operator';
     if (email.toLowerCase().includes('admin')) {
       userRole = 'admin';
-    } else if (email.toLowerCase().includes('reportes')) {
+    } else if (email.toLowerCase().includes('mzarate')) {
       userRole = 'reports';
+    } else if (email.toLowerCase().includes('imaulen')) {
+      userRole = 'admin';
+    } else if (email.toLowerCase().includes('jcornejo')) {
+        userRole = 'operator';
     }
     localStorage.setItem('user_role', userRole);
     localStorage.setItem('user_email', email);
@@ -28,8 +32,8 @@ const fakeLogin = (email: string) => {
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('Imaulen@masterdrilling.com');
+  const [password, setPassword] = useState('123456');
   const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
 
   const handleLogin = (e: React.FormEvent) => {
@@ -80,7 +84,7 @@ export default function LoginPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={8} />
             </div>
             <Button type="submit" className="w-full">
               Iniciar Sesión

@@ -22,17 +22,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // In a real app, you'd have a listener to Firebase Auth state changes.
     // For this mockup, we check localStorage.
-    const userRole = localStorage.getItem('user_role') as UserRole | null;
     const userEmail = localStorage.getItem('user_email');
     
     if (userEmail) {
       // Find user from mock data. In real app, fetch from Firestore.
-      const foundUser = mockUsers.find(u => u.email === userEmail) || {
+      const foundUser = mockUsers.find(u => u.email.toLowerCase() === userEmail.toLowerCase()) || {
         uid: 'mock-uid',
         email: userEmail,
         name: userEmail.split('@')[0],
-        role: userRole || 'unassigned',
-        ...(userRole === 'operator' && { warehouseId: 'stgo-1' })
+        role: 'unassigned',
       };
       setUser(foundUser);
     } else {
