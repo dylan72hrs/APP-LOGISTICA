@@ -4,7 +4,7 @@ import { Boxes } from "lucide-react";
 export default function InventoryPage() {
     return (
         <PlaceholderPage 
-            title="Inventario EPP"
+            title="Productos EPP"
             description="Gestiona el stock de Equipos de Protección Personal de tu bodega."
             icon={Boxes}
         />

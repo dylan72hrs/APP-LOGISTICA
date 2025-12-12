@@ -28,7 +28,7 @@ import Image from 'next/image';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'operator', 'reports'] },
-  { href: '/inventory', label: 'Inventario EPP', icon: Boxes, roles: ['admin', 'operator'] },
+  { href: '/inventory', label: 'Productos EPP', icon: Boxes, roles: ['admin', 'operator'] },
   { href: '/consumptions', label: 'Consumos', icon: Truck, roles: ['admin', 'operator'] },
   { href: '/reports', label: 'Informes', icon: FileText, roles: ['admin', 'reports'] },
   { href: '/restock', label: 'Sugerencias IA', icon: BrainCircuit, roles: ['admin'] },
@@ -56,6 +56,7 @@ export function SidebarNav() {
                 width={40}
                 height={40}
                 className='rounded-md'
+                data-ai-hint={companyLogo.imageHint}
               />
             )}
           <span className="text-xl font-bold text-primary">EPP Tracker 3.0</span>
