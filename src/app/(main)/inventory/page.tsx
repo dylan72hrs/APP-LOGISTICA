@@ -140,6 +140,26 @@ export default function InventoryPage() {
         XLSX.writeFile(wb, 'plantilla_productos_epp.xlsx');
     };
 
+    const handleImportClick = () => {
+        if (user?.role === 'admin' && selectedWarehouseId === 'all') {
+            toast({
+                variant: 'destructive',
+                title: t('error'),
+                description: t('admin_select_warehouse_for_import')
+            });
+            return;
+        }
+        if (user?.role === 'operator' && !user.warehouseId) {
+            toast({
+                variant: 'destructive',
+                title: t('no_warehouse_assigned'),
+                description: t('cannot_import_products_without_warehouse')
+            });
+            return;
+        }
+        fileInputRef.current?.click();
+    };
+
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
@@ -158,18 +178,10 @@ export default function InventoryPage() {
                 if (user?.role === 'operator') {
                     warehouseIdForUpload = user.warehouseId;
                 } else if (user?.role === 'admin') {
-                    if (selectedWarehouseId === 'all') {
-                        toast({
-                            variant: 'destructive',
-                            title: t('error'),
-                            description: t('admin_select_warehouse_for_import')
-                        });
-                        return;
-                    }
                     warehouseIdForUpload = selectedWarehouseId;
                 }
 
-                if (!warehouseIdForUpload) {
+                if (!warehouseIdForUpload || warehouseIdForUpload === 'all') {
                      toast({
                         variant: 'destructive',
                         title: t('no_warehouse_assigned'),
@@ -259,7 +271,7 @@ export default function InventoryPage() {
                         <Download className="mr-2"/>
                         {t('download_template')}
                     </Button>
-                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={user?.role === 'reports' || (user?.role === 'admin' && selectedWarehouseId === 'all')} className="w-full sm:w-auto">
+                    <Button variant="outline" onClick={handleImportClick} disabled={user?.role === 'reports'} className="w-full sm:w-auto">
                         <Upload className="mr-2" />
                         {t('import_from_excel')}
                     </Button>
@@ -364,7 +376,7 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
                 <Input id="quantity" name="quantity" type="number" defaultValue={item?.quantity} required min="0"/>
             </div>
              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label htmlFor="cost">{t('price_unit_cost')}</Label>
+                <Label htmlFor="price_unit_cost')}</Label>
                 <Input id="cost" name="cost" type="number" step="0.01" defaultValue={item?.cost} required min="0"/>
             </div>
             
@@ -377,3 +389,5 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
         </form>
     );
 }
+
+    
