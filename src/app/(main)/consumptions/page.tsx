@@ -45,7 +45,7 @@ export default function ConsumptionsPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const warehouseIdToFilter = useMemo(() => {
-    if (user?.role === 'operator') {
+    if (user?.role === 'operator' && user.warehouseId) {
       return user.warehouseId;
     }
     if (user?.role === 'admin' && selectedWarehouseId !== 'all') {
@@ -404,5 +404,7 @@ function t(key: string, options?: any){
     const { t: translate } = useLanguage();
     return translate(key, options);
 }
+
+    
 
     
