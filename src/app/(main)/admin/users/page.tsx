@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -42,6 +42,15 @@ export default function AdminUsersPage() {
                 variant: 'destructive',
                 title: 'Error',
                 description: 'Por favor, completa todos los campos requeridos.'
+            });
+            return;
+        }
+        
+        if (user.role === 'operator' && !user.warehouseId) {
+            toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Los operadores deben tener una bodega asignada.'
             });
             return;
         }
@@ -108,7 +117,7 @@ export default function AdminUsersPage() {
                                         <TableCell className="font-medium">{user.name}</TableCell>
                                         <TableCell>{user.email}</TableCell>
                                         <TableCell>{roleNames[user.role]}</TableCell>
-                                        <TableCell>{assignedWarehouse?.name || 'N/A'}</TableCell>
+                                        <TableCell>{assignedWarehouse ? `${assignedWarehouse.name} (${assignedWarehouse.country})` : 'N/A'}</TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -181,13 +190,13 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
             {(selectedRole === 'operator') && (
                 <div className="space-y-2">
                     <Label htmlFor="warehouseId">Bodega Asignada</Label>
-                    <Select name="warehouseId" defaultValue={user?.warehouseId} required>
+                    <Select name="warehouseId" defaultValue={user?.warehouseId}>
                         <SelectTrigger id="warehouseId">
                             <SelectValue placeholder="Selecciona una bodega" />
                         </SelectTrigger>
                         <SelectContent>
                             {warehouses.map(w => (
-                                <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                                <SelectItem key={w.id} value={w.id}>{`${w.name} (${w.country})`}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>

@@ -11,7 +11,8 @@ export interface UserProfile {
 export interface Warehouse {
   id: string;
   name: string;
-  location: string;
+  city: string;
+  country: string;
 }
 
 export interface InventoryItem {

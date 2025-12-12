@@ -2,14 +2,15 @@ import type { Warehouse, InventoryItem, UserProfile, Project, Worker, Consumptio
 
 export const mockUsers: UserProfile[] = [
   { uid: 'admin-user-1', email: 'Imaulen@masterdrilling.com', name: 'Admin General', role: 'admin' },
-  { uid: 'operator-user-1', email: 'Jcornejo@masterdrilling.com', name: 'Juan Pérez', role: 'operator', warehouseId: 'stgo-1' },
+  { uid: 'operator-user-1', email: 'Jcornejo@masterdrilling.com', name: 'Juan Cornejo', role: 'operator', warehouseId: 'stgo-1' },
   { uid: 'operator-user-2', email: 'operador.valpo@stockflow.com', name: 'Ana Gómez', role: 'operator', warehouseId: 'valpo-1' },
-  { uid: 'reports-user-1', email: 'Mzarate@masterdrilling.com', name: 'María Rojas', role: 'reports' },
+  { uid: 'reports-user-1', email: 'Mzarate@masterdrilling.com', name: 'Matias Zarate', role: 'reports' },
 ];
 
 export const mockWarehouses: Warehouse[] = [
-  { id: 'stgo-1', name: 'STGO-1', location: 'Santiago' },
-  { id: 'valpo-1', name: 'VALPO-1', location: 'Valparaíso' },
+  { id: 'stgo-1', name: 'STGO-1', city: 'Santiago', country: 'Chile' },
+  { id: 'valpo-1', name: 'VALPO-1', city: 'Valparaíso', country: 'Chile' },
+  { id: 'lima-1', name: 'LIMA-1', city: 'Lima', country: 'Perú' },
 ];
 
 export const mockInventory: InventoryItem[] = [
