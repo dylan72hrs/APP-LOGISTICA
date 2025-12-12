@@ -197,5 +197,6 @@
     "enter_rut_and_search": "Enter ID and search",
     "worker_not_found": "Worker not found with the provided ID.",
     "enter_project_id_and_search": "Enter project ID and search",
-    "project_not_found": "Project not found with the provided ID."
-  }
+    "project_not_found": "Project not found with the provided ID.",
+    "search_product_by_code": "Enter the product code..."
+}

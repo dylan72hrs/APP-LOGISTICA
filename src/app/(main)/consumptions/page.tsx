@@ -12,7 +12,7 @@ import type { Worker, Project, InventoryItem } from '@/lib/types';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useToast } from '@/hooks/use-toast';
-import { Check, ChevronsUpDown, PlusCircle, Trash2, Printer, Eye, UserSearch, Search } from 'lucide-react';
+import { Check, ChevronsUpDown, PlusCircle, Trash2, Printer, Eye, UserSearch, Search, PackageSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ValeConsumo, ValeConsumoPreview } from '@/components/vale-consumo';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
@@ -40,18 +40,17 @@ export default function ConsumptionsPage() {
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
 
-  const [productSearch, setProductSearch] = useState('');
-  const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false);
+  const [productCodeInput, setProductCodeInput] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const warehouseIdToFilter = useMemo(() => {
+    let warehouseId: string | undefined;
     if (user?.role === 'operator' && user.warehouseId) {
-      return user.warehouseId;
+      warehouseId = user.warehouseId;
+    } else if (user?.role === 'admin' && selectedWarehouseId !== 'all') {
+      warehouseId = selectedWarehouseId;
     }
-    if (user?.role === 'admin' && selectedWarehouseId !== 'all') {
-      return selectedWarehouseId;
-    }
-    return undefined;
+    return warehouseId;
   }, [selectedWarehouseId, user]);
   
   const availableInventory = useMemo(() => {
@@ -79,14 +78,31 @@ export default function ConsumptionsPage() {
     }
   };
 
-  const handleAddProduct = (item: InventoryItem) => {
-    if (selectedItems.some(i => i.id === item.id)) {
+  const handleProductSearchByCode = () => {
+    if (!productCodeInput) return;
+    if (!warehouseIdToFilter) {
+      toast({
+        variant: 'destructive',
+        title: t('no_warehouse_selected'),
+        description: t('admin_select_warehouse_for_product'),
+      });
+      return;
+    }
+
+    const foundItem = availableInventory.find(item => item.code.toLowerCase() === productCodeInput.toLowerCase());
+
+    if (!foundItem) {
+      toast({ variant: 'destructive', title: t('error'), description: t('no_product_found') });
+      return;
+    }
+    
+    if (selectedItems.some(i => i.id === foundItem.id)) {
       toast({ variant: 'destructive', title: t('error'), description: t('product_already_added') });
       return;
     }
-    setSelectedItems(prev => [...prev, { ...item, consumeQuantity: 1 }]);
-    setProductSearch('');
-    setIsProductPopoverOpen(false);
+
+    setSelectedItems(prev => [...prev, { ...foundItem, consumeQuantity: 1 }]);
+    setProductCodeInput('');
   };
   
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
@@ -149,18 +165,6 @@ export default function ConsumptionsPage() {
     setProjectIdInput('');
     setSelectedProject(null);
     setSelectedItems([]);
-  };
-
-  const handleAddProductClick = () => {
-    if (!warehouseIdToFilter) {
-      toast({
-        variant: 'destructive',
-        title: t('no_warehouse_selected'),
-        description: t('admin_select_warehouse_for_product'),
-      });
-      return; // Prevent popover from opening
-    }
-    setIsProductPopoverOpen(true);
   };
 
   const isFormComplete = selectedWorker && selectedProject && selectedItems.length > 0;
@@ -238,35 +242,26 @@ export default function ConsumptionsPage() {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader>
             <CardTitle>{t('products_to_consume')}</CardTitle>
-            <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" onClick={handleAddProductClick} disabled={!warehouseIdToFilter}>
-                  <PlusCircle className="mr-2" />
-                  {t('add_product')}
+            <div className="flex w-full max-w-sm items-center space-x-2 mt-2">
+                <Input
+                    id="product-code-input"
+                    value={productCodeInput}
+                    onChange={(e) => setProductCodeInput(e.target.value)}
+                    placeholder={t('search_product_by_code')}
+                    onKeyDown={(e) => e.key === 'Enter' && handleProductSearchByCode()}
+                    disabled={!warehouseIdToFilter}
+                />
+                <Button onClick={handleProductSearchByCode} variant="outline" size="icon" disabled={!warehouseIdToFilter}>
+                    <PackageSearch />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="end">
-                <Command>
-                    <CommandInput placeholder={t('search_product')} value={productSearch} onValueChange={setProductSearch}/>
-                    <CommandList>
-                        <CommandEmpty>{t('no_product_found')}</CommandEmpty>
-                        <CommandGroup>
-                            {availableInventory.filter(item => item.description.toLowerCase().includes(productSearch.toLowerCase())).map((item) => (
-                                <CommandItem
-                                    key={item.id}
-                                    value={item.id}
-                                    onSelect={() => handleAddProduct(item)}
-                                >
-                                    {item.description} ({t('stock')}: {item.quantity})
-                                </CommandItem>
-                            ))}
-                        </CommandGroup>
-                    </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            </div>
+            {!warehouseIdToFilter && user?.role === 'admin' && (
+                <CardDescription className='text-destructive mt-2'>
+                    {t('admin_select_warehouse_for_product')}
+                </CardDescription>
+            )}
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -404,7 +399,3 @@ function t(key: string, options?: any){
     const { t: translate } = useLanguage();
     return translate(key, options);
 }
-
-    
-
-    
