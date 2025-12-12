@@ -120,6 +120,15 @@
     "warehouse_deleted": "Bodega eliminada",
     "warehouse_deleted_successfully": "La bodega ha sido eliminada.",
     "worker_management": "Gestión de Trabajadores",
-    "manage_worker_information": "Administra la información de los trabajadores de la empresa."
+    "manage_worker_information": "Administra la información de los trabajadores de la empresa.",
+    "download_template": "Descargar Plantilla",
+    "import_from_excel": "Importar desde Excel",
+    "admin_select_warehouse_for_import": "Como administrador, debes seleccionar una bodega específica para importar productos.",
+    "cannot_import_products_without_warehouse": "No se pueden importar productos sin una bodega asignada o seleccionada.",
+    "invalid_row_data_in_excel": "Datos de fila inválidos en el archivo Excel. Asegúrate de que todas las columnas necesarias estén presentes y tengan el formato correcto.",
+    "import_successful": "Importación exitosa",
+    "new_items_imported_successfully": "{{count}} nuevos items importados correctamente.",
+    "import_error": "Error de Importación",
+    "error_processing_excel": "Ocurrió un error al procesar el archivo Excel."
   }
   

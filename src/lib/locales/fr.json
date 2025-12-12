@@ -120,6 +120,15 @@
     "warehouse_deleted": "Entrepôt supprimé",
     "warehouse_deleted_successfully": "L'entrepôt a été supprimé avec succès.",
     "worker_management": "Gestion des Travailleurs",
-    "manage_worker_information": "Gérez les informations des travailleurs de l'entreprise."
+    "manage_worker_information": "Gérez les informations des travailleurs de l'entreprise.",
+    "download_template": "Télécharger le Modèle",
+    "import_from_excel": "Importer depuis Excel",
+    "admin_select_warehouse_for_import": "En tant qu'administrateur, vous devez sélectionner un entrepôt spécifique pour importer des produits.",
+    "cannot_import_products_without_warehouse": "Impossible d'importer des produits sans un entrepôt assigné ou sélectionné.",
+    "invalid_row_data_in_excel": "Données de ligne non valides dans le fichier Excel. Assurez-vous que toutes les colonnes requises sont présentes et au bon format.",
+    "import_successful": "Importation réussie",
+    "new_items_imported_successfully": "{{count}} nouveaux articles importés avec succès.",
+    "import_error": "Erreur d'Importation",
+    "error_processing_excel": "Une erreur s'est produite lors du traitement du fichier Excel."
   }
   

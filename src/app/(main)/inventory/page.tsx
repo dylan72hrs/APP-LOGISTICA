@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,13 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { mockInventory as initialInventory, mockWarehouses } from '@/lib/data';
 import type { InventoryItem } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse as WarehouseIcon } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse as WarehouseIcon, Upload, Download } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/lib/hooks/use-language';
+import * as XLSX from 'xlsx';
 
 export default function InventoryPage() {
     const { toast } = useToast();
@@ -26,6 +27,7 @@ export default function InventoryPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
     const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('all');
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const visibleInventory = useMemo(() => {
         if (!user) return [];
@@ -130,6 +132,107 @@ export default function InventoryPage() {
         return { text: t('in_stock'), variant: "default" };
     }
 
+    const handleDownloadTemplate = () => {
+        const headers = [t('code'), t('description'), t('size_unit'), t('quantity'), t('unit_cost')];
+        const ws = XLSX.utils.aoa_to_sheet([headers]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
+        XLSX.writeFile(wb, 'plantilla_productos_epp.xlsx');
+    };
+
+    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+
+                let warehouseIdForUpload: string | undefined;
+
+                if (user?.role === 'operator') {
+                    warehouseIdForUpload = user.warehouseId;
+                } else if (user?.role === 'admin') {
+                    if (selectedWarehouseId === 'all') {
+                        toast({
+                            variant: 'destructive',
+                            title: t('error'),
+                            description: t('admin_select_warehouse_for_import')
+                        });
+                        return;
+                    }
+                    warehouseIdForUpload = selectedWarehouseId;
+                }
+
+                if (!warehouseIdForUpload) {
+                     toast({
+                        variant: 'destructive',
+                        title: t('no_warehouse_assigned'),
+                        description: t('cannot_import_products_without_warehouse')
+                    });
+                    return;
+                }
+
+                const newItems: InventoryItem[] = [];
+                const existingCodes = new Set(inventory.filter(i => i.warehouseId === warehouseIdForUpload).map(i => i.code.toLowerCase()));
+                
+                for (const row of json) {
+                    const code = row[t('code')];
+                    const description = row[t('description')];
+                    const size = row[t('size_unit')];
+                    const quantity = parseInt(row[t('quantity')], 10);
+                    const cost = parseFloat(row[t('unit_cost')]);
+                    
+                    if (!code || !description || !size || isNaN(quantity) || isNaN(cost)) {
+                        throw new Error(t('invalid_row_data_in_excel'));
+                    }
+
+                    if (existingCodes.has(String(code).toLowerCase())) {
+                       console.warn(`Skipping existing code: ${code}`);
+                       continue;
+                    }
+
+                    const newItem: InventoryItem = {
+                        id: String(code),
+                        code: String(code),
+                        description: String(description),
+                        size: String(size),
+                        quantity,
+                        cost,
+                        warehouseId: warehouseIdForUpload!,
+                    };
+                    newItems.push(newItem);
+                    existingCodes.add(newItem.code.toLowerCase());
+                }
+
+                setInventory(prev => [...newItems, ...prev]);
+                toast({
+                    title: t('import_successful'),
+                    description: t('new_items_imported_successfully', { count: newItems.length.toString() })
+                });
+
+            } catch (error) {
+                console.error(error);
+                toast({
+                    variant: 'destructive',
+                    title: t('import_error'),
+                    description: error instanceof Error ? error.message : t('error_processing_excel')
+                });
+            } finally {
+                // Reset file input
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
     return (
         <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -137,7 +240,7 @@ export default function InventoryPage() {
                     <h1 className="text-2xl font-bold tracking-tight">{t('epp_products')}</h1>
                     <CardDescription>{t('manage_epp_stock')}</CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                      {user?.role === 'admin' && (
                         <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
                             <SelectTrigger className="w-full sm:w-[200px]">
@@ -152,6 +255,16 @@ export default function InventoryPage() {
                             </SelectContent>
                         </Select>
                     )}
+                    <Button variant="outline" onClick={handleDownloadTemplate} className="w-full sm:w-auto">
+                        <Download className="mr-2"/>
+                        {t('download_template')}
+                    </Button>
+                    <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={user?.role === 'reports' || (user?.role === 'admin' && selectedWarehouseId === 'all')} className="w-full sm:w-auto">
+                        <Upload className="mr-2" />
+                        {t('import_from_excel')}
+                    </Button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx, .xls" className="hidden"/>
+
                     <Button onClick={handleAddNewClick} disabled={user?.role === 'reports'} className="w-full sm:w-auto">
                         <PlusCircle className="mr-2" />
                         {t('add_product')}

@@ -119,6 +119,15 @@
     "warehouse_deleted": "Warehouse deleted",
     "warehouse_deleted_successfully": "The warehouse has been deleted successfully.",
     "worker_management": "Worker Management",
-    "manage_worker_information": "Manage company worker information."
+    "manage_worker_information": "Manage company worker information.",
+    "download_template": "Download Template",
+    "import_from_excel": "Import from Excel",
+    "admin_select_warehouse_for_import": "As an administrator, you must select a specific warehouse to import products.",
+    "cannot_import_products_without_warehouse": "Cannot import products without an assigned or selected warehouse.",
+    "invalid_row_data_in_excel": "Invalid row data in Excel file. Make sure all required columns are present and have the correct format.",
+    "import_successful": "Import successful",
+    "new_items_imported_successfully": "{{count}} new items imported successfully.",
+    "import_error": "Import Error",
+    "error_processing_excel": "An error occurred while processing the Excel file."
   }
   
