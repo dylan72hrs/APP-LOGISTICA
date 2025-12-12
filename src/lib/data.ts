@@ -23,8 +23,8 @@ export const mockInventory: InventoryItem[] = [
 ];
 
 export const mockProjects: Project[] = [
-    { id: 'PROY-001', name: 'Construcción Edificio Central' },
-    { id: 'PROY-002', name: 'Mantenimiento Planta Norte' },
+    { id: 'PROY-001', name: 'Construcción Edificio Central', financialDimension: 'FIN-DIM-01', manager: 'Gerardo Rojas', approver: 'Marcela Soto' },
+    { id: 'PROY-002', name: 'Mantenimiento Planta Norte', financialDimension: 'FIN-DIM-02', manager: 'Felipe Neira', approver: 'Carla Mendez' },
 ];
 
 export const mockWorkers: Worker[] = [

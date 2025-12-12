@@ -27,7 +27,10 @@ export interface InventoryItem {
 
 export interface Project {
   id: string;
+  financialDimension: string;
   name: string;
+  manager: string;
+  approver: string;
 }
 
 export interface Worker {

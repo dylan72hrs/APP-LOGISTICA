@@ -146,6 +146,23 @@
     "new_worker_added_successfully": "El nuevo trabajador ha sido agregado correctamente.",
     "worker_deleted": "Trabajador Eliminado",
     "worker_deleted_successfully": "El trabajador ha sido eliminado correctamente.",
-    "new_workers_imported_successfully": "{{count}} nuevos trabajadores importados correctamente."
+    "new_workers_imported_successfully": "{{count}} nuevos trabajadores importados correctamente.",
+    "add_project": "Agregar Proyecto",
+    "project_id": "ID de Proyecto",
+    "financial_dimension": "Dimensión Financiera",
+    "project_name": "Nombre de Proyecto",
+    "project_manager": "Administrador/Encargado",
+    "project_approver": "Aprobador",
+    "edit_project": "Editar Proyecto",
+    "add_new_project": "Agregar Nuevo Proyecto",
+    "project_updated": "Proyecto Actualizado",
+    "project_updated_successfully": "El proyecto ha sido actualizado correctamente.",
+    "id_error": "Error de ID",
+    "project_id_exists": "El proyecto con ID '{{id}}' ya existe.",
+    "project_created": "Proyecto Creado",
+    "new_project_added_successfully": "El nuevo proyecto ha sido agregado correctamente.",
+    "project_deleted": "Proyecto Eliminado",
+    "project_deleted_successfully": "El proyecto ha sido eliminado correctamente.",
+    "new_projects_imported_successfully": "{{count}} nuevos proyectos importados correctamente."
   }
   

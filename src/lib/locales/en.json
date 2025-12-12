@@ -145,6 +145,23 @@
     "new_worker_added_successfully": "The new worker has been added successfully.",
     "worker_deleted": "Worker Deleted",
     "worker_deleted_successfully": "The worker has been deleted successfully.",
-    "new_workers_imported_successfully": "{{count}} new workers imported successfully."
+    "new_workers_imported_successfully": "{{count}} new workers imported successfully.",
+    "add_project": "Add Project",
+    "project_id": "Project ID",
+    "financial_dimension": "Financial Dimension",
+    "project_name": "Project Name",
+    "project_manager": "Manager",
+    "project_approver": "Approver",
+    "edit_project": "Edit Project",
+    "add_new_project": "Add New Project",
+    "project_updated": "Project Updated",
+    "project_updated_successfully": "The project has been updated successfully.",
+    "id_error": "ID Error",
+    "project_id_exists": "Project with ID '{{id}}' already exists.",
+    "project_created": "Project Created",
+    "new_project_added_successfully": "The new project has been added successfully.",
+    "project_deleted": "Project Deleted",
+    "project_deleted_successfully": "The project has been deleted successfully.",
+    "new_projects_imported_successfully": "{{count}} new projects imported successfully."
   }
   
