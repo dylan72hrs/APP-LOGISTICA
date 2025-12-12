@@ -162,6 +162,18 @@ export default function AdminUsersPage() {
 
 function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, warehouses: Warehouse[], onSave: (data: FormData) => void }) {
     const [selectedRole, setSelectedRole] = useState<UserRole | undefined>(user?.role);
+    const initialCountry = user?.warehouseId ? warehouses.find(w => w.id === user.warehouseId)?.country : undefined;
+    const [selectedCountry, setSelectedCountry] = useState<string | undefined>(initialCountry);
+    const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | undefined>(user?.warehouseId);
+
+
+    const countries = [...new Set(warehouses.map(w => w.country))];
+    const filteredWarehouses = selectedCountry ? warehouses.filter(w => w.country === selectedCountry) : [];
+
+    const handleCountryChange = (country: string) => {
+        setSelectedCountry(country);
+        setSelectedWarehouseId(undefined); // Reset warehouse selection
+    };
 
     return (
         <form action={onSave} className="space-y-4">
@@ -188,19 +200,37 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
             </div>
 
             {(selectedRole === 'operator') && (
-                <div className="space-y-2">
-                    <Label htmlFor="warehouseId">Bodega Asignada</Label>
-                    <Select name="warehouseId" defaultValue={user?.warehouseId}>
-                        <SelectTrigger id="warehouseId">
-                            <SelectValue placeholder="Selecciona una bodega" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {warehouses.map(w => (
-                                <SelectItem key={w.id} value={w.id}>{`${w.name} (${w.country})`}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <>
+                    <div className="space-y-2">
+                        <Label htmlFor="country">País</Label>
+                        <Select onValueChange={handleCountryChange} defaultValue={selectedCountry}>
+                            <SelectTrigger id="country">
+                                <SelectValue placeholder="Selecciona un país" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {countries.map(country => (
+                                    <SelectItem key={country} value={country}>{country}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {selectedCountry && (
+                         <div className="space-y-2">
+                            <Label htmlFor="warehouseId">Bodega Asignada</Label>
+                            <Select name="warehouseId" key={selectedCountry} defaultValue={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+                                <SelectTrigger id="warehouseId">
+                                    <SelectValue placeholder="Selecciona una bodega" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {filteredWarehouses.map(w => (
+                                        <SelectItem key={w.id} value={w.id}>{`${w.name} (${w.city})`}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                </>
             )}
             
             <DialogFooter>
