@@ -48,11 +48,9 @@ export default function ConsumptionsPage() {
     if (user?.role === 'operator') {
       return user.warehouseId;
     }
-    // For admin, only return a warehouse ID if a specific one is selected
     if (user?.role === 'admin' && selectedWarehouseId !== 'all') {
       return selectedWarehouseId;
     }
-    // For admin with "All" selected, or any other case, return undefined
     return undefined;
   }, [selectedWarehouseId, user]);
   
@@ -174,7 +172,8 @@ export default function ConsumptionsPage() {
     project: selectedProject,
     items: selectedItems,
     totalCost,
-    warehouse: warehouseIdToFilter ? mockWarehouses.find(w => w.id === warehouseIdToFilter)?.name : 'N/A',
+    warehouse: warehouseIdToFilter ? mockWarehouses.find(w => w.id === warehouseIdToFilter)?.name || 'N/A' : 'N/A',
+    deliveredBy: user?.name || 'N/A',
   };
 
 

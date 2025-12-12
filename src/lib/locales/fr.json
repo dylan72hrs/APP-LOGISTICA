@@ -192,6 +192,7 @@
     "date": "Date",
     "signature_worker": "Signature du Travailleur",
     "signature_supervisor": "Signature du Superviseur",
+    "signature_delivered_by": "Signature de Livraison",
     "worker_rut": "ID du travailleur",
     "enter_rut_and_search": "Entrez l'ID et recherchez",
     "worker_not_found": "Travailleur non trouvé avec l'ID fourni.",

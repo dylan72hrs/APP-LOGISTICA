@@ -24,6 +24,7 @@ interface ValeConsumoData {
     }[];
     totalCost: number;
     warehouse: string;
+    deliveredBy: string;
 }
 
 interface ValeConsumoProps {
@@ -101,15 +102,21 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
                 </div>
             </section>
 
-            <footer className="mt-24 grid grid-cols-2 gap-8 text-center">
+            <footer className="mt-24 grid grid-cols-3 gap-8 text-center">
                 <div>
-                    <div className="border-t border-black w-2/3 mx-auto pt-2">
+                    <div className="border-t border-black w-full mx-auto pt-2">
                         <p>{t('signature_worker')}</p>
                         <p className='font-bold'>{data.worker?.name}</p>
                     </div>
                 </div>
+                 <div>
+                    <div className="border-t border-black w-full mx-auto pt-2">
+                         <p>{t('signature_delivered_by')}</p>
+                         <p className='font-bold'>{data.deliveredBy}</p>
+                    </div>
+                </div>
                 <div>
-                    <div className="border-t border-black w-2/3 mx-auto pt-2">
+                    <div className="border-t border-black w-full mx-auto pt-2">
                          <p>{t('signature_supervisor')}</p>
                     </div>
                 </div>

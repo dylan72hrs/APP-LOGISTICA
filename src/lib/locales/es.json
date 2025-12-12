@@ -192,6 +192,7 @@
     "date": "Fecha",
     "signature_worker": "Firma Trabajador",
     "signature_supervisor": "Firma Supervisor",
+    "signature_delivered_by": "Firma Entrega",
     "worker_rut": "RUT del Trabajador",
     "enter_rut_and_search": "Ingresa RUT y busca",
     "worker_not_found": "Trabajador no encontrado con el RUT proporcionado.",
