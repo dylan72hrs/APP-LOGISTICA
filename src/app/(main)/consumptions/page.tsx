@@ -337,16 +337,12 @@ export default function ConsumptionsPage() {
                 </Button>
             </div>
             <ScrollArea className="max-h-[70vh] print:max-h-none print:overflow-visible">
-              <div className="p-6 pt-0">
+              <div className="p-6 pt-0 print-container">
                  <ValeConsumo data={consumptionData} />
               </div>
             </ScrollArea>
         </DialogContent>
       </Dialog>
-      
-      <div className="hidden print:block">
-        <ValeConsumo data={consumptionData} />
-      </div>
     </div>
   );
 }
