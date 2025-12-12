@@ -63,7 +63,7 @@ export default function LoginPage() {
                 />
             )}
           <CardTitle className="text-3xl font-bold">EPP Tracker 3.0</CardTitle>
-          <CardDescription>GESTION Y CONTROL DE EPP</CardDescription>
+          <CardDescription>gestión y control de epp</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
