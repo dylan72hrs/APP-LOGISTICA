@@ -12,7 +12,7 @@ import type { Worker, Project, InventoryItem } from '@/lib/types';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useToast } from '@/hooks/use-toast';
-import { Check, ChevronsUpDown, PlusCircle, Trash2, Printer, Eye } from 'lucide-react';
+import { Check, ChevronsUpDown, PlusCircle, Trash2, Printer, Eye, UserSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ValeConsumo, ValeConsumoPreview } from '@/components/vale-consumo';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
@@ -30,6 +30,7 @@ export default function ConsumptionsPage() {
   const [projects] = useState<Project[]>(mockProjects);
   const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory);
 
+  const [rutInput, setRutInput] = useState('');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
@@ -45,6 +46,16 @@ export default function ConsumptionsPage() {
   const availableInventory = useMemo(() => {
     return inventory.filter(item => item.warehouseId === warehouseIdToFilter && item.quantity > 0);
   }, [inventory, warehouseIdToFilter]);
+  
+  const handleRutSearch = () => {
+    const foundWorker = workers.find(w => w.rut.replace(/\./g, '').replace(/-/g, '') === rutInput.replace(/\./g, '').replace(/-/g, ''));
+    if (foundWorker) {
+        setSelectedWorker(foundWorker);
+    } else {
+        setSelectedWorker(null);
+        toast({ variant: "destructive", title: t('error'), description: t('worker_not_found') });
+    }
+  };
 
   const handleAddProduct = (item: InventoryItem) => {
     if (selectedItems.some(i => i.id === item.id)) {
@@ -111,6 +122,7 @@ export default function ConsumptionsPage() {
     toast({ title: t('consumption_registered'), description: t('stock_updated_successfully') });
     
     // 3. Reset form
+    setRutInput('');
     setSelectedWorker(null);
     setSelectedProject(null);
     setSelectedItems([]);
@@ -141,14 +153,24 @@ export default function ConsumptionsPage() {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-                <Label>{t('worker')}</Label>
-                <Combobox
-                    items={workers.map(w => ({ value: w.id, label: `${w.name} (${w.rut})` }))}
-                    selectedValue={selectedWorker?.id}
-                    onSelect={(value) => setSelectedWorker(workers.find(w => w.id === value) || null)}
-                    placeholder={t('select_worker')}
-                    searchPlaceholder={t('search_worker')}
-                />
+                <Label htmlFor='rut-input'>{t('worker_rut')}</Label>
+                <div className='flex gap-2'>
+                    <Input 
+                        id="rut-input"
+                        value={rutInput}
+                        onChange={e => setRutInput(e.target.value)}
+                        placeholder={t('enter_rut_and_search')}
+                        onKeyDown={(e) => e.key === 'Enter' && handleRutSearch()}
+                    />
+                    <Button onClick={handleRutSearch} variant="outline" size="icon">
+                        <UserSearch />
+                    </Button>
+                </div>
+                {selectedWorker && (
+                    <div className='mt-2 text-sm text-muted-foreground p-2 bg-muted rounded-md'>
+                        <p><strong>{t('name')}:</strong> {selectedWorker.name}</p>
+                    </div>
+                )}
             </div>
             <div className="space-y-2">
                 <Label>{t('project')}</Label>
