@@ -72,7 +72,7 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
             </section>
 
             <section className="mt-6">
-                <div className='border-black border-t border-l border-r'>
+                <div className='border-black border'>
                     <Table>
                         <TableHeader>
                             <TableRow className='border-b border-black'>
@@ -85,7 +85,7 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
                         </TableHeader>
                         <TableBody>
                             {data.items.map(item => (
-                                <TableRow key={item.code} className='border-b border-black last:border-b-0'>
+                                <TableRow key={item.code} className='border-b border-black'>
                                     <TableCell className="border-r border-black">{item.code}</TableCell>
                                     <TableCell className="border-r border-black">{item.description}</TableCell>
                                     <TableCell className="text-right border-r border-black">{item.consumeQuantity}</TableCell>
@@ -130,6 +130,7 @@ ValeConsumo.displayName = 'ValeConsumo';
 
 export function ValeConsumoPreview({ data }: ValeConsumoProps) {
     const { t } = useLanguage();
+    const printableRef = React.useRef<HTMLDivElement>(null);
 
     const handlePrint = () => {
         window.print();
@@ -143,8 +144,8 @@ export function ValeConsumoPreview({ data }: ValeConsumoProps) {
                     {t('print')}
                 </Button>
             </div>
-             <div className="border rounded-lg overflow-hidden print:border-none print:rounded-none" id="printable-content">
-                <ValeConsumo data={data} />
+             <div className="border rounded-lg overflow-hidden print:border-none print:rounded-none" >
+                <ValeConsumo data={data} ref={printableRef} />
              </div>
         </div>
     );
