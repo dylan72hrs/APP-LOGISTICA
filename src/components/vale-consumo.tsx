@@ -130,22 +130,17 @@ ValeConsumo.displayName = 'ValeConsumo';
 
 export function ValeConsumoPreview({ data }: ValeConsumoProps) {
     const { t } = useLanguage();
-    const printableRef = React.useRef<HTMLDivElement>(null);
-
-    const handlePrint = () => {
-        window.print();
-    };
     
     return (
         <div>
             <div className="flex justify-end mb-4 print:hidden">
-                <Button onClick={handlePrint}>
+                <Button onClick={() => window.print()}>
                     <Printer className="mr-2" />
                     {t('print')}
                 </Button>
             </div>
-             <div className="border rounded-lg overflow-hidden print:border-none print:rounded-none" >
-                <ValeConsumo data={data} ref={printableRef} />
+             <div id="printable-content-wrapper" className="border rounded-lg overflow-hidden print:border-none print:rounded-none" >
+                <ValeConsumo data={data} />
              </div>
         </div>
     );

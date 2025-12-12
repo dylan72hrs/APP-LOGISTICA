@@ -88,19 +88,18 @@ body {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
+  body > :not(#printable-content-wrapper) {
+    display: none;
   }
-  #printable-content, #printable-content * {
-    visibility: visible;
-  }
-  #printable-content {
+  #printable-content-wrapper {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
+    height: 100%;
+    display: block;
   }
   .border-black {
-    border-color: #000;
+    border-color: #000 !important;
   }
 }
