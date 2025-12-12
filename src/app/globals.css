@@ -88,24 +88,19 @@ body {
 }
 
 @media print {
-  body > * {
-    display: none;
+  body {
+    visibility: hidden;
   }
-
-  body > .print-container,
-  body > .print-container * {
-    display: block;
+  .print-container, .print-container * {
     visibility: visible;
   }
-
-  body > .print-container {
+  .print-container {
     position: absolute;
     left: 0;
     top: 0;
     width: 100%;
   }
-
-  .border-black {
-    border-color: #000 !important;
+  .print-hidden {
+    display: none;
   }
 }

@@ -336,7 +336,7 @@ export default function ConsumptionsPage() {
                     {t('print')}
                 </Button>
             </div>
-            <ScrollArea className="max-h-[70vh]">
+            <ScrollArea className="max-h-[70vh] print:max-h-none print:overflow-visible">
               <div className="p-6 pt-0">
                  <ValeConsumo data={consumptionData} />
               </div>
