@@ -80,7 +80,7 @@
     "status": "Estado",
     "in_stock": "En Stock",
     "low_stock": "Stock Bajo",
-    "sin_stock": "Sin Stock",
+    "out_of_stock": "Sin Stock",
     "edit_product": "Editar Producto",
     "enter_new_product": "Ingresar Nuevo Producto",
     "entry_quantity": "Cantidad de Ingreso",
@@ -191,4 +191,5 @@
     "consumption_voucher": "Vale de Consumo",
     "date": "Fecha",
     "signature_worker": "Firma Trabajador",
-    "signature_supervisor": "
+    "signature_supervisor": "Firma Supervisor"
+}

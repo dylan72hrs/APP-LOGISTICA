@@ -190,4 +190,6 @@
     "consumption_voucher_preview": "Aperçu du Bon de Consommation",
     "consumption_voucher": "Bon de Consommation",
     "date": "Date",
-    "signature
+    "signature_worker": "Signature du Travailleur",
+    "signature_supervisor": "Signature du Superviseur"
+}
