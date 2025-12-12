@@ -16,6 +16,7 @@ import { Check, ChevronsUpDown, PlusCircle, Trash2, Printer, Eye, UserSearch, Se
 import { cn } from '@/lib/utils';
 import { ValeConsumo, ValeConsumoPreview } from '@/components/vale-consumo';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { useAuth } from '@/lib/hooks/use-auth';
 
 interface SelectedItem extends InventoryItem {
   consumeQuantity: number;
@@ -24,7 +25,8 @@ interface SelectedItem extends InventoryItem {
 export default function ConsumptionsPage() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
-  const { selectedWarehouseId, userWarehouseId } = useWarehouse();
+  const { user } = useAuth();
+  const { selectedWarehouseId } = useWarehouse();
   
   const [workers] = useState<Worker[]>(mockWorkers);
   const [projects] = useState<Project[]>(mockProjects);
@@ -43,10 +45,13 @@ export default function ConsumptionsPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const warehouseIdToFilter = useMemo(() => {
-    return selectedWarehouseId === 'all' ? userWarehouseId : selectedWarehouseId;
-  }, [selectedWarehouseId, userWarehouseId]);
+    if (user?.role === 'operator') return user.warehouseId;
+    if (user?.role === 'admin' && selectedWarehouseId !== 'all') return selectedWarehouseId;
+    return undefined; // Admin has "All Warehouses" selected or no warehouse context
+  }, [selectedWarehouseId, user]);
   
   const availableInventory = useMemo(() => {
+    if (!warehouseIdToFilter) return [];
     return inventory.filter(item => item.warehouseId === warehouseIdToFilter && item.quantity > 0);
   }, [inventory, warehouseIdToFilter]);
   
@@ -142,6 +147,19 @@ export default function ConsumptionsPage() {
     setSelectedItems([]);
   };
 
+  const handleAddProductClick = () => {
+    if (!warehouseIdToFilter) {
+      toast({
+        variant: 'destructive',
+        title: t('no_warehouse_selected'),
+        description: t('admin_select_warehouse_for_product'),
+      });
+    }
+    // The popover will only open if the button is not disabled, so we don't need to manually open it here.
+  };
+
+  const isFormComplete = selectedWorker && selectedProject && selectedItems.length > 0;
+
   const consumptionData = {
     id: `VC-${Date.now()}`,
     date: new Date(),
@@ -218,7 +236,7 @@ export default function ConsumptionsPage() {
             <CardTitle>{t('products_to_consume')}</CardTitle>
             <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" disabled={!warehouseIdToFilter}>
+                <Button variant="outline" disabled={!warehouseIdToFilter} onClick={handleAddProductClick}>
                   <PlusCircle className="mr-2" />
                   {t('add_product')}
                 </Button>
@@ -292,11 +310,11 @@ export default function ConsumptionsPage() {
         </CardFooter>
       </Card>
       <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setIsPreviewOpen(true)} disabled={selectedItems.length === 0 || !selectedWorker || !selectedProject}>
+          <Button variant="outline" onClick={() => setIsPreviewOpen(true)} disabled={!isFormComplete}>
             <Eye className="mr-2" />
             {t('preview_voucher')}
           </Button>
-          <Button onClick={handleRegisterConsumption} disabled={selectedItems.length === 0 || !selectedWorker || !selectedProject}>
+          <Button onClick={handleRegisterConsumption} disabled={!isFormComplete}>
               {t('register_consumption')}
           </Button>
       </div>
@@ -380,3 +398,5 @@ function t(key: string, options?: any){
     const { t: translate } = useLanguage();
     return translate(key, options);
 }
+
+    

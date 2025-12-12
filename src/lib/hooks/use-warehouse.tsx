@@ -6,7 +6,6 @@ import { useAuth } from './use-auth';
 interface WarehouseContextType {
   selectedWarehouseId: string;
   setSelectedWarehouseId: (warehouseId: string) => void;
-  userWarehouseId?: string; // The specific warehouse assigned to an operator
 }
 
 const WarehouseContext = createContext<WarehouseContextType | undefined>(undefined);
@@ -15,21 +14,24 @@ export function WarehouseProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   
   // Admin starts with 'all', operator starts with their assigned warehouse
-  const initialWarehouse = user?.role === 'operator' ? user.warehouseId || '' : 'all';
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(initialWarehouse);
+  const getInitialWarehouse = () => {
+    if (user?.role === 'operator' && user.warehouseId) {
+      return user.warehouseId;
+    }
+    return 'all';
+  };
+  
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(getInitialWarehouse());
 
   useEffect(() => {
-    // If the user role changes or logs in/out, reset the warehouse selection
-    if (user) {
-        const newInitialWarehouse = user.role === 'operator' ? user.warehouseId || '' : 'all';
-        setSelectedWarehouseId(newInitialWarehouse);
-    }
+    // If the user logs in/out or their role changes, reset the warehouse selection.
+    // This runs when `user` object changes.
+    setSelectedWarehouseId(getInitialWarehouse());
   }, [user]);
 
   const value = { 
     selectedWarehouseId, 
     setSelectedWarehouseId,
-    userWarehouseId: user?.warehouseId
   };
 
   return <WarehouseContext.Provider value={value}>{children}</WarehouseContext.Provider>;
@@ -42,3 +44,5 @@ export function useWarehouse() {
   }
   return context;
 }
+
+    
