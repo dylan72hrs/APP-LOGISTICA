@@ -175,9 +175,10 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
         setSelectedWarehouseId(undefined); // Reset warehouse selection
     };
     
-    const handleRoleChange = (role: UserRole) => {
-        setSelectedRole(role);
-        if (role !== 'operator') {
+    const handleRoleChange = (role: string) => {
+        const newRole = role as UserRole;
+        setSelectedRole(newRole);
+        if (newRole !== 'operator') {
             setSelectedCountry(undefined);
             setSelectedWarehouseId(undefined);
         }
@@ -195,7 +196,7 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
             </div>
             <div className="space-y-2">
                 <Label htmlFor="role">Rol</Label>
-                <Select name="role" defaultValue={user?.role} onValueChange={(value) => handleRoleChange(value as UserRole)} required>
+                <Select name="role" defaultValue={user?.role} onValueChange={handleRoleChange} required>
                     <SelectTrigger id="role">
                         <SelectValue placeholder="Selecciona un rol" />
                     </SelectTrigger>
