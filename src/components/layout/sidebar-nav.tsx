@@ -29,12 +29,12 @@ import Image from 'next/image';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'operator', 'reports'] },
   { href: '/inventory', label: 'Productos EPP', icon: Boxes, roles: ['admin', 'operator'] },
+  { href: '/workers', label: 'Trabajadores', icon: HardHat, roles: ['admin', 'operator'] },
+  { href: '/projects', label: 'Proyectos', icon: Building, roles: ['admin', 'operator'] },
   { href: '/consumptions', label: 'Consumos', icon: Truck, roles: ['admin', 'operator'] },
   { href: '/reports', label: 'Informes', icon: FileText, roles: ['admin', 'reports'] },
   { href: '/restock', label: 'Sugerencias IA', icon: BrainCircuit, roles: ['admin'] },
   { href: '/warehouses', label: 'Bodegas', icon: Warehouse, roles: ['admin'] },
-  { href: '/workers', label: 'Trabajadores', icon: HardHat, roles: ['admin'] },
-  { href: '/projects', label: 'Proyectos', icon: Building, roles: ['admin'] },
   { href: '/admin/users', label: 'Admin', icon: Users, roles: ['admin'] },
 ];
 
