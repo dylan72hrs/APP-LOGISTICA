@@ -49,19 +49,19 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
-      {companyLogo && (
-         <Image
-            src={companyLogo.imageUrl}
-            alt={companyLogo.description}
-            width={200}
-            height={200}
-            className="mb-8"
-            data-ai-hint={companyLogo.imageHint}
-            priority
-          />
-      )}
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
+            {companyLogo && (
+                <Image
+                    src={companyLogo.imageUrl}
+                    alt={companyLogo.description}
+                    width={200}
+                    height={200}
+                    className="mx-auto mb-4"
+                    data-ai-hint={companyLogo.imageHint}
+                    priority
+                />
+            )}
           <CardTitle className="text-3xl font-bold">EPP Tracker 3.0</CardTitle>
           <CardDescription>Inicia sesión para gestionar tu inventario</CardDescription>
         </CardHeader>
