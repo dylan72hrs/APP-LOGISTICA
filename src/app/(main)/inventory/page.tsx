@@ -1,41 +1,43 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { mockInventory as initialInventory } from '@/lib/data';
+import { mockInventory as initialInventory, mockWarehouses } from '@/lib/data';
 import type { InventoryItem } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function InventoryPage() {
     const { toast } = useToast();
     const { user } = useAuth();
-
-    // Filter inventory based on user's role and warehouse
-    const getVisibleInventory = () => {
-        if (!user) return [];
-        if (user.role === 'admin') {
-            // Admins see all inventory, but we should probably show which warehouse it is
-            return initialInventory;
-        }
-        if (user.role === 'operator' && user.warehouseId) {
-            return initialInventory.filter(item => item.warehouseId === user.warehouseId);
-        }
-        return [];
-    }
-
-    const [inventory, setInventory] = useState<InventoryItem[]>(getVisibleInventory());
+    
+    const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-    
+    const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('all');
+
+    const visibleInventory = useMemo(() => {
+        if (!user) return [];
+        if (user.role === 'admin') {
+            if (selectedWarehouseId === 'all') {
+                return inventory;
+            }
+            return inventory.filter(item => item.warehouseId === selectedWarehouseId);
+        }
+        if (user.role === 'operator' && user.warehouseId) {
+            return inventory.filter(item => item.warehouseId === user.warehouseId);
+        }
+        return [];
+    }, [user, inventory, selectedWarehouseId]);
 
     const handleSaveItem = (formData: FormData) => {
         const item: Omit<InventoryItem, 'id' | 'warehouseId'> & { id?: string, warehouseId?: string } = {
@@ -54,23 +56,34 @@ export default function InventoryPage() {
             });
             return;
         }
+        
+        let warehouseId = editingItem?.warehouseId;
+        if (!warehouseId) {
+            if (user?.role === 'operator') {
+                warehouseId = user.warehouseId!;
+            } else if (user?.role === 'admin') {
+                // If admin is adding and has a warehouse selected, use it. Otherwise, default.
+                warehouseId = selectedWarehouseId !== 'all' ? selectedWarehouseId : 'stgo-1';
+            }
+        }
+
 
         const finalItem: InventoryItem = {
             ...item,
             id: editingItem?.id || item.code,
-            warehouseId: editingItem?.warehouseId || (user?.role === 'operator' ? user.warehouseId! : 'stgo-1') // Default for admin for now
+            warehouseId: warehouseId!,
         };
 
         if (editingItem) {
-            setInventory(inventory.map(i => i.id === editingItem.id ? finalItem : i));
+            setInventory(inventory.map(i => (i.id === editingItem.id && i.warehouseId === editingItem.warehouseId) ? finalItem : i));
             toast({ title: "Producto actualizado", description: "El item del inventario ha sido actualizado." });
         } else {
-             // Check if item code already exists
-            if (inventory.some(i => i.code.toLowerCase() === finalItem.code.toLowerCase())) {
+             // Check if item code already exists in the same warehouse
+            if (inventory.some(i => i.code.toLowerCase() === finalItem.code.toLowerCase() && i.warehouseId === finalItem.warehouseId)) {
                 toast({
                     variant: 'destructive',
                     title: 'Error de Código',
-                    description: `El código de producto '${finalItem.code}' ya existe.`
+                    description: `El código de producto '${finalItem.code}' ya existe en esta bodega.`
                 });
                 return;
             }
@@ -117,14 +130,32 @@ export default function InventoryPage() {
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">Productos EPP</h1>
-                <Button onClick={handleAddNewClick} disabled={user?.role === 'reports'}>
-                    <PlusCircle className="mr-2" />
-                    Ingresar Producto
-                </Button>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Productos EPP</h1>
+                    <CardDescription>Gestiona el stock de Equipos de Protección Personal de tu bodega.</CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                     {user?.role === 'admin' && (
+                        <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+                            <SelectTrigger className="w-full sm:w-[200px]">
+                                <Warehouse className="mr-2" />
+                                <SelectValue placeholder="Seleccionar bodega" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Todas las bodegas</SelectItem>
+                                {mockWarehouses.map(w => (
+                                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                    <Button onClick={handleAddNewClick} disabled={user?.role === 'reports'} className="w-full sm:w-auto">
+                        <PlusCircle className="mr-2" />
+                        Ingresar Producto
+                    </Button>
+                </div>
             </div>
-             <CardDescription>Gestiona el stock de Equipos de Protección Personal de tu bodega.</CardDescription>
 
             <Card>
                 <CardContent className="p-0">
@@ -142,7 +173,7 @@ export default function InventoryPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {inventory.map((item) => {
+                            {visibleInventory.map((item) => {
                                 const stockStatus = getStockStatus(item.quantity);
                                 return (
                                     <TableRow key={`${item.id}-${item.warehouseId}`}>
