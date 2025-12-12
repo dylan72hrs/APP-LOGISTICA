@@ -4,7 +4,42 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/layout/user-nav';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { mockWarehouses } from '@/lib/data';
-import { Warehouse } from 'lucide-react';
+import { Warehouse, Globe } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useState } from 'react';
+
+export function LanguageSwitcher() {
+  const [language, setLanguage] = useState('Castellano');
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <Globe className="h-5 w-5" />
+          <span className="sr-only">Cambiar idioma</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => setLanguage('Castellano')}>
+            Castellano
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setLanguage('Inglés')}>
+            Inglés
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => setLanguage('Francés')}>
+            Francés
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 
 export function Header() {
     const { user } = useAuth();
@@ -24,7 +59,8 @@ export function Header() {
             </div>
         )}
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
+        <LanguageSwitcher />
         <UserNav />
       </div>
     </header>
