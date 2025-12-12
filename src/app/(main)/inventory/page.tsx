@@ -376,7 +376,7 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
                 <Input id="quantity" name="quantity" type="number" defaultValue={item?.quantity} required min="0"/>
             </div>
              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label htmlFor="price_unit_cost')}</Label>
+                <Label htmlFor="cost">{t('price_unit_cost')}</Label>
                 <Input id="cost" name="cost" type="number" step="0.01" defaultValue={item?.cost} required min="0"/>
             </div>
             
@@ -389,5 +389,3 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
         </form>
     );
 }
-
-    
