@@ -36,8 +36,8 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
     const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
 
     return (
-        <div ref={ref} className="bg-white text-black p-8">
-            <header className="flex justify-between items-center pb-4 border-b">
+        <div ref={ref} className="bg-white text-black p-8 print:shadow-none print:border-none">
+            <header className="flex justify-between items-center pb-4 border-b border-black">
                 <div className='flex items-center gap-4'>
                 {companyLogo && (
                     <Image
@@ -72,24 +72,24 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
             </section>
 
             <section className="mt-6">
-                <Table className="border">
+                <Table className="border border-black">
                     <TableHeader>
-                        <TableRow>
-                            <TableHead className="text-black border">{t('code')}</TableHead>
-                            <TableHead className="text-black border">{t('description')}</TableHead>
-                            <TableHead className="text-black text-right border">{t('quantity')}</TableHead>
-                            <TableHead className="text-black text-right border">{t('unit_cost')}</TableHead>
-                            <TableHead className="text-black text-right border">{t('total')}</TableHead>
+                        <TableRow className='border-b border-black'>
+                            <TableHead className="text-black border-r border-black">{t('code')}</TableHead>
+                            <TableHead className="text-black border-r border-black">{t('description')}</TableHead>
+                            <TableHead className="text-black text-right border-r border-black">{t('quantity')}</TableHead>
+                            <TableHead className="text-black text-right border-r border-black">{t('unit_cost')}</TableHead>
+                            <TableHead className="text-black text-right">{t('total')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
                         {data.items.map(item => (
-                            <TableRow key={item.code}>
-                                <TableCell className="border">{item.code}</TableCell>
-                                <TableCell className="border">{item.description}</TableCell>
-                                <TableCell className="text-right border">{item.consumeQuantity}</TableCell>
-                                <TableCell className="text-right border">${item.cost.toLocaleString(language)}</TableCell>
-                                <TableCell className="text-right border">${(item.cost * item.consumeQuantity).toLocaleString(language)}</TableCell>
+                            <TableRow key={item.code} className='border-b border-black last:border-b-0'>
+                                <TableCell className="border-r border-black">{item.code}</TableCell>
+                                <TableCell className="border-r border-black">{item.description}</TableCell>
+                                <TableCell className="text-right border-r border-black">{item.consumeQuantity}</TableCell>
+                                <TableCell className="text-right border-r border-black">${item.cost.toLocaleString(language)}</TableCell>
+                                <TableCell className="text-right">${(item.cost * item.consumeQuantity).toLocaleString(language)}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -128,38 +128,21 @@ ValeConsumo.displayName = 'ValeConsumo';
 
 export function ValeConsumoPreview({ data }: ValeConsumoProps) {
     const { t } = useLanguage();
-    const printableRef = React.useRef<HTMLDivElement>(null);
 
     const handlePrint = () => {
-        const printContent = printableRef.current;
-        if (printContent) {
-            const printWindow = window.open('', '', 'height=800,width=800');
-            printWindow?.document.write('<html><head><title>Vale de Consumo</title>');
-            // A simple way to get styles, might need to be more robust
-            const styles = Array.from(document.styleSheets)
-                .map(s => `<link rel="stylesheet" href="${s.href}">`)
-                .join('');
-            printWindow?.document.write(styles);
-            printWindow?.document.write('<style>@media print { body { -webkit-print-color-adjust: exact; } .border { border: 1px solid black !important; } }</style>');
-            printWindow?.document.write('</head><body>');
-            printWindow?.document.write(printContent.innerHTML);
-            printWindow?.document.write('</body></html>');
-            printWindow?.document.close();
-            printWindow?.focus();
-            printWindow?.print();
-        }
+        window.print();
     };
     
     return (
         <div>
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end mb-4 print:hidden">
                 <Button onClick={handlePrint}>
                     <Printer className="mr-2" />
                     {t('print')}
                 </Button>
             </div>
-             <div className="border rounded-lg overflow-hidden">
-                <ValeConsumo data={data} ref={printableRef} />
+             <div className="border rounded-lg overflow-hidden print:border-none print:rounded-none">
+                <ValeConsumo data={data} />
              </div>
         </div>
     );

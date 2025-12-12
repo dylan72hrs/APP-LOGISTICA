@@ -45,13 +45,13 @@ export default function ConsumptionsPage() {
   const productCodeInputRef = useRef<HTMLInputElement>(null);
 
   const warehouseIdToFilter = useMemo(() => {
-    let warehouseId: string | undefined;
-    if (user?.role === 'operator' && user.warehouseId) {
-      warehouseId = user.warehouseId;
-    } else if (user?.role === 'admin' && selectedWarehouseId !== 'all') {
-      warehouseId = selectedWarehouseId;
+    if (user?.role === 'operator') {
+      return user.warehouseId;
     }
-    return warehouseId;
+    if (user?.role === 'admin' && selectedWarehouseId !== 'all') {
+      return selectedWarehouseId;
+    }
+    return undefined; // For admin with 'all' selected
   }, [selectedWarehouseId, user]);
   
   const availableInventory = useMemo(() => {
@@ -107,8 +107,8 @@ export default function ConsumptionsPage() {
     setSelectedItems(prev => [...prev, { ...foundItem, consumeQuantity: 1 }]);
     if (productCodeInputRef.current) {
         productCodeInputRef.current.value = '';
+        setProductCodeInput(''); // Also clear the state
     }
-    setProductCodeInput('');
   };
   
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
@@ -327,18 +327,18 @@ export default function ConsumptionsPage() {
       </div>
 
        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl p-0">
+        <DialogContent className="max-w-4xl p-0 print:hidden">
           <DialogHeader className="p-6 pb-0">
             <DialogTitle>{t('consumption_voucher_preview')}</DialogTitle>
           </DialogHeader>
           <div className="p-6">
             <ValeConsumoPreview data={consumptionData} />
           </div>
-          <div id="vale-consumo-printable" className="hidden print:block">
-            <ValeConsumo data={consumptionData} />
-          </div>
         </DialogContent>
       </Dialog>
+      <div id="printable-content" className="hidden print:block">
+        <ValeConsumo data={consumptionData} />
+      </div>
     </div>
   );
 }
