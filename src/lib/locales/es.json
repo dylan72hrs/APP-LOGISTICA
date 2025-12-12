@@ -131,6 +131,21 @@
     "import_error": "Error de Importación",
     "error_processing_excel": "Ocurrió un error al procesar el archivo Excel.",
     "no_warehouse_selected": "No se ha seleccionado bodega",
-    "admin_select_warehouse_for_product": "Como administrador, debes seleccionar una bodega para agregar un nuevo producto."
+    "admin_select_warehouse_for_product": "Como administrador, debes seleccionar una bodega para agregar un nuevo producto.",
+    "add_worker": "Agregar Trabajador",
+    "rut": "RUT",
+    "position": "Cargo",
+    "department": "Sección",
+    "edit_worker": "Editar Trabajador",
+    "add_new_worker": "Agregar Nuevo Trabajador",
+    "worker_updated": "Trabajador Actualizado",
+    "worker_updated_successfully": "El trabajador ha sido actualizado correctamente.",
+    "rut_error": "Error de RUT",
+    "worker_rut_exists": "El trabajador con RUT '{{rut}}' ya existe.",
+    "worker_created": "Trabajador Creado",
+    "new_worker_added_successfully": "El nuevo trabajador ha sido agregado correctamente.",
+    "worker_deleted": "Trabajador Eliminado",
+    "worker_deleted_successfully": "El trabajador ha sido eliminado correctamente.",
+    "new_workers_imported_successfully": "{{count}} nuevos trabajadores importados correctamente."
   }
   

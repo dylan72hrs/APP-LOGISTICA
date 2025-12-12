@@ -131,6 +131,21 @@
     "import_error": "Erreur d'Importation",
     "error_processing_excel": "Une erreur s'est produite lors du traitement du fichier Excel.",
     "no_warehouse_selected": "Aucun entrepôt sélectionné",
-    "admin_select_warehouse_for_product": "En tant qu'administrateur, vous devez sélectionner un entrepôt pour ajouter un nouveau produit."
+    "admin_select_warehouse_for_product": "En tant qu'administrateur, vous devez sélectionner un entrepôt pour ajouter un nouveau produit.",
+    "add_worker": "Ajouter un Travailleur",
+    "rut": "Numéro d'identification",
+    "position": "Poste",
+    "department": "Département",
+    "edit_worker": "Modifier le Travailleur",
+    "add_new_worker": "Ajouter un Nouveau Travailleur",
+    "worker_updated": "Travailleur Mis à Jour",
+    "worker_updated_successfully": "Le travailleur a été mis à jour avec succès.",
+    "rut_error": "Erreur de Numéro d'identification",
+    "worker_rut_exists": "Le travailleur avec le numéro d'identification '{{rut}}' existe déjà.",
+    "worker_created": "Travailleur Créé",
+    "new_worker_added_successfully": "Le nouveau travailleur a été ajouté avec succès.",
+    "worker_deleted": "Travailleur Supprimé",
+    "worker_deleted_successfully": "Le travailleur a été supprimé avec succès.",
+    "new_workers_imported_successfully": "{{count}} nouveaux travailleurs importés avec succès."
   }
   

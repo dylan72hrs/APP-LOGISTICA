@@ -10,7 +10,7 @@ export interface UserProfile {
 
 export interface Warehouse {
   id: string;
-  name: string;
+  name:string;
   city: string;
   country: string;
 }
@@ -34,6 +34,8 @@ export interface Worker {
   id: string; // Can be the RUT
   rut: string;
   name: string;
+  position: string;
+  department: string;
 }
 
 export interface ConsumptionRecord {

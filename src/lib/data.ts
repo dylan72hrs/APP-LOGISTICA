@@ -28,8 +28,8 @@ export const mockProjects: Project[] = [
 ];
 
 export const mockWorkers: Worker[] = [
-    { id: '12345678-9', rut: '12.345.678-9', name: 'Carlos Soto' },
-    { id: '98765432-1', rut: '9.876.543-2', name: 'Luisa Martinez' },
+    { id: '12345678-9', rut: '12.345.678-9', name: 'Carlos Soto', position: 'Operador de Maquinaria', department: 'Operaciones Mina' },
+    { id: '98765432-1', rut: '9.876.543-2', name: 'Luisa Martinez', position: 'Geóloga', department: 'Geología' },
 ];
 
 export const mockConsumptionRecords: ConsumptionRecord[] = [

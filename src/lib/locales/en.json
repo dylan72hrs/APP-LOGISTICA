@@ -130,6 +130,21 @@
     "import_error": "Import Error",
     "error_processing_excel": "An error occurred while processing the Excel file.",
     "no_warehouse_selected": "No warehouse selected",
-    "admin_select_warehouse_for_product": "As an administrator, you must select a warehouse to add a new product."
+    "admin_select_warehouse_for_product": "As an administrator, you must select a warehouse to add a new product.",
+    "add_worker": "Add Worker",
+    "rut": "ID Number",
+    "position": "Position",
+    "department": "Department",
+    "edit_worker": "Edit Worker",
+    "add_new_worker": "Add New Worker",
+    "worker_updated": "Worker Updated",
+    "worker_updated_successfully": "The worker has been updated successfully.",
+    "rut_error": "ID Number Error",
+    "worker_rut_exists": "Worker with ID Number '{{rut}}' already exists.",
+    "worker_created": "Worker Created",
+    "new_worker_added_successfully": "The new worker has been added successfully.",
+    "worker_deleted": "Worker Deleted",
+    "worker_deleted_successfully": "The worker has been deleted successfully.",
+    "new_workers_imported_successfully": "{{count}} new workers imported successfully."
   }
   
