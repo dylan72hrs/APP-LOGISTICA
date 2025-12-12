@@ -44,6 +44,11 @@ export default function ConsumptionsPage() {
   const [productCodeInput, setProductCodeInput] = useState('');
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const productCodeInputRef = useRef<HTMLInputElement>(null);
+  const printComponentRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   const warehouseIdToFilter = useMemo(() => {
     if (user?.role === 'operator') {
@@ -187,7 +192,8 @@ export default function ConsumptionsPage() {
 
 
   return (
-    <div className="flex flex-col gap-4">
+    <>
+    <div className="flex flex-col gap-4 print:hidden">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
               <h1 className="text-2xl font-bold tracking-tight">{t('consumption_record')}</h1>
@@ -324,26 +330,31 @@ export default function ConsumptionsPage() {
               {t('register_consumption')}
           </Button>
       </div>
+    </div>
+    
+    <div className="hidden print:block">
+        <ValeConsumo data={consumptionData} ref={printComponentRef} />
+    </div>
 
        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl p-0">
-          <DialogHeader className="p-6 pb-0 print:hidden">
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
             <DialogTitle>{t('consumption_voucher_preview')}</DialogTitle>
-          </DialogHeader>
-            <div className="flex justify-end mb-4 p-6 pb-0 print:hidden">
-                <Button onClick={() => window.print()}>
+             <div className="flex justify-end">
+                <Button onClick={handlePrint}>
                     <Printer className="mr-2" />
                     {t('print')}
                 </Button>
             </div>
-            <ScrollArea className="max-h-[70vh] print:max-h-none print:overflow-visible">
-              <div className="p-6 pt-0 print-container">
-                 <ValeConsumo data={consumptionData} />
-              </div>
+          </DialogHeader>
+            <ScrollArea className="max-h-[70vh]">
+                <div id="print-content">
+                    <ValeConsumo data={consumptionData} />
+                </div>
             </ScrollArea>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
 
