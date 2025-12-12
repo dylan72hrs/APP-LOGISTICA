@@ -129,6 +129,8 @@
     "import_successful": "Importation réussie",
     "new_items_imported_successfully": "{{count}} nouveaux articles importés avec succès.",
     "import_error": "Erreur d'Importation",
-    "error_processing_excel": "Une erreur s'est produite lors du traitement du fichier Excel."
+    "error_processing_excel": "Une erreur s'est produite lors du traitement du fichier Excel.",
+    "no_warehouse_selected": "Aucun entrepôt sélectionné",
+    "admin_select_warehouse_for_product": "En tant qu'administrateur, vous devez sélectionner un entrepôt pour ajouter un nouveau produit."
   }
   

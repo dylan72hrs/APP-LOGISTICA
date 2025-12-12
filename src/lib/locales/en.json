@@ -128,6 +128,8 @@
     "import_successful": "Import successful",
     "new_items_imported_successfully": "{{count}} new items imported successfully.",
     "import_error": "Import Error",
-    "error_processing_excel": "An error occurred while processing the Excel file."
+    "error_processing_excel": "An error occurred while processing the Excel file.",
+    "no_warehouse_selected": "No warehouse selected",
+    "admin_select_warehouse_for_product": "As an administrator, you must select a warehouse to add a new product."
   }
   

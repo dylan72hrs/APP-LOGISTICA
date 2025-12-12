@@ -129,6 +129,8 @@
     "import_successful": "Importación exitosa",
     "new_items_imported_successfully": "{{count}} nuevos items importados correctamente.",
     "import_error": "Error de Importación",
-    "error_processing_excel": "Ocurrió un error al procesar el archivo Excel."
+    "error_processing_excel": "Ocurrió un error al procesar el archivo Excel.",
+    "no_warehouse_selected": "No se ha seleccionado bodega",
+    "admin_select_warehouse_for_product": "Como administrador, debes seleccionar una bodega para agregar un nuevo producto."
   }
   

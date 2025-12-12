@@ -5,24 +5,37 @@ import { Boxes, Truck, AlertCircle, Users } from "lucide-react";
 import { mockConsumptionRecords, mockInventory, mockWorkers } from "@/lib/data";
 import { useLanguage } from "@/lib/hooks/use-language";
 import { useMemo } from "react";
-
-const totalItems = mockInventory.reduce((acc, item) => acc + item.quantity, 0);
-const lowStockItems = mockInventory.filter(item => item.quantity < 20).length;
-const totalConsumptions = mockConsumptionRecords.length;
-
+import { useWarehouse } from "@/lib/hooks/use-warehouse";
 
 export default function DashboardPage() {
     const { t, language } = useLanguage();
+    const { selectedWarehouseId, userWarehouseId } = useWarehouse();
+
+    const warehouseIdToFilter = selectedWarehouseId === 'all' ? userWarehouseId : selectedWarehouseId;
+
+    const filteredInventory = useMemo(() => {
+        if (!warehouseIdToFilter || warehouseIdToFilter === 'all') return mockInventory;
+        return mockInventory.filter(item => item.warehouseId === warehouseIdToFilter);
+    }, [warehouseIdToFilter]);
+
+    const filteredConsumptions = useMemo(() => {
+        if (!warehouseIdToFilter || warehouseIdToFilter === 'all') return mockConsumptionRecords;
+        return mockConsumptionRecords.filter(record => record.warehouseId === warehouseIdToFilter);
+    }, [warehouseIdToFilter]);
+
+    const totalItems = filteredInventory.reduce((acc, item) => acc + item.quantity, 0);
+    const lowStockItems = filteredInventory.filter(item => item.quantity < 20).length;
+    const totalConsumptions = filteredConsumptions.length;
 
     const consumptionByDay = useMemo(() => {
         const acc: Record<string, number> = {};
-        for (const record of mockConsumptionRecords) {
+        for (const record of filteredConsumptions) {
             const day = record.date.toLocaleDateString(language, { weekday: 'short' }).replace('.', '');
             const capitalizedDay = day.charAt(0).toUpperCase() + day.slice(1);
             acc[capitalizedDay] = (acc[capitalizedDay] || 0) + record.items.reduce((sum, item) => sum + item.quantity, 0);
         }
         return acc;
-    }, [language]);
+    }, [language, filteredConsumptions]);
 
 
     const chartData = useMemo(() => {

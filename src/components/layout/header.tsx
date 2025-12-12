@@ -13,6 +13,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useLanguage } from '@/lib/hooks/use-language';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useWarehouse } from '@/lib/hooks/use-warehouse';
 
 
 export function LanguageSwitcher() {
@@ -42,9 +44,29 @@ export function LanguageSwitcher() {
 }
 
 
+export function WarehouseSwitcher() {
+    const { t } = useLanguage();
+    const { selectedWarehouseId, setSelectedWarehouseId } = useWarehouse();
+
+    return (
+        <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+            <SelectTrigger className="w-full sm:w-[200px] hidden md:flex">
+                <Warehouse className="mr-2" />
+                <SelectValue placeholder={t('select_warehouse')} />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">{t('all_warehouses')}</SelectItem>
+                {mockWarehouses.map(w => (
+                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    )
+}
+
+
 export function Header() {
     const { user } = useAuth();
-    const { t } = useLanguage();
     
     const assignedWarehouse = user?.role === 'operator' 
         ? mockWarehouses.find(w => w.id === user.warehouseId) 
@@ -54,10 +76,12 @@ export function Header() {
     <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:h-16 sm:px-6">
       <SidebarTrigger className="md:hidden" />
       <div className="flex-1">
-        {assignedWarehouse && (
+        {user?.role === 'admin' ? (
+            <WarehouseSwitcher />
+        ) : assignedWarehouse && (
             <div className="hidden items-center gap-2 text-sm text-muted-foreground md:flex">
                 <Warehouse className="h-4 w-4" />
-                <span>{t('warehouse')}: <strong>{assignedWarehouse.name}</strong></span>
+                <span>{assignedWarehouse.name}</span>
             </div>
         )}
       </div>

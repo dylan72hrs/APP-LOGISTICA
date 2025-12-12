@@ -7,40 +7,41 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { mockInventory as initialInventory, mockWarehouses } from '@/lib/data';
+import { mockInventory as initialInventory } from '@/lib/data';
 import type { InventoryItem } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse as WarehouseIcon, Upload, Download } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/lib/hooks/use-language';
 import * as XLSX from 'xlsx';
+import { useWarehouse } from '@/lib/hooks/use-warehouse';
 
 export default function InventoryPage() {
     const { toast } = useToast();
     const { user } = useAuth();
     const { t, language } = useLanguage();
+    const { selectedWarehouseId } = useWarehouse();
     
     const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
-    const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('all');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const visibleInventory = useMemo(() => {
         if (!user) return [];
-        if (user.role === 'admin') {
-            if (selectedWarehouseId === 'all') {
-                return inventory;
-            }
-            return inventory.filter(item => item.warehouseId === selectedWarehouseId);
+
+        const warehouseIdToFilter = user.role === 'admin' ? selectedWarehouseId : user.warehouseId;
+
+        if (warehouseIdToFilter === 'all') {
+            return inventory;
         }
-        if (user.role === 'operator' && user.warehouseId) {
-            return inventory.filter(item => item.warehouseId === user.warehouseId);
+        if (warehouseIdToFilter) {
+            return inventory.filter(item => item.warehouseId === warehouseIdToFilter);
         }
         return [];
+
     }, [user, inventory, selectedWarehouseId]);
 
     const handleSaveItem = (formData: FormData) => {
@@ -105,6 +106,14 @@ export default function InventoryPage() {
     }
     
     const handleAddNewClick = () => {
+         if (user?.role === 'admin' && selectedWarehouseId === 'all') {
+            toast({
+                variant: 'destructive',
+                title: t('no_warehouse_selected'),
+                description: t('admin_select_warehouse_for_product')
+            });
+            return;
+        }
         if (user?.role === 'operator' && !user.warehouseId) {
              toast({
                 variant: 'destructive',
@@ -141,22 +150,17 @@ export default function InventoryPage() {
     };
 
     const handleImportClick = () => {
-        if (user?.role === 'admin' && selectedWarehouseId === 'all') {
+        const warehouseForUpload = user?.role === 'admin' ? selectedWarehouseId : user?.warehouseId;
+
+        if (!warehouseForUpload || warehouseForUpload === 'all') {
             toast({
                 variant: 'destructive',
-                title: t('error'),
+                title: t('no_warehouse_selected'),
                 description: t('admin_select_warehouse_for_import')
             });
             return;
         }
-        if (user?.role === 'operator' && !user.warehouseId) {
-            toast({
-                variant: 'destructive',
-                title: t('no_warehouse_assigned'),
-                description: t('cannot_import_products_without_warehouse')
-            });
-            return;
-        }
+       
         fileInputRef.current?.click();
     };
 
@@ -253,20 +257,6 @@ export default function InventoryPage() {
                     <CardDescription>{t('manage_epp_stock')}</CardDescription>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                     {user?.role === 'admin' && (
-                        <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
-                            <SelectTrigger className="w-full sm:w-[200px]">
-                                <WarehouseIcon className="mr-2" />
-                                <SelectValue placeholder={t('select_warehouse')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">{t('all_warehouses')}</SelectItem>
-                                {mockWarehouses.map(w => (
-                                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
                     <Button variant="outline" onClick={handleDownloadTemplate} className="w-full sm:w-auto">
                         <Download className="mr-2"/>
                         {t('download_template')}
