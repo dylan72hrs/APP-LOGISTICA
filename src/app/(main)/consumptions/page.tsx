@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { ValeConsumo } from '@/components/vale-consumo';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SelectedItem extends InventoryItem {
   consumeQuantity: number;
@@ -48,14 +49,11 @@ export default function ConsumptionsPage() {
     if (user?.role === 'operator') {
       return user.warehouseId;
     }
-    if (user?.role === 'admin' && selectedWarehouseId !== 'all') {
-      return selectedWarehouseId;
-    }
-    return undefined; // For admin with 'all' selected
+    return selectedWarehouseId; // For admin
   }, [selectedWarehouseId, user]);
   
   const availableInventory = useMemo(() => {
-    if (!warehouseIdToFilter) return [];
+    if (!warehouseIdToFilter || warehouseIdToFilter === 'all') return [];
     return inventory.filter(item => item.warehouseId === warehouseIdToFilter && item.quantity > 0);
   }, [inventory, warehouseIdToFilter]);
   
@@ -83,7 +81,7 @@ export default function ConsumptionsPage() {
     const code = productCodeInputRef.current?.value;
     if (!code) return;
 
-    if (!warehouseIdToFilter) {
+    if (!warehouseIdToFilter || warehouseIdToFilter === 'all') {
       toast({
         variant: 'destructive',
         title: t('no_warehouse_selected'),
@@ -258,13 +256,13 @@ export default function ConsumptionsPage() {
                     defaultValue={productCodeInput}
                     placeholder={t('search_product_by_code')}
                     onKeyDown={(e) => e.key === 'Enter' && handleProductSearchByCode()}
-                    disabled={!warehouseIdToFilter}
+                    disabled={!warehouseIdToFilter || warehouseIdToFilter === 'all'}
                 />
-                <Button onClick={handleProductSearchByCode} variant="outline" size="icon" disabled={!warehouseIdToFilter}>
+                <Button onClick={handleProductSearchByCode} variant="outline" size="icon" disabled={!warehouseIdToFilter || warehouseIdToFilter === 'all'}>
                     <PackageSearch />
                 </Button>
             </div>
-            {!warehouseIdToFilter && user?.role === 'admin' && (
+            {user?.role === 'admin' && warehouseIdToFilter === 'all' && (
                 <CardDescription className='text-destructive mt-2'>
                     {t('admin_select_warehouse_for_product')}
                 </CardDescription>
@@ -328,23 +326,24 @@ export default function ConsumptionsPage() {
       </div>
 
        <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl p-0 print:hidden">
-          <DialogHeader className="p-6 pb-0">
+        <DialogContent className="max-w-4xl p-0">
+          <DialogHeader className="p-6 pb-0 print:hidden">
             <DialogTitle>{t('consumption_voucher_preview')}</DialogTitle>
           </DialogHeader>
-          <div className="p-6">
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-end mb-4 p-6 pb-0 print:hidden">
                 <Button onClick={() => window.print()}>
                     <Printer className="mr-2" />
                     {t('print')}
                 </Button>
             </div>
-            <div id="printable-content-wrapper" className="border rounded-lg overflow-hidden">
-                <ValeConsumo data={consumptionData} />
-            </div>
-          </div>
+            <ScrollArea className="max-h-[70vh] p-6 pt-0">
+              <div id="printable-content-wrapper" className="border rounded-lg overflow-hidden">
+                  <ValeConsumo data={consumptionData} />
+              </div>
+            </ScrollArea>
         </DialogContent>
       </Dialog>
+
       <div className="hidden print:block">
         <ValeConsumo data={consumptionData} />
       </div>
@@ -362,6 +361,7 @@ interface ComboboxProps {
 
 function Combobox({ items, selectedValue, onSelect, placeholder, searchPlaceholder }: ComboboxProps) {
     const [open, setOpen] = useState(false);
+    const { t } = useLanguage();
   
     return (
       <Popover open={open} onOpenChange={setOpen}>
@@ -408,9 +408,4 @@ function Combobox({ items, selectedValue, onSelect, placeholder, searchPlacehold
         </PopoverContent>
       </Popover>
     );
-}
-
-function t(key: string, options?: any){
-    const { t: translate } = useLanguage();
-    return translate(key, options);
 }
