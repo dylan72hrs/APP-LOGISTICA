@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { mockWorkers, mockProjects, mockInventory } from '@/lib/data';
+import { mockWorkers, mockProjects, mockInventory, mockWarehouses } from '@/lib/data';
 import type { Worker, Project, InventoryItem } from '@/lib/types';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useLanguage } from '@/lib/hooks/use-language';
@@ -45,9 +45,15 @@ export default function ConsumptionsPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const warehouseIdToFilter = useMemo(() => {
-    if (user?.role === 'operator') return user.warehouseId;
-    if (user?.role === 'admin' && selectedWarehouseId !== 'all') return selectedWarehouseId;
-    return undefined; // Admin with "All" selected, or no warehouse context
+    if (user?.role === 'operator') {
+      return user.warehouseId;
+    }
+    // For admin, only return a warehouse ID if a specific one is selected
+    if (user?.role === 'admin' && selectedWarehouseId !== 'all') {
+      return selectedWarehouseId;
+    }
+    // For admin with "All" selected, or any other case, return undefined
+    return undefined;
   }, [selectedWarehouseId, user]);
   
   const availableInventory = useMemo(() => {
@@ -156,8 +162,7 @@ export default function ConsumptionsPage() {
       });
       return; // Prevent popover from opening
     }
-    // If warehouseIdToFilter is valid, the popover will open via its trigger.
-    // No need to manually setIsProductPopoverOpen(true) here.
+    setIsProductPopoverOpen(true);
   };
 
   const isFormComplete = selectedWorker && selectedProject && selectedItems.length > 0;
@@ -169,7 +174,7 @@ export default function ConsumptionsPage() {
     project: selectedProject,
     items: selectedItems,
     totalCost,
-    warehouse: warehouseIdToFilter ? mockInventory.find(i => i.warehouseId === warehouseIdToFilter)?.warehouseId : 'N/A',
+    warehouse: warehouseIdToFilter ? mockWarehouses.find(w => w.id === warehouseIdToFilter)?.name : 'N/A',
   };
 
 

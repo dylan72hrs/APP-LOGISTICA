@@ -131,7 +131,7 @@
     "import_error": "Error de Importación",
     "error_processing_excel": "Ocurrió un error al procesar el archivo Excel.",
     "no_warehouse_selected": "No se ha seleccionado bodega",
-    "admin_select_warehouse_for_product": "Como administrador, debes seleccionar una bodega para agregar un nuevo producto.",
+    "admin_select_warehouse_for_product": "Como administrador, debes seleccionar una bodega para poder agregar productos.",
     "add_worker": "Agregar Trabajador",
     "rut": "RUT",
     "position": "Cargo",
