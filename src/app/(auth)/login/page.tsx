@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { useLanguage } from '@/lib/hooks/use-language';
 
 // In a real app, this would use an Auth Context or hook
 // For this mockup, we'll simulate login by storing in localStorage
@@ -32,6 +33,7 @@ const fakeLogin = (email: string) => {
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('Imaulen@masterdrilling.com');
   const [password, setPassword] = useState('123456');
   const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
@@ -45,8 +47,8 @@ export default function LoginPage() {
     } else {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Por favor, ingresa tu correo y contraseña.",
+        title: t('error'),
+        description: t('please_enter_email_password'),
       });
     }
   };
@@ -67,12 +69,12 @@ export default function LoginPage() {
                 />
             )}
           <CardTitle className="text-3xl font-bold">EPP Tracker 3.0</CardTitle>
-          <CardDescription>gestión y control de epp</CardDescription>
+          <CardDescription>{t('epp_management_control')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Correo electrónico</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -83,11 +85,11 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={8} />
             </div>
             <Button type="submit" className="w-full">
-              Iniciar Sesión
+              {t('login')}
             </Button>
           </form>
         </CardContent>

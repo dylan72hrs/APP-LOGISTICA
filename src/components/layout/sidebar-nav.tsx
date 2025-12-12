@@ -25,22 +25,24 @@ import {
 import type { UserRole } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import Image from 'next/image';
+import { useLanguage } from '@/lib/hooks/use-language';
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'operator', 'reports'] },
-  { href: '/inventory', label: 'Productos EPP', icon: Boxes, roles: ['admin', 'operator'] },
-  { href: '/workers', label: 'Trabajadores', icon: HardHat, roles: ['admin', 'operator'] },
-  { href: '/projects', label: 'Proyectos', icon: Building, roles: ['admin', 'operator'] },
-  { href: '/consumptions', label: 'Consumos', icon: Truck, roles: ['admin', 'operator'] },
-  { href: '/reports', label: 'Informes', icon: FileText, roles: ['admin', 'reports'] },
-  { href: '/restock', label: 'Sugerencias IA', icon: BrainCircuit, roles: ['admin'] },
-  { href: '/warehouses', label: 'Bodegas', icon: Warehouse, roles: ['admin'] },
-  { href: '/admin/users', label: 'Admin', icon: Users, roles: ['admin'] },
+  { href: '/dashboard', labelKey: 'dashboard', icon: LayoutDashboard, roles: ['admin', 'operator', 'reports'] },
+  { href: '/inventory', labelKey: 'epp_products', icon: Boxes, roles: ['admin', 'operator'] },
+  { href: '/workers', labelKey: 'workers', icon: HardHat, roles: ['admin', 'operator'] },
+  { href: '/projects', labelKey: 'projects', icon: Building, roles: ['admin', 'operator'] },
+  { href: '/consumptions', labelKey: 'consumptions', icon: Truck, roles: ['admin', 'operator'] },
+  { href: '/reports', labelKey: 'reports', icon: FileText, roles: ['admin', 'reports'] },
+  { href: '/restock', labelKey: 'ai_suggestions', icon: BrainCircuit, roles: ['admin'] },
+  { href: '/warehouses', labelKey: 'warehouses', icon: Warehouse, roles: ['admin'] },
+  { href: '/admin/users', labelKey: 'admin', icon: Users, roles: ['admin'] },
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
 
   const filteredNavItems = navItems.filter(item => user && item.roles.includes(user.role));
@@ -69,7 +71,7 @@ export function SidebarNav() {
               <SidebarMenuButton asChild isActive={pathname.startsWith(item.href) && (item.href === '/dashboard' ? pathname === item.href : true)}>
                 <Link href={item.href}>
                   <item.icon />
-                  <span>{item.label}</span>
+                  <span>{t(item.labelKey)}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -12,9 +12,11 @@ import type { Warehouse } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/lib/hooks/use-language';
 
 export default function WarehousesPage() {
     const { toast } = useToast();
+    const { t } = useLanguage();
     const [warehouses, setWarehouses] = useState<Warehouse[]>(initialWarehouses);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
@@ -30,18 +32,18 @@ export default function WarehousesPage() {
         if (!warehouse.name || !warehouse.city || !warehouse.country) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: 'Por favor, completa todos los campos.'
+                title: t('error'),
+                description: t('please_fill_all_fields')
             });
             return;
         }
 
         if (editingWarehouse) {
             setWarehouses(warehouses.map(w => w.id === editingWarehouse.id ? warehouse : w));
-             toast({ title: "Bodega actualizada", description: "La bodega ha sido actualizada correctamente." });
+             toast({ title: t('warehouse_updated'), description: t('warehouse_updated_successfully') });
         } else {
             setWarehouses([warehouse, ...warehouses]);
-             toast({ title: "Bodega creada", description: "La nueva bodega ha sido creada." });
+             toast({ title: t('warehouse_created'), description: t('new_warehouse_created_successfully') });
         }
         
         setIsDialogOpen(false);
@@ -62,31 +64,31 @@ export default function WarehousesPage() {
         setWarehouses(warehouses.filter(w => w.id !== id));
         toast({
           variant: "destructive",
-          title: "Bodega eliminada",
-          description: "La bodega ha sido eliminada."
+          title: t('warehouse_deleted'),
+          description: t('warehouse_deleted_successfully')
       });
     }
 
     return (
         <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">Gestión de Bodegas</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{t('warehouse_management')}</h1>
                 <Button onClick={handleAddNewClick}>
                     <PlusCircle className="mr-2" />
-                    Crear Bodega
+                    {t('create_warehouse')}
                 </Button>
             </div>
-             <CardDescription>Crea, edita y administra las bodegas en diferentes países.</CardDescription>
+             <CardDescription>{t('create_edit_manage_warehouses')}</CardDescription>
 
             <Card>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Nombre Bodega</TableHead>
-                                <TableHead>Ciudad</TableHead>
-                                <TableHead>País</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
+                                <TableHead>{t('warehouse_name')}</TableHead>
+                                <TableHead>{t('city')}</TableHead>
+                                <TableHead>{t('country')}</TableHead>
+                                <TableHead className="text-right">{t('actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -105,11 +107,11 @@ export default function WarehousesPage() {
                                             <DropdownMenuContent>
                                                 <DropdownMenuItem onClick={() => handleEditClick(warehouse)}>
                                                     <Pencil className="mr-2 h-4 w-4"/>
-                                                    Editar
+                                                    {t('edit')}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleDeleteWarehouse(warehouse.id)} className="text-destructive focus:text-destructive">
                                                     <Trash2 className="mr-2 h-4 w-4"/>
-                                                    Eliminar
+                                                    {t('delete')}
                                                 </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
@@ -127,7 +129,7 @@ export default function WarehousesPage() {
             }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingWarehouse ? 'Editar Bodega' : 'Crear Nueva Bodega'}</DialogTitle>
+                        <DialogTitle>{editingWarehouse ? t('edit_warehouse') : t('create_new_warehouse')}</DialogTitle>
                     </DialogHeader>
                     <WarehouseForm warehouse={editingWarehouse} onSave={handleSaveWarehouse} />
                 </DialogContent>
@@ -137,26 +139,27 @@ export default function WarehousesPage() {
 }
 
 function WarehouseForm({ warehouse, onSave }: { warehouse: Warehouse | null, onSave: (data: FormData) => void }) {
+    const { t } = useLanguage();
     return (
         <form action={onSave} className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="name">Nombre de Bodega</Label>
+                <Label htmlFor="name">{t('warehouse_name')}</Label>
                 <Input id="name" name="name" defaultValue={warehouse?.name} placeholder="Ej: ANTF-01" required />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="city">Ciudad</Label>
+                <Label htmlFor="city">{t('city')}</Label>
                 <Input id="city" name="city" type="text" defaultValue={warehouse?.city} placeholder="Ej: Antofagasta" required />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="country">País</Label>
+                <Label htmlFor="country">{t('country')}</Label>
                 <Input id="country" name="country" type="text" defaultValue={warehouse?.country} placeholder="Ej: Chile" required />
             </div>
             
             <DialogFooter>
                 <DialogClose asChild>
-                    <Button type="button" variant="outline">Cancelar</Button>
+                    <Button type="button" variant="outline">{t('cancel')}</Button>
                 </DialogClose>
-                <Button type="submit">Guardar</Button>
+                <Button type="submit">{t('save')}</Button>
             </DialogFooter>
         </form>
     );

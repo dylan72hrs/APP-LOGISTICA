@@ -6,10 +6,12 @@ import { Header } from '@/components/layout/header';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '@/lib/hooks/use-language';
 
 export default function MainLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
 
   React.useEffect(() => {
     if (!loading && !user) {
@@ -29,9 +31,9 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
     return (
       <div className="flex h-screen items-center justify-center text-center p-4">
         <div>
-          <h1 className="text-2xl font-bold">Cuenta Pendiente de Asignación</h1>
-          <p className="text-muted-foreground">Tu cuenta ha sido creada, pero aún no tienes un rol asignado.</p>
-          <p className="text-muted-foreground">Por favor, contacta a un administrador para que active tu perfil.</p>
+          <h1 className="text-2xl font-bold">{t('account_pending_assignment')}</h1>
+          <p className="text-muted-foreground">{t('account_created_no_role')}</p>
+          <p className="text-muted-foreground">{t('contact_admin_to_activate')}</p>
         </div>
       </div>
     );

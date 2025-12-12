@@ -12,28 +12,29 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useState } from 'react';
+import { useLanguage } from '@/lib/hooks/use-language';
+
 
 export function LanguageSwitcher() {
-  const [language, setLanguage] = useState('Castellano');
+  const { language, setLanguage, t } = useLanguage();
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon">
           <Globe className="h-5 w-5" />
-          <span className="sr-only">Cambiar idioma</span>
+          <span className="sr-only">{t('change_language')}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={() => setLanguage('Castellano')}>
+        <DropdownMenuItem onSelect={() => setLanguage('es')} disabled={language === 'es'}>
             Castellano
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setLanguage('Inglés')}>
-            Inglés
+        <DropdownMenuItem onSelect={() => setLanguage('en')} disabled={language === 'en'}>
+            English
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => setLanguage('Francés')}>
-            Francés
+        <DropdownMenuItem onSelect={() => setLanguage('fr')} disabled={language === 'fr'}>
+            Français
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -43,6 +44,7 @@ export function LanguageSwitcher() {
 
 export function Header() {
     const { user } = useAuth();
+    const { t } = useLanguage();
     
     const assignedWarehouse = user?.role === 'operator' 
         ? mockWarehouses.find(w => w.id === user.warehouseId) 
@@ -55,7 +57,7 @@ export function Header() {
         {assignedWarehouse && (
             <div className="hidden items-center gap-2 text-sm text-muted-foreground md:flex">
                 <Warehouse className="h-4 w-4" />
-                <span>Bodega: <strong>{assignedWarehouse.name}</strong></span>
+                <span>{t('warehouse')}: <strong>{assignedWarehouse.name}</strong></span>
             </div>
         )}
       </div>

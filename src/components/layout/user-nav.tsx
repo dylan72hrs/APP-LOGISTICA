@@ -12,10 +12,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { useLanguage } from '@/lib/hooks/use-language';
 import { LogOut, User as UserIcon } from 'lucide-react';
 
 export function UserNav() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
 
   if (!user) {
     return null;
@@ -49,13 +51,13 @@ export function UserNav() {
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <UserIcon className="mr-2 h-4 w-4" />
-            <span>Perfil</span>
+            <span>{t('profile')}</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={logout}>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Cerrar sesión</span>
+          <span>{t('logout')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

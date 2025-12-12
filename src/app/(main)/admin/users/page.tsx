@@ -13,20 +13,22 @@ import type { UserProfile, UserRole, Warehouse } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-
-const roleNames: Record<UserRole, string> = {
-    admin: 'Administrador',
-    operator: 'Operador',
-    reports: 'Reportes',
-    unassigned: 'Sin Asignar'
-};
+import { useLanguage } from '@/lib/hooks/use-language';
 
 export default function AdminUsersPage() {
     const { toast } = useToast();
+    const { t, language } = useLanguage();
     const [users, setUsers] = useState<UserProfile[]>(initialUsers);
     const [warehouses] = useState<Warehouse[]>(mockWarehouses);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+
+    const roleNames: Record<UserRole, string> = {
+        admin: t('administrator'),
+        operator: t('operator'),
+        reports: t('reports'),
+        unassigned: t('unassigned')
+    };
 
     const handleSaveUser = (formData: FormData) => {
         const user: UserProfile = {
@@ -40,8 +42,8 @@ export default function AdminUsersPage() {
         if (!user.name || !user.email || !user.role) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: 'Por favor, completa todos los campos requeridos.'
+                title: t('error'),
+                description: t('please_fill_all_required_fields')
             });
             return;
         }
@@ -49,18 +51,18 @@ export default function AdminUsersPage() {
         if (user.role === 'operator' && !user.warehouseId) {
             toast({
                 variant: 'destructive',
-                title: 'Error',
-                description: 'Los operadores deben tener una bodega asignada.'
+                title: t('error'),
+                description: t('operators_must_have_warehouse')
             });
             return;
         }
 
         if (editingUser) {
             setUsers(users.map(u => u.uid === editingUser.uid ? user : u));
-             toast({ title: "Usuario actualizado", description: "El usuario ha sido actualizado correctamente." });
+             toast({ title: t('user_updated'), description: t('user_updated_successfully') });
         } else {
             setUsers([user, ...users]);
-             toast({ title: "Usuario creado", description: "El nuevo usuario ha sido creado." });
+             toast({ title: t('user_created'), description: t('new_user_created_successfully') });
         }
         
         setIsDialogOpen(false);
@@ -81,32 +83,32 @@ export default function AdminUsersPage() {
         setUsers(users.filter(u => u.uid !== uid));
         toast({
           variant: "destructive",
-          title: "Usuario eliminado",
-          description: "El usuario ha sido eliminado."
+          title: t('user_deleted'),
+          description: t('user_deleted_successfully')
       });
     }
 
     return (
         <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold tracking-tight">Administración de Usuarios</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{t('user_administration')}</h1>
                 <Button onClick={handleAddNewClick}>
                     <PlusCircle className="mr-2" />
-                    Crear Usuario
+                    {t('create_user')}
                 </Button>
             </div>
-             <CardDescription>Crea nuevos usuarios y gestiona sus roles y permisos.</CardDescription>
+             <CardDescription>{t('create_and_manage_users')}</CardDescription>
 
             <Card>
                 <CardContent className="p-0">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Nombre</TableHead>
-                                <TableHead>Email</TableHead>
-                                <TableHead>Rol</TableHead>
-                                <TableHead>Bodega Asignada</TableHead>
-                                <TableHead className="text-right">Acciones</TableHead>
+                                <TableHead>{t('name')}</TableHead>
+                                <TableHead>{t('email')}</TableHead>
+                                <TableHead>{t('role')}</TableHead>
+                                <TableHead>{t('assigned_warehouse')}</TableHead>
+                                <TableHead className="text-right">{t('actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -128,11 +130,11 @@ export default function AdminUsersPage() {
                                                 <DropdownMenuContent>
                                                     <DropdownMenuItem onClick={() => handleEditClick(user)}>
                                                         <Pencil className="mr-2 h-4 w-4"/>
-                                                        Editar
+                                                        {t('edit')}
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem onClick={() => handleDeleteUser(user.uid)} className="text-destructive focus:text-destructive">
                                                         <Trash2 className="mr-2 h-4 w-4"/>
-                                                        Eliminar
+                                                        {t('delete')}
                                                     </DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
@@ -151,7 +153,7 @@ export default function AdminUsersPage() {
             }}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>{editingUser ? 'Editar Usuario' : 'Crear Nuevo Usuario'}</DialogTitle>
+                        <DialogTitle>{editingUser ? t('edit_user') : t('create_new_user')}</DialogTitle>
                     </DialogHeader>
                     <UserForm user={editingUser} warehouses={warehouses} onSave={handleSaveUser} />
                 </DialogContent>
@@ -161,6 +163,7 @@ export default function AdminUsersPage() {
 }
 
 function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, warehouses: Warehouse[], onSave: (data: FormData) => void }) {
+    const { t } = useLanguage();
     const [selectedRole, setSelectedRole] = useState<UserRole | undefined>(user?.role);
     const initialCountry = user?.warehouseId ? warehouses.find(w => w.id === user.warehouseId)?.country : undefined;
     const [selectedCountry, setSelectedCountry] = useState<string | undefined>(initialCountry);
@@ -187,23 +190,23 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
     return (
         <form action={onSave} className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="name">Nombre Completo</Label>
+                <Label htmlFor="name">{t('full_name')}</Label>
                 <Input id="name" name="name" defaultValue={user?.name} required />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
+                <Label htmlFor="email">{t('email')}</Label>
                 <Input id="email" name="email" type="email" defaultValue={user?.email} required />
             </div>
             <div className="space-y-2">
-                <Label htmlFor="role">Rol</Label>
+                <Label htmlFor="role">{t('role')}</Label>
                 <Select name="role" defaultValue={user?.role} onValueChange={handleRoleChange} required>
                     <SelectTrigger id="role">
-                        <SelectValue placeholder="Selecciona un rol" />
+                        <SelectValue placeholder={t('select_a_role')} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="admin">Administrador</SelectItem>
-                        <SelectItem value="operator">Operador</SelectItem>
-                        <SelectItem value="reports">Reportes</SelectItem>
+                        <SelectItem value="admin">{t('administrator')}</SelectItem>
+                        <SelectItem value="operator">{t('operator')}</SelectItem>
+                        <SelectItem value="reports">{t('reports')}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -211,10 +214,10 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
             {selectedRole === 'operator' && (
                 <>
                     <div className="space-y-2">
-                        <Label htmlFor="country">País</Label>
+                        <Label htmlFor="country">{t('country')}</Label>
                         <Select onValueChange={handleCountryChange} value={selectedCountry}>
                             <SelectTrigger id="country">
-                                <SelectValue placeholder="Selecciona un país" />
+                                <SelectValue placeholder={t('select_a_country')} />
                             </SelectTrigger>
                             <SelectContent>
                                 {countries.map(country => (
@@ -226,10 +229,10 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
 
                     {selectedCountry && (
                          <div className="space-y-2">
-                            <Label htmlFor="warehouseId">Bodega Asignada</Label>
+                            <Label htmlFor="warehouseId">{t('assigned_warehouse')}</Label>
                             <Select name="warehouseId" key={selectedWarehouseId} value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
                                 <SelectTrigger id="warehouseId">
-                                    <SelectValue placeholder="Selecciona una bodega" />
+                                    <SelectValue placeholder={t('select_a_warehouse')} />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {filteredWarehouses.map(w => (
@@ -244,9 +247,9 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
             
             <DialogFooter>
                 <DialogClose asChild>
-                    <Button type="button" variant="outline">Cancelar</Button>
+                    <Button type="button" variant="outline">{t('cancel')}</Button>
                 </DialogClose>
-                <Button type="submit">Guardar</Button>
+                <Button type="submit">{t('save')}</Button>
             </DialogFooter>
         </form>
     );

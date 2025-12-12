@@ -9,10 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Package } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/lib/hooks/use-language';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -23,15 +25,15 @@ export default function RegisterPage() {
     if (email && password && name) {
       // After registration, user needs role assignment. Redirect to login.
       toast({
-        title: "Registro exitoso",
-        description: "Un administrador debe asignarte un rol para poder acceder.",
+        title: t('registration_successful'),
+        description: t('admin_must_assign_role'),
       });
       router.push('/login');
     } else {
        toast({
         variant: "destructive",
-        title: "Error",
-        description: "Por favor completa todos los campos.",
+        title: t('error'),
+        description: t('please_fill_all_fields'),
       });
     }
   };
@@ -43,17 +45,17 @@ export default function RegisterPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
                 <Package className="h-8 w-8" />
             </div>
-            <CardTitle className="text-3xl font-bold">Crear Cuenta</CardTitle>
-            <CardDescription>Crea una nueva cuenta en EPP Tracker 3.0</CardDescription>
+            <CardTitle className="text-3xl font-bold">{t('create_account')}</CardTitle>
+            <CardDescription>{t('create_new_account_epp_tracker')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="name">Nombre completo</Label>
+                <Label htmlFor="name">{t('full_name')}</Label>
                 <Input id="name" placeholder="Juan Pérez" required value={name} onChange={(e) => setName(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Correo electrónico</Label>
+              <Label htmlFor="email">{t('email')}</Label>
               <Input
                 id="email"
                 type="email"
@@ -64,19 +66,19 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">{t('password')}</Label>
               <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
             </div>
             <Button type="submit" className="w-full">
-              Registrarse
+              {t('register')}
             </Button>
           </form>
         </CardContent>
         <CardFooter>
             <div className="text-center text-sm w-full">
-                ¿Ya tienes una cuenta?{' '}
+                {t('already_have_account')}{' '}
                 <Link href="/login" className="font-semibold text-primary hover:underline">
-                Inicia sesión
+                {t('login')}
                 </Link>
             </div>
         </CardFooter>
