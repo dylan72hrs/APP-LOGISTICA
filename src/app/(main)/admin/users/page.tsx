@@ -199,7 +199,7 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
                 </Select>
             </div>
 
-            {(selectedRole === 'operator') && (
+            {selectedRole === 'operator' && (
                 <>
                     <div className="space-y-2">
                         <Label htmlFor="country">País</Label>
