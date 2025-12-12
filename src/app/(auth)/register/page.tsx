@@ -44,7 +44,7 @@ export default function RegisterPage() {
                 <Package className="h-8 w-8" />
             </div>
             <CardTitle className="text-3xl font-bold">Crear Cuenta</CardTitle>
-            <CardDescription>Crea una nueva cuenta en StockFlow</CardDescription>
+            <CardDescription>Crea una nueva cuenta en EPP Tracker 3.0</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleRegister} className="space-y-4">

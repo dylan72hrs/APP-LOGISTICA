@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Package } from 'lucide-react';
-import Link from 'next/link';
+import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 // In a real app, this would use an Auth Context or hook
 // For this mockup, we'll simulate login by storing in localStorage
@@ -30,6 +31,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,13 +49,24 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      {companyLogo && (
+         <Image
+            src={companyLogo.imageUrl}
+            alt={companyLogo.description}
+            width={200}
+            height={100}
+            className="mb-8"
+            data-ai-hint={companyLogo.imageHint}
+            priority
+          />
+      )}
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground">
             <Package className="h-8 w-8" />
           </div>
-          <CardTitle className="text-3xl font-bold">StockFlow</CardTitle>
+          <CardTitle className="text-3xl font-bold">EPP Tracker 3.0</CardTitle>
           <CardDescription>Inicia sesión para gestionar tu inventario</CardDescription>
         </CardHeader>
         <CardContent>
@@ -78,14 +91,6 @@ export default function LoginPage() {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
-            <div className="text-center text-sm">
-                ¿No tienes una cuenta?{' '}
-                <Link href="/register" className="font-semibold text-primary hover:underline">
-                Regístrate
-                </Link>
-            </div>
-        </CardFooter>
       </Card>
     </div>
   );

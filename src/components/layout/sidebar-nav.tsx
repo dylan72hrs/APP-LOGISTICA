@@ -50,7 +50,7 @@ export function SidebarNav() {
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
                 <Package className="h-6 w-6 text-primary-foreground" />
             </div>
-          <span className="text-xl font-bold text-primary">StockFlow</span>
+          <span className="text-xl font-bold text-primary">EPP Tracker 3.0</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
