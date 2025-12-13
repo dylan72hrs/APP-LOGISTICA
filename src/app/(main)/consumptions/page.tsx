@@ -3,21 +3,21 @@ import { useState, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { mockWorkers, mockProjects, mockInventory, mockWarehouses } from '@/lib/data';
-import type { Worker, Project, InventoryItem } from '@/lib/types';
+import { mockWorkers, mockProjects, mockInventory, mockWarehouses, mockConsumptionRecords } from '@/lib/data';
+import type { Worker, Project, InventoryItem, ConsumptionRecord } from '@/lib/types';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useToast } from '@/hooks/use-toast';
 import { Check, ChevronsUpDown, PlusCircle, Trash2, Printer, Eye, UserSearch, Search, PackageSearch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ValeConsumo } from '@/components/vale-consumo';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 
 interface SelectedItem extends InventoryItem {
   consumeQuantity: number;
@@ -32,6 +32,8 @@ export default function ConsumptionsPage() {
   const [workers] = useState<Worker[]>(mockWorkers);
   const [projects] = useState<Project[]>(mockProjects);
   const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory);
+  const [consumptionRecords, setConsumptionRecords] = useState<ConsumptionRecord[]>(mockConsumptionRecords);
+
 
   const [rutInput, setRutInput] = useState('');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
@@ -42,13 +44,7 @@ export default function ConsumptionsPage() {
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
 
   const [productCodeInput, setProductCodeInput] = useState('');
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const productCodeInputRef = useRef<HTMLInputElement>(null);
-  const printComponentRef = useRef<HTMLDivElement>(null);
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   const warehouseIdToFilter = useMemo(() => {
     if (user?.role === 'operator') {
@@ -141,8 +137,19 @@ export default function ConsumptionsPage() {
     return selectedItems.reduce((acc, item) => acc + item.cost * item.consumeQuantity, 0);
   }, [selectedItems]);
 
+  const consumptionData = useMemo(() => ({
+    id: `VC-${Date.now()}`,
+    date: new Date(),
+    worker: selectedWorker,
+    project: selectedProject,
+    items: selectedItems,
+    totalCost,
+    warehouse: warehouseIdToFilter ? mockWarehouses.find(w => w.id === warehouseIdToFilter)?.name || 'N/A' : 'N/A',
+    deliveredBy: user?.name || 'N/A',
+  }), [selectedWorker, selectedProject, selectedItems, totalCost, warehouseIdToFilter, user?.name]);
+
   const handleRegisterConsumption = () => {
-    if (!selectedWorker || !selectedProject || selectedItems.length === 0) {
+    if (!isFormComplete) {
       toast({ variant: 'destructive', title: t('error'), description: t('please_fill_all_fields') });
       return;
     }
@@ -159,13 +166,16 @@ export default function ConsumptionsPage() {
       return newInventory;
     });
     
-    // 2. TODO: Create consumption record (in-memory for now)
-    console.log({
-      worker: selectedWorker,
-      project: selectedProject,
-      items: selectedItems,
-      totalCost
-    });
+    // 2. Create consumption record (in-memory for now)
+    const newRecord: ConsumptionRecord = {
+        id: consumptionData.id,
+        date: consumptionData.date,
+        workerId: consumptionData.worker!.id,
+        projectId: consumptionData.project!.id,
+        items: consumptionData.items.map(i => ({ itemId: i.id, quantity: i.consumeQuantity })),
+        warehouseId: warehouseIdToFilter!,
+    };
+    setConsumptionRecords(prev => [newRecord, ...prev]);
 
     toast({ title: t('consumption_registered'), description: t('stock_updated_successfully') });
     
@@ -177,23 +187,51 @@ export default function ConsumptionsPage() {
     setSelectedItems([]);
   };
 
-  const isFormComplete = !!selectedWorker && !!selectedProject && selectedItems.length > 0;
+  const handlePreview = () => {
+    const valeContent = `
+      <html>
+        <head>
+          <title>Vale de Consumo - ${consumptionData.id}</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+            body { font-family: Arial, sans-serif; }
+            @media print {
+              #print-button { display: none; }
+              @page { margin: 1.5cm; }
+            }
+          </style>
+        </head>
+        <body class="bg-white">
+          <div class="max-w-4xl mx-auto p-8">
+            <div id="vale-wrapper"></div>
+            <div class="mt-8 text-center">
+              <button id="print-button" onclick="window.print()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700">
+                ${t('print')}
+              </button>
+            </div>
+          </div>
+          <script>
+            // This is a trick to render a React component in a new window
+            // We pass the stringified component to the new window
+            const componentHtml = \`${document.getElementById('vale-for-print')?.innerHTML}\`;
+            document.getElementById('vale-wrapper').innerHTML = componentHtml;
+          </script>
+        </body>
+      </html>
+    `;
 
-  const consumptionData = {
-    id: `VC-${Date.now()}`,
-    date: new Date(),
-    worker: selectedWorker,
-    project: selectedProject,
-    items: selectedItems,
-    totalCost,
-    warehouse: warehouseIdToFilter ? mockWarehouses.find(w => w.id === warehouseIdToFilter)?.name || 'N/A' : 'N/A',
-    deliveredBy: user?.name || 'N/A',
+    const valeWindow = window.open('', '_blank');
+    if (valeWindow) {
+      valeWindow.document.write(valeContent);
+      valeWindow.document.close();
+    }
   };
 
+  const isFormComplete = !!selectedWorker && !!selectedProject && selectedItems.length > 0;
 
   return (
     <>
-    <div className="flex flex-col gap-4 print:hidden">
+    <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
               <h1 className="text-2xl font-bold tracking-tight">{t('consumption_record')}</h1>
@@ -268,7 +306,7 @@ export default function ConsumptionsPage() {
                     <PackageSearch />
                 </Button>
             </div>
-            {user?.role === 'admin' && warehouseIdToFilter === 'all' && (
+            {user?.role === 'admin' && (!warehouseIdToFilter || warehouseIdToFilter === 'all') && (
                 <CardDescription className='text-destructive mt-2'>
                     {t('admin_select_warehouse_for_product')}
                 </CardDescription>
@@ -322,7 +360,7 @@ export default function ConsumptionsPage() {
         </CardFooter>
       </Card>
       <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setIsPreviewOpen(true)} disabled={!isFormComplete}>
+          <Button variant="outline" onClick={handlePreview} disabled={!isFormComplete}>
             <Eye className="mr-2" />
             {t('preview_voucher')}
           </Button>
@@ -332,87 +370,12 @@ export default function ConsumptionsPage() {
       </div>
     </div>
     
-    <div className="hidden print:block">
-        <ValeConsumo data={consumptionData} ref={printComponentRef} />
+    {/* Hidden component to generate HTML for printing */}
+    <div className="hidden">
+      <div id="vale-for-print">
+        <ValeConsumo data={consumptionData} />
+      </div>
     </div>
-
-       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>{t('consumption_voucher_preview')}</DialogTitle>
-             <div className="flex justify-end">
-                <Button onClick={handlePrint}>
-                    <Printer className="mr-2" />
-                    {t('print')}
-                </Button>
-            </div>
-          </DialogHeader>
-            <ScrollArea className="max-h-[70vh]">
-                <div id="print-content">
-                    <ValeConsumo data={consumptionData} />
-                </div>
-            </ScrollArea>
-        </DialogContent>
-      </Dialog>
     </>
   );
-}
-
-interface ComboboxProps {
-    items: { value: string; label: string }[];
-    selectedValue: string | undefined;
-    onSelect: (value: string | undefined) => void;
-    placeholder: string;
-    searchPlaceholder: string;
-}
-
-function Combobox({ items, selectedValue, onSelect, placeholder, searchPlaceholder }: ComboboxProps) {
-    const [open, setOpen] = useState(false);
-    const { t } = useLanguage();
-  
-    return (
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="w-full justify-between"
-          >
-            {selectedValue
-              ? items.find((item) => item.value === selectedValue)?.label
-              : placeholder}
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-          <Command>
-            <CommandInput placeholder={searchPlaceholder} />
-            <CommandList>
-                <CommandEmpty>{t('no_results_found')}</CommandEmpty>
-                <CommandGroup>
-                {items.map((item) => (
-                    <CommandItem
-                    key={item.value}
-                    value={item.value}
-                    onSelect={(currentValue) => {
-                        onSelect(currentValue === selectedValue ? undefined : currentValue);
-                        setOpen(false);
-                    }}
-                    >
-                    <Check
-                        className={cn(
-                        "mr-2 h-4 w-4",
-                        selectedValue === item.value ? "opacity-100" : "opacity-0"
-                        )}
-                    />
-                    {item.label}
-                    </CommandItem>
-                ))}
-                </CommandGroup>
-            </CommandList>
-          </Command>
-        </PopoverContent>
-      </Popover>
-    );
 }
