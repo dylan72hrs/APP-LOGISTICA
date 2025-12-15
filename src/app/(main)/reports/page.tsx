@@ -120,7 +120,7 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>{t('filters')}</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                     <div className="space-y-2">
                         <Label>{t('date_range')}</Label>
                         <Popover>
@@ -182,7 +182,7 @@ export default function ReportsPage() {
                     <div className="space-y-2">
                          <Label htmlFor="select-entity">{reportType === 'worker' ? t('worker') : t('project')}</Label>
                          <Select value={selectedId} onValueChange={setSelectedId}>
-                            <SelectTrigger id="select-entity">
+                            <SelectTrigger id="select-entity" className='w-full'>
                                 <SelectValue placeholder={reportType === 'worker' ? t('select_a_worker') : t('select_a_project')} />
                             </SelectTrigger>
                             <SelectContent>
@@ -194,9 +194,7 @@ export default function ReportsPage() {
                          </Select>
                     </div>
 
-                    <div className="flex items-end">
-                        <Button onClick={handleGenerateReport} className="w-full">{t('generate_report')}</Button>
-                    </div>
+                    <Button onClick={handleGenerateReport} className="w-full">{t('generate_report')}</Button>
                 </CardContent>
             </Card>
 
