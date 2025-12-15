@@ -198,5 +198,17 @@
     "worker_not_found": "Trabajador no encontrado con el RUT proporcionado.",
     "enter_project_id_and_search": "Ingresa ID de proyecto y busca",
     "project_not_found": "Proyecto no encontrado con el ID proporcionado.",
-    "search_product_by_code": "Ingresa el código del producto..."
+    "search_product_by_code": "Ingresa el código del producto...",
+    "consumption_report": "Reporte de Consumo",
+    "filters": "Filtros",
+    "date_range": "Rango de Fechas",
+    "pick_a_date": "Elige una fecha",
+    "report_type": "Tipo de Reporte",
+    "generate_report": "Generar Reporte",
+    "select_a_worker": "Selecciona un trabajador",
+    "select_a_project": "Selecciona un proyecto",
+    "report_results": "Resultados del Reporte",
+    "export_to_excel": "Exportar a Excel",
+    "consumption_report_for": "Reporte de consumo para",
+    "open_in_new_tab": "Abrir en nueva pestaña"
 }

@@ -198,5 +198,17 @@
     "worker_not_found": "Travailleur non trouvé avec l'ID fourni.",
     "enter_project_id_and_search": "Entrez l'ID du projet et recherchez",
     "project_not_found": "Projet non trouvé avec l'ID fourni.",
-    "search_product_by_code": "Entrez le code du produit..."
-  }
+    "search_product_by_code": "Entrez le code du produit...",
+    "consumption_report": "Rapport de Consommation",
+    "filters": "Filtres",
+    "date_range": "Plage de dates",
+    "pick_a_date": "Choisir une date",
+    "report_type": "Type de rapport",
+    "generate_report": "Générer un rapport",
+    "select_a_worker": "Sélectionner un travailleur",
+    "select_a_project": "Sélectionner un projet",
+    "report_results": "Résultats du rapport",
+    "export_to_excel": "Exporter vers Excel",
+    "consumption_report_for": "Rapport de consommation pour",
+    "open_in_new_tab": "Ouvrir dans un nouvel onglet"
+}
