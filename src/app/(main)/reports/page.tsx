@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from '@/components/ui/button';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon, Download } from 'lucide-react';
+import { Calendar as CalendarIcon, Download, Check, ChevronsUpDown } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell, TableFooter } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/hooks/use-language';
@@ -38,6 +38,7 @@ export default function ReportsPage() {
     const [selectedId, setSelectedId] = useState<string>('');
     const [reportData, setReportData] = useState<ReportRow[]>([]);
     const [reportTitle, setReportTitle] = useState('');
+    const [openCombobox, setOpenCombobox] = useState(false);
 
     const handleGenerateReport = () => {
         if (!date?.from || !date?.to || !selectedId) {
@@ -120,6 +121,14 @@ export default function ReportsPage() {
         XLSX.writeFile(wb, "reporte_consumos.xlsx");
     }
 
+    const currentSelectionLabel = useMemo(() => {
+        if (!selectedId) return reportType === 'worker' ? t('select_a_worker') : t('select_a_project');
+        if (reportType === 'worker') {
+            return workers.find(w => w.id === selectedId)?.name || t('select_a_worker');
+        }
+        return projects.find(p => p.id === selectedId)?.name || t('select_a_project');
+    }, [selectedId, reportType, workers, projects, t]);
+
     return (
         <div className="flex flex-col gap-4">
             <div>
@@ -192,17 +201,67 @@ export default function ReportsPage() {
                     
                     <div className="space-y-2">
                          <Label htmlFor="select-entity">{reportType === 'worker' ? t('worker') : t('project')}</Label>
-                         <Select value={selectedId} onValueChange={setSelectedId}>
-                            <SelectTrigger id="select-entity" className='w-full'>
-                                <SelectValue placeholder={reportType === 'worker' ? t('select_a_worker') : t('select_a_project')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {reportType === 'worker' 
-                                 ? workers.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)
-                                 : projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)
-                                }
-                            </SelectContent>
-                         </Select>
+                         <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                            <PopoverTrigger asChild>
+                                <Button
+                                variant="outline"
+                                role="combobox"
+                                aria-expanded={openCombobox}
+                                className="w-full justify-between"
+                                >
+                                {currentSelectionLabel}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                                <Command>
+                                <CommandInput placeholder={reportType === 'worker' ? t('search_worker') : t('search_project')} />
+                                <CommandList>
+                                    <CommandEmpty>{t('no_results_found')}</CommandEmpty>
+                                    <CommandGroup>
+                                        {reportType === 'worker' 
+                                            ? workers.map(w => (
+                                                <CommandItem
+                                                    key={w.id}
+                                                    value={`${w.name} ${w.rut}`}
+                                                    onSelect={() => {
+                                                        setSelectedId(w.id);
+                                                        setOpenCombobox(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        selectedId === w.id ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    {w.name}
+                                                </CommandItem>
+                                            ))
+                                            : projects.map(p => (
+                                                <CommandItem
+                                                    key={p.id}
+                                                    value={`${p.name} ${p.id}`}
+                                                    onSelect={() => {
+                                                        setSelectedId(p.id);
+                                                        setOpenCombobox(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        selectedId === p.id ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    {p.name}
+                                                </CommandItem>
+                                            ))
+                                        }
+                                    </CommandGroup>
+                                </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                     </div>
 
                     <Button onClick={handleGenerateReport} className="w-full">{t('generate_report')}</Button>
@@ -258,5 +317,3 @@ export default function ReportsPage() {
         </div>
     );
 }
-
-    
