@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from '@/components/ui/button';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
+import { es, fr, enUS } from 'date-fns/locale';
 import { Calendar as CalendarIcon, Download, Check, ChevronsUpDown } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -39,6 +40,13 @@ export default function ReportsPage() {
     const [reportData, setReportData] = useState<ReportRow[]>([]);
     const [reportTitle, setReportTitle] = useState('');
     const [openCombobox, setOpenCombobox] = useState(false);
+
+    const localeMap = {
+        es: es,
+        fr: fr,
+        en: enUS
+    };
+    const currentLocale = localeMap[language] || es;
 
     const handleGenerateReport = () => {
         if (!date?.from || !date?.to || !selectedId) {
@@ -80,7 +88,7 @@ export default function ReportsPage() {
                         description: inventoryItem.description,
                         quantity: consumedItem.quantity,
                         unitCost: inventoryItem.cost,
-                        totalCost: consumedItem.quantity * inventoryItem.cost,
+                        totalCost: consumedItem.quantity * consumedItem.cost,
                     });
                 }
             });
@@ -94,7 +102,7 @@ export default function ReportsPage() {
         } else {
             title += projects.find(p => p.id === selectedId)?.name;
         }
-        title += ` (${format(date.from, 'LLL dd, y')} - ${format(date.to, 'LLL dd, y')})`;
+        title += ` (${format(date.from, 'LLL dd, y', {locale: currentLocale})} - ${format(date.to, 'LLL dd, y', {locale: currentLocale})})`;
         setReportTitle(title);
     };
 
@@ -157,11 +165,11 @@ export default function ReportsPage() {
                                     {date?.from ? (
                                     date.to ? (
                                         <>
-                                        {format(date.from, "LLL dd, y")} -{" "}
-                                        {format(date.to, "LLL dd, y")}
+                                        {format(date.from, "LLL dd, y", { locale: currentLocale })} -{" "}
+                                        {format(date.to, "LLL dd, y", { locale: currentLocale })}
                                         </>
                                     ) : (
-                                        format(date.from, "LLL dd, y")
+                                        format(date.from, "LLL dd, y", { locale: currentLocale })
                                     )
                                     ) : (
                                     <span>{t('pick_a_date')}</span>
@@ -176,6 +184,7 @@ export default function ReportsPage() {
                                 selected={date}
                                 onSelect={setDate}
                                 numberOfMonths={2}
+                                locale={currentLocale}
                             />
                             </PopoverContent>
                         </Popover>
