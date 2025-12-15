@@ -7,17 +7,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { mockWarehouses as initialWarehouses } from '@/lib/data';
 import type { Warehouse } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/lib/hooks/use-language';
+import { useData } from '@/lib/hooks/use-data';
 
 export default function WarehousesPage() {
     const { toast } = useToast();
     const { t } = useLanguage();
-    const [warehouses, setWarehouses] = useState<Warehouse[]>(initialWarehouses);
+    const { warehouses, addWarehouse, updateWarehouse, deleteWarehouse } = useData();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
 
@@ -39,10 +39,10 @@ export default function WarehousesPage() {
         }
 
         if (editingWarehouse) {
-            setWarehouses(warehouses.map(w => w.id === editingWarehouse.id ? warehouse : w));
+            updateWarehouse(warehouse);
              toast({ title: t('warehouse_updated'), description: t('warehouse_updated_successfully') });
         } else {
-            setWarehouses([warehouse, ...warehouses]);
+            addWarehouse(warehouse);
              toast({ title: t('warehouse_created'), description: t('new_warehouse_created_successfully') });
         }
         
@@ -60,8 +60,8 @@ export default function WarehousesPage() {
         setIsDialogOpen(true);
     }
 
-    const handleDeleteWarehouse = (id: string) => {
-        setWarehouses(warehouses.filter(w => w.id !== id));
+    const handleDeleteClick = (id: string) => {
+        deleteWarehouse(id);
         toast({
           variant: "destructive",
           title: t('warehouse_deleted'),
@@ -109,7 +109,7 @@ export default function WarehousesPage() {
                                                     <Pencil className="mr-2 h-4 w-4"/>
                                                     {t('edit')}
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleDeleteWarehouse(warehouse.id)} className="text-destructive focus:text-destructive">
+                                                <DropdownMenuItem onClick={() => handleDeleteClick(warehouse.id)} className="text-destructive focus:text-destructive">
                                                     <Trash2 className="mr-2 h-4 w-4"/>
                                                     {t('delete')}
                                                 </DropdownMenuItem>
@@ -164,3 +164,5 @@ function WarehouseForm({ warehouse, onSave }: { warehouse: Warehouse | null, onS
         </form>
     );
 }
+
+    

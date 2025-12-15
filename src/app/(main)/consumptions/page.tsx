@@ -5,19 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { mockWorkers, mockProjects, mockInventory, mockWarehouses, mockConsumptionRecords } from '@/lib/data';
 import type { Worker, Project, InventoryItem, ConsumptionRecord } from '@/lib/types';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useToast } from '@/hooks/use-toast';
-import { Check, ChevronsUpDown, PlusCircle, Trash2, Printer, Eye, UserSearch, Search, PackageSearch } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Eye } from 'lucide-react';
 import { ValeConsumo } from '@/components/vale-consumo';
 import { useAuth } from '@/lib/hooks/use-auth';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { useData } from '@/lib/hooks/use-data';
+import { UserSearch, Search, PackageSearch, Trash2 } from 'lucide-react';
 
 interface SelectedItem extends InventoryItem {
   consumeQuantity: number;
@@ -28,12 +24,14 @@ export default function ConsumptionsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { selectedWarehouseId } = useWarehouse();
-  
-  const [workers] = useState<Worker[]>(mockWorkers);
-  const [projects] = useState<Project[]>(mockProjects);
-  const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory);
-  const [consumptionRecords, setConsumptionRecords] = useState<ConsumptionRecord[]>(mockConsumptionRecords);
-
+  const { 
+    workers, 
+    projects, 
+    inventory, 
+    addConsumptionRecord,
+    updateInventoryItemQuantity,
+    warehouses
+  } = useData();
 
   const [rutInput, setRutInput] = useState('');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
@@ -45,6 +43,8 @@ export default function ConsumptionsPage() {
 
   const [productCodeInput, setProductCodeInput] = useState('');
   const productCodeInputRef = useRef<HTMLInputElement>(null);
+  
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const warehouseIdToFilter = useMemo(() => {
     if (user?.role === 'operator') {
@@ -144,9 +144,9 @@ export default function ConsumptionsPage() {
     project: selectedProject,
     items: selectedItems,
     totalCost,
-    warehouse: warehouseIdToFilter ? mockWarehouses.find(w => w.id === warehouseIdToFilter)?.name || 'N/A' : 'N/A',
+    warehouse: warehouseIdToFilter ? warehouses.find(w => w.id === warehouseIdToFilter)?.name || 'N/A' : 'N/A',
     deliveredBy: user?.name || 'N/A',
-  }), [selectedWorker, selectedProject, selectedItems, totalCost, warehouseIdToFilter, user?.name]);
+  }), [selectedWorker, selectedProject, selectedItems, totalCost, warehouseIdToFilter, user?.name, warehouses]);
 
   const handleRegisterConsumption = () => {
     if (!isFormComplete) {
@@ -154,19 +154,15 @@ export default function ConsumptionsPage() {
       return;
     }
     
-    // 1. Update inventory (in-memory for now)
-    setInventory(prevInventory => {
-      const newInventory = [...prevInventory];
-      selectedItems.forEach(consumedItem => {
-        const itemIndex = newInventory.findIndex(i => i.id === consumedItem.id && i.warehouseId === warehouseIdToFilter);
-        if (itemIndex > -1) {
-          newInventory[itemIndex].quantity -= consumedItem.consumeQuantity;
-        }
-      });
-      return newInventory;
+    // 1. Update inventory
+    selectedItems.forEach(consumedItem => {
+      const originalItem = inventory.find(i => i.id === consumedItem.id && i.warehouseId === warehouseIdToFilter);
+      if (originalItem) {
+        updateInventoryItemQuantity(consumedItem.id, warehouseIdToFilter!, originalItem.quantity - consumedItem.consumeQuantity);
+      }
     });
     
-    // 2. Create consumption record (in-memory for now)
+    // 2. Create consumption record
     const newRecord: ConsumptionRecord = {
         id: consumptionData.id,
         date: consumptionData.date,
@@ -175,7 +171,7 @@ export default function ConsumptionsPage() {
         items: consumptionData.items.map(i => ({ itemId: i.id, quantity: i.consumeQuantity })),
         warehouseId: warehouseIdToFilter!,
     };
-    setConsumptionRecords(prev => [newRecord, ...prev]);
+    addConsumptionRecord(newRecord);
 
     toast({ title: t('consumption_registered'), description: t('stock_updated_successfully') });
     
@@ -187,46 +183,51 @@ export default function ConsumptionsPage() {
     setSelectedItems([]);
   };
 
-  const handlePreview = () => {
-    const valeContent = `
-      <html>
-        <head>
-          <title>Vale de Consumo - ${consumptionData.id}</title>
-          <script src="https://cdn.tailwindcss.com"></script>
-          <style>
-            body { font-family: Arial, sans-serif; }
-            @media print {
-              #print-button { display: none; }
-              @page { margin: 1.5cm; }
-            }
-          </style>
-        </head>
-        <body class="bg-white">
-          <div class="max-w-4xl mx-auto p-8">
-            <div id="vale-wrapper"></div>
-            <div class="mt-8 text-center">
-              <button id="print-button" onclick="window.print()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700">
-                ${t('print')}
-              </button>
-            </div>
-          </div>
-          <script>
-            // This is a trick to render a React component in a new window
-            // We pass the stringified component to the new window
-            const componentHtml = \`${document.getElementById('vale-for-print')?.innerHTML}\`;
-            document.getElementById('vale-wrapper').innerHTML = componentHtml;
-          </script>
-        </body>
-      </html>
-    `;
-
-    const valeWindow = window.open('', '_blank');
-    if (valeWindow) {
-      valeWindow.document.write(valeContent);
-      valeWindow.document.close();
+ const handlePreview = () => {
+    if (!isFormComplete) {
+      toast({ variant: 'destructive', title: t('error'), description: t('please_fill_all_fields') });
+      return;
+    }
+    const valeContent = document.getElementById('vale-for-print')?.innerHTML;
+    if (valeContent) {
+      const valeWindow = window.open('', '_blank', 'width=800,height=600');
+      if (valeWindow) {
+        valeWindow.document.write(`
+          <html>
+            <head>
+              <title>${t('consumption_voucher_preview')}</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+              <style>
+                body { font-family: Arial, sans-serif; }
+                @media print {
+                  #print-button { display: none; }
+                  @page { 
+                    size: auto;
+                    margin: 1.5cm; 
+                  }
+                   body {
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                  }
+                }
+              </style>
+            </head>
+            <body class="bg-white">
+              <div class="max-w-4xl mx-auto p-8">
+                ${valeContent}
+                <div class="mt-8 text-center">
+                  <button id="print-button" onclick="window.print()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700">
+                    ${t('print')}
+                  </button>
+                </div>
+              </div>
+            </body>
+          </html>
+        `);
+        valeWindow.document.close();
+      }
     }
   };
-
   const isFormComplete = !!selectedWorker && !!selectedProject && selectedItems.length > 0;
 
   return (
@@ -379,3 +380,5 @@ export default function ConsumptionsPage() {
     </>
   );
 }
+
+    

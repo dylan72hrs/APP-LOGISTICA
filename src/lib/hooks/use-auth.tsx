@@ -1,9 +1,9 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { UserProfile, UserRole } from '@/lib/types';
-import { mockUsers } from '@/lib/data';
+import type { UserProfile } from '@/lib/types';
 import { usePathname, useRouter } from 'next/navigation';
+import { useData } from './use-data';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -18,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const { users } = useData();
 
   useEffect(() => {
     // In a real app, you'd have a listener to Firebase Auth state changes.
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     if (userEmail) {
       // Find user from mock data. In real app, fetch from Firestore.
-      const foundUser = mockUsers.find(u => u.email.toLowerCase() === userEmail.toLowerCase()) || {
+      const foundUser = users.find(u => u.email.toLowerCase() === userEmail.toLowerCase()) || {
         uid: 'mock-uid',
         email: userEmail,
         name: userEmail.split('@')[0],
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }
     setLoading(false);
-  }, [router, pathname]);
+  }, [router, pathname, users]);
 
   const logout = () => {
     // In a real app, this would sign out from Firebase.
@@ -61,3 +62,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    

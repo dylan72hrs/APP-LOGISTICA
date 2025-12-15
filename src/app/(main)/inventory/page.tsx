@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { mockInventory as initialInventory } from '@/lib/data';
 import type { InventoryItem } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2, Warehouse as WarehouseIcon, Upload, Download } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -17,14 +16,15 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/lib/hooks/use-language';
 import * as XLSX from 'xlsx';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
+import { useData } from '@/lib/hooks/use-data';
 
 export default function InventoryPage() {
     const { toast } = useToast();
     const { user } = useAuth();
     const { t, language } = useLanguage();
     const { selectedWarehouseId } = useWarehouse();
+    const { inventory, addInventoryItem, updateInventoryItem, deleteInventoryItem } = useData();
     
-    const [inventory, setInventory] = useState<InventoryItem[]>(initialInventory);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,7 +80,7 @@ export default function InventoryPage() {
         };
 
         if (editingItem) {
-            setInventory(inventory.map(i => (i.id === editingItem.id && i.warehouseId === editingItem.warehouseId) ? finalItem : i));
+            updateInventoryItem(finalItem);
             toast({ title: t('product_updated'), description: t('inventory_item_updated') });
         } else {
              // Check if item code already exists in the same warehouse
@@ -92,7 +92,7 @@ export default function InventoryPage() {
                 });
                 return;
             }
-            setInventory([finalItem, ...inventory]);
+            addInventoryItem(finalItem);
             toast({ title: t('product_created'), description: t('new_item_added_to_inventory') });
         }
         
@@ -127,7 +127,7 @@ export default function InventoryPage() {
     }
 
     const handleDeleteItem = (id: string, warehouseId: string) => {
-        setInventory(inventory.filter(i => !(i.id === id && i.warehouseId === warehouseId)));
+        deleteInventoryItem(id, warehouseId);
         toast({
           variant: "destructive",
           title: t('product_deleted'),
@@ -222,14 +222,13 @@ export default function InventoryPage() {
                         cost,
                         warehouseId: warehouseIdForUpload!,
                     };
-                    newItems.push(newItem);
+                    addInventoryItem(newItem);
                     existingCodes.add(newItem.code.toLowerCase());
                 }
 
-                setInventory(prev => [...newItems, ...prev]);
                 toast({
                     title: t('import_successful'),
-                    description: t('new_items_imported_successfully', { count: newItems.length.toString() })
+                    description: t('new_items_imported_successfully', { count: json.length.toString() })
                 });
 
             } catch (error) {
@@ -379,3 +378,5 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
         </form>
     );
 }
+
+    

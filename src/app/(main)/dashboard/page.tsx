@@ -2,26 +2,26 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Boxes, Truck, AlertCircle, Users } from "lucide-react";
-import { mockConsumptionRecords, mockInventory, mockWorkers } from "@/lib/data";
 import { useLanguage } from "@/lib/hooks/use-language";
 import { useMemo } from "react";
 import { useWarehouse } from "@/lib/hooks/use-warehouse";
+import { useData } from "@/lib/hooks/use-data";
 
 export default function DashboardPage() {
     const { t, language } = useLanguage();
-    const { selectedWarehouseId, userWarehouseId } = useWarehouse();
+    const { selectedWarehouseId } = useWarehouse();
+    const { inventory, consumptionRecords, workers } = useData();
 
-    const warehouseIdToFilter = selectedWarehouseId === 'all' ? userWarehouseId : selectedWarehouseId;
 
     const filteredInventory = useMemo(() => {
-        if (!warehouseIdToFilter || warehouseIdToFilter === 'all') return mockInventory;
-        return mockInventory.filter(item => item.warehouseId === warehouseIdToFilter);
-    }, [warehouseIdToFilter]);
+        if (!selectedWarehouseId || selectedWarehouseId === 'all') return inventory;
+        return inventory.filter(item => item.warehouseId === selectedWarehouseId);
+    }, [selectedWarehouseId, inventory]);
 
     const filteredConsumptions = useMemo(() => {
-        if (!warehouseIdToFilter || warehouseIdToFilter === 'all') return mockConsumptionRecords;
-        return mockConsumptionRecords.filter(record => record.warehouseId === warehouseIdToFilter);
-    }, [warehouseIdToFilter]);
+        if (!selectedWarehouseId || selectedWarehouseId === 'all') return consumptionRecords;
+        return consumptionRecords.filter(record => record.warehouseId === selectedWarehouseId);
+    }, [selectedWarehouseId, consumptionRecords]);
 
     const totalItems = filteredInventory.reduce((acc, item) => acc + item.quantity, 0);
     const lowStockItems = filteredInventory.filter(item => item.quantity < 20).length;
@@ -92,7 +92,7 @@ export default function DashboardPage() {
                         <Users className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{mockWorkers.length}</div>
+                        <div className="text-2xl font-bold">{workers.length}</div>
                         <p className="text-xs text-muted-foreground">{t('total_registered_workers')}</p>
                     </CardContent>
                 </Card>
@@ -124,3 +124,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    

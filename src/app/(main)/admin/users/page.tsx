@@ -8,18 +8,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { mockUsers as initialUsers, mockWarehouses } from '@/lib/data';
 import type { UserProfile, UserRole, Warehouse } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/lib/hooks/use-language';
+import { useData } from '@/lib/hooks/use-data';
 
 export default function AdminUsersPage() {
     const { toast } = useToast();
-    const { t, language } = useLanguage();
-    const [users, setUsers] = useState<UserProfile[]>(initialUsers);
-    const [warehouses] = useState<Warehouse[]>(mockWarehouses);
+    const { t } = useLanguage();
+    const { users, warehouses, addUser, updateUser, deleteUser } = useData();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
 
@@ -58,10 +57,10 @@ export default function AdminUsersPage() {
         }
 
         if (editingUser) {
-            setUsers(users.map(u => u.uid === editingUser.uid ? user : u));
+            updateUser(user);
              toast({ title: t('user_updated'), description: t('user_updated_successfully') });
         } else {
-            setUsers([user, ...users]);
+            addUser(user);
              toast({ title: t('user_created'), description: t('new_user_created_successfully') });
         }
         
@@ -79,8 +78,8 @@ export default function AdminUsersPage() {
         setIsDialogOpen(true);
     }
 
-    const handleDeleteUser = (uid: string) => {
-        setUsers(users.filter(u => u.uid !== uid));
+    const handleDeleteClick = (uid: string) => {
+        deleteUser(uid);
         toast({
           variant: "destructive",
           title: t('user_deleted'),
@@ -132,7 +131,7 @@ export default function AdminUsersPage() {
                                                         <Pencil className="mr-2 h-4 w-4"/>
                                                         {t('edit')}
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={() => handleDeleteUser(user.uid)} className="text-destructive focus:text-destructive">
+                                                    <DropdownMenuItem onClick={() => handleDeleteClick(user.uid)} className="text-destructive focus:text-destructive">
                                                         <Trash2 className="mr-2 h-4 w-4"/>
                                                         {t('delete')}
                                                     </DropdownMenuItem>
@@ -254,3 +253,5 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
         </form>
     );
 }
+
+    

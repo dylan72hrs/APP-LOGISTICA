@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { mockWorkers as initialWorkers } from '@/lib/data';
 import type { Worker } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2, Upload, Download } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -15,12 +14,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/lib/hooks/use-language';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { useData } from '@/lib/hooks/use-data';
 
 export default function WorkersPage() {
     const { toast } = useToast();
     const { t } = useLanguage();
     const { user } = useAuth();
-    const [workers, setWorkers] = useState<Worker[]>(initialWorkers);
+    const { workers, addWorker, updateWorker, deleteWorker } = useData();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,7 +48,7 @@ export default function WorkersPage() {
         };
 
         if (editingWorker) {
-            setWorkers(workers.map(w => w.id === editingWorker.id ? finalWorker : w));
+            updateWorker(finalWorker);
             toast({ title: t('worker_updated'), description: t('worker_updated_successfully') });
         } else {
             if (workers.some(w => w.rut.toLowerCase() === finalWorker.rut.toLowerCase())) {
@@ -59,7 +59,7 @@ export default function WorkersPage() {
                 });
                 return;
             }
-            setWorkers([finalWorker, ...workers]);
+            addWorker(finalWorker);
             toast({ title: t('worker_created'), description: t('new_worker_added_successfully') });
         }
         
@@ -77,8 +77,8 @@ export default function WorkersPage() {
         setIsDialogOpen(true);
     }
 
-    const handleDeleteWorker = (id: string) => {
-        setWorkers(workers.filter(w => w.id !== id));
+    const handleDeleteClick = (id: string) => {
+        deleteWorker(id);
         toast({
           variant: "destructive",
           title: t('worker_deleted'),
@@ -111,7 +111,6 @@ export default function WorkersPage() {
                 const worksheet = workbook.Sheets[sheetName];
                 const json: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-                const newWorkers: Worker[] = [];
                 const existingRUTs = new Set(workers.map(w => w.rut.toLowerCase()));
                 
                 for (const row of json) {
@@ -136,14 +135,13 @@ export default function WorkersPage() {
                         position: String(position),
                         department: String(department),
                     };
-                    newWorkers.push(newWorker);
+                    addWorker(newWorker);
                     existingRUTs.add(newWorker.rut.toLowerCase());
                 }
 
-                setWorkers(prev => [...newWorkers, ...prev]);
                 toast({
                     title: t('import_successful'),
-                    description: t('new_workers_imported_successfully', { count: newWorkers.length.toString() })
+                    description: t('new_workers_imported_successfully', { count: json.length.toString() })
                 });
 
             } catch (error) {
@@ -217,7 +215,7 @@ export default function WorkersPage() {
                                                     <Pencil className="mr-2 h-4 w-4"/>
                                                     {t('edit')}
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleDeleteWorker(worker.id)} className="text-destructive focus:text-destructive" disabled={user?.role === 'reports'}>
+                                                <DropdownMenuItem onClick={() => handleDeleteClick(worker.id)} className="text-destructive focus:text-destructive" disabled={user?.role === 'reports'}>
                                                     <Trash2 className="mr-2 h-4 w-4"/>
                                                     {t('delete')}
                                                 </DropdownMenuItem>
@@ -276,3 +274,5 @@ function WorkerForm({ worker, onSave }: { worker: Worker | null, onSave: (data: 
         </form>
     );
 }
+
+    

@@ -3,7 +3,6 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { UserNav } from '@/components/layout/user-nav';
 import { useAuth } from '@/lib/hooks/use-auth';
-import { mockWarehouses } from '@/lib/data';
 import { Warehouse, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,6 +14,7 @@ import {
 import { useLanguage } from '@/lib/hooks/use-language';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
+import { useData } from '@/lib/hooks/use-data';
 
 
 export function LanguageSwitcher() {
@@ -47,6 +47,7 @@ export function LanguageSwitcher() {
 export function WarehouseSwitcher() {
     const { t } = useLanguage();
     const { selectedWarehouseId, setSelectedWarehouseId } = useWarehouse();
+    const { warehouses } = useData();
 
     return (
         <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
@@ -56,7 +57,7 @@ export function WarehouseSwitcher() {
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value="all">{t('all_warehouses')}</SelectItem>
-                {mockWarehouses.map(w => (
+                {warehouses.map(w => (
                     <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
                 ))}
             </SelectContent>
@@ -67,9 +68,10 @@ export function WarehouseSwitcher() {
 
 export function Header() {
     const { user } = useAuth();
+    const { warehouses } = useData();
     
     const assignedWarehouse = user?.role === 'operator' 
-        ? mockWarehouses.find(w => w.id === user.warehouseId) 
+        ? warehouses.find(w => w.id === user.warehouseId) 
         : null;
 
   return (
@@ -92,3 +94,5 @@ export function Header() {
     </header>
   );
 }
+
+    

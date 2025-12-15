@@ -7,7 +7,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { mockProjects as initialProjects } from '@/lib/data';
 import type { Project } from '@/lib/types';
 import { PlusCircle, MoreHorizontal, Pencil, Trash2, Upload, Download } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -15,12 +14,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/lib/hooks/use-language';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { useData } from '@/lib/hooks/use-data';
 
 export default function ProjectsPage() {
     const { toast } = useToast();
     const { t } = useLanguage();
     const { user } = useAuth();
-    const [projects, setProjects] = useState<Project[]>(initialProjects);
+    const { projects, addProject, updateProject, deleteProject } = useData();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -49,7 +49,7 @@ export default function ProjectsPage() {
         };
 
         if (editingProject) {
-            setProjects(projects.map(p => p.id === editingProject.id ? finalProject : p));
+            updateProject(finalProject);
             toast({ title: t('project_updated'), description: t('project_updated_successfully') });
         } else {
             if (projects.some(p => p.id.toLowerCase() === finalProject.id.toLowerCase())) {
@@ -60,7 +60,7 @@ export default function ProjectsPage() {
                 });
                 return;
             }
-            setProjects([finalProject, ...projects]);
+            addProject(finalProject);
             toast({ title: t('project_created'), description: t('new_project_added_successfully') });
         }
         
@@ -78,8 +78,8 @@ export default function ProjectsPage() {
         setIsDialogOpen(true);
     }
 
-    const handleDeleteProject = (id: string) => {
-        setProjects(projects.filter(p => p.id !== id));
+    const handleDeleteClick = (id: string) => {
+        deleteProject(id);
         toast({
           variant: "destructive",
           title: t('project_deleted'),
@@ -112,7 +112,6 @@ export default function ProjectsPage() {
                 const worksheet = workbook.Sheets[sheetName];
                 const json: any[] = XLSX.utils.sheet_to_json(worksheet);
 
-                const newProjects: Project[] = [];
                 const existingIDs = new Set(projects.map(p => p.id.toLowerCase()));
                 
                 for (const row of json) {
@@ -138,14 +137,13 @@ export default function ProjectsPage() {
                         manager: String(manager),
                         approver: String(approver),
                     };
-                    newProjects.push(newProject);
+                    addProject(newProject);
                     existingIDs.add(newProject.id.toLowerCase());
                 }
 
-                setProjects(prev => [...newProjects, ...prev]);
                 toast({
                     title: t('import_successful'),
-                    description: t('new_projects_imported_successfully', { count: newProjects.length.toString() })
+                    description: t('new_projects_imported_successfully', { count: json.length.toString() })
                 });
 
             } catch (error) {
@@ -221,7 +219,7 @@ export default function ProjectsPage() {
                                                     <Pencil className="mr-2 h-4 w-4"/>
                                                     {t('edit')}
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => handleDeleteProject(project.id)} className="text-destructive focus:text-destructive" disabled={user?.role === 'reports'}>
+                                                <DropdownMenuItem onClick={() => handleDeleteClick(project.id)} className="text-destructive focus:text-destructive" disabled={user?.role === 'reports'}>
                                                     <Trash2 className="mr-2 h-4 w-4"/>
                                                     {t('delete')}
                                                 </DropdownMenuItem>
@@ -284,3 +282,5 @@ function ProjectForm({ project, onSave }: { project: Project | null, onSave: (da
         </form>
     );
 }
+
+    

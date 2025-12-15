@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { DateRange } from 'react-day-picker';
-import { addDays, format } from 'date-fns';
+import { format } from 'date-fns';
 import { Calendar as CalendarIcon, Download } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -11,10 +11,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell, TableFooter } from '@/components/ui/table';
-import { mockConsumptionRecords, mockWorkers, mockProjects, mockInventory } from '@/lib/data';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/hooks/use-language';
 import * as XLSX from 'xlsx';
+import { useData } from '@/lib/hooks/use-data';
 
 type ReportType = 'worker' | 'project';
 
@@ -29,6 +29,7 @@ interface ReportRow {
 
 export default function ReportsPage() {
     const { t, language } = useLanguage();
+    const { consumptionRecords, workers, projects, inventory } = useData();
     const [date, setDate] = useState<DateRange | undefined>({
         from: new Date(),
         to: new Date(),
@@ -44,9 +45,19 @@ export default function ReportsPage() {
             return;
         }
 
-        const filteredRecords = mockConsumptionRecords.filter(record => {
-            const recordDate = record.date;
-            const isInDateRange = recordDate >= date.from! && recordDate <= date.to!;
+        const filteredRecords = consumptionRecords.filter(record => {
+            // Set time to 00:00:00 for comparison to include the whole day
+            const recordDate = new Date(record.date);
+            recordDate.setHours(0, 0, 0, 0);
+
+            const fromDate = new Date(date.from!);
+            fromDate.setHours(0, 0, 0, 0);
+            
+            const toDate = new Date(date.to!);
+            toDate.setHours(23, 59, 59, 999);
+
+
+            const isInDateRange = recordDate >= fromDate && recordDate <= toDate;
             
             if (reportType === 'worker') {
                 return isInDateRange && record.workerId === selectedId;
@@ -60,10 +71,10 @@ export default function ReportsPage() {
         const generatedData: ReportRow[] = [];
         filteredRecords.forEach(record => {
             record.items.forEach(consumedItem => {
-                const inventoryItem = mockInventory.find(inv => inv.id === consumedItem.itemId);
+                const inventoryItem = inventory.find(inv => inv.id === consumedItem.itemId);
                 if (inventoryItem) {
                     generatedData.push({
-                        date: record.date.toLocaleDateString(language),
+                        date: new Date(record.date).toLocaleDateString(language),
                         code: inventoryItem.code,
                         description: inventoryItem.description,
                         quantity: consumedItem.quantity,
@@ -78,9 +89,9 @@ export default function ReportsPage() {
         
         let title = `${t('consumption_report_for')} `;
         if (reportType === 'worker') {
-            title += mockWorkers.find(w => w.id === selectedId)?.name;
+            title += workers.find(w => w.id === selectedId)?.name;
         } else {
-            title += mockProjects.find(p => p.id === selectedId)?.name;
+            title += projects.find(p => p.id === selectedId)?.name;
         }
         title += ` (${format(date.from, 'LLL dd, y')} - ${format(date.to, 'LLL dd, y')})`;
         setReportTitle(title);
@@ -187,8 +198,8 @@ export default function ReportsPage() {
                             </SelectTrigger>
                             <SelectContent>
                                 {reportType === 'worker' 
-                                 ? mockWorkers.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)
-                                 : mockProjects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)
+                                 ? workers.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)
+                                 : projects.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)
                                 }
                             </SelectContent>
                          </Select>
@@ -247,3 +258,5 @@ export default function ReportsPage() {
         </div>
     );
 }
+
+    
