@@ -41,11 +41,11 @@ function Calendar({
         vhidden: "hidden",
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
-        table: "w-full border-collapse",
-        head_row: "flex w-full justify-between",
+        table: "w-full border-collapse space-y-1",
+        head_row: "flex w-full",
         head_cell:
           "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] text-center",
-        row: "flex w-full",
+        row: "flex w-full mt-2",
         cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md [&:has([aria-selected].day-range-start)]:rounded-l-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md border",
         day: cn(
           buttonVariants({ variant: "ghost" }),
