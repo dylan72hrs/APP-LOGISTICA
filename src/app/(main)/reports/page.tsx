@@ -148,8 +148,8 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>{t('filters')}</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
-                    <div className="space-y-2">
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                     <div className="space-y-2">
                         <Label>{t('report_type')}</Label>
                         <RadioGroup defaultValue="worker" value={reportType} onValueChange={(value: string) => {
                             setReportType(value as ReportType);
@@ -166,7 +166,7 @@ export default function ReportsPage() {
                             </div>
                         </RadioGroup>
                     </div>
-                    
+
                     <div className="space-y-2">
                          <Label htmlFor="select-entity">{reportType === 'worker' ? t('worker') : t('project')}</Label>
                          <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
@@ -181,62 +181,43 @@ export default function ReportsPage() {
                                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                 </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                                 <Command>
                                 <CommandInput placeholder={reportType === 'worker' ? t('search_worker') : t('search_project')} />
                                 <CommandList>
                                     <CommandEmpty>{t('no_results_found')}</CommandEmpty>
                                     <CommandGroup>
-                                        {reportType === 'worker' 
-                                            ? workers.map(w => (
-                                                <CommandItem
-                                                    key={w.id}
-                                                    value={`${w.name} ${w.rut}`}
-                                                    onSelect={() => {
-                                                        setSelectedId(w.id);
-                                                        setOpenCombobox(false);
-                                                    }}
-                                                >
-                                                    <Check
-                                                        className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        selectedId === w.id ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                    />
-                                                    {w.name}
-                                                </CommandItem>
-                                            ))
-                                            : projects.map(p => (
-                                                <CommandItem
-                                                    key={p.id}
-                                                    value={`${p.name} ${p.id}`}
-                                                    onSelect={() => {
-                                                        setSelectedId(p.id);
-                                                        setOpenCombobox(false);
-                                                    }}
-                                                >
-                                                    <Check
-                                                        className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        selectedId === p.id ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                    />
-                                                    {p.name}
-                                                </CommandItem>
-                                            ))
-                                        }
+                                        {(reportType === 'worker' ? workers : projects).map(item => (
+                                            <CommandItem
+                                                key={item.id}
+                                                value={`${item.name} ${reportType === 'worker' ? (item as any).rut : item.id}`}
+                                                onSelect={() => {
+                                                    setSelectedId(item.id);
+                                                    setOpenCombobox(false);
+                                                }}
+                                            >
+                                                <Check
+                                                    className={cn(
+                                                    "mr-2 h-4 w-4",
+                                                    selectedId === item.id ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                />
+                                                {item.name}
+                                            </CommandItem>
+                                        ))}
                                     </CommandGroup>
                                 </CommandList>
                                 </Command>
                             </PopoverContent>
                         </Popover>
                     </div>
-                    <div className="lg:col-span-3 grid grid-cols-1 gap-4">
-                        <div className="space-y-2">
-                            <Label>{t('date_range')}</Label>
-                            <Popover>
-                                <PopoverTrigger asChild>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+
+                    <div className="md:col-span-2 grid grid-cols-1 gap-4">
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                     <div className="space-y-2">
+                                        <Label>{t('start_date')}</Label>
                                         <Button
                                             id="date-from"
                                             variant={"outline"}
@@ -246,8 +227,11 @@ export default function ReportsPage() {
                                             )}
                                         >
                                             <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {date?.from ? format(date.from, 'PPP', { locale: currentLocale }) : <span>{t('start_date')}</span>}
+                                            {date?.from ? format(date.from, 'PPP', { locale: currentLocale }) : <span>{t('pick_a_date')}</span>}
                                         </Button>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>{t('end_date')}</Label>
                                         <Button
                                             id="date-to"
                                             variant={"outline"}
@@ -257,24 +241,24 @@ export default function ReportsPage() {
                                             )}
                                         >
                                             <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {date?.to ? format(date.to, 'PPP', { locale: currentLocale }) : <span>{t('end_date')}</span>}
+                                            {date?.to ? format(date.to, 'PPP', { locale: currentLocale }) : <span>{t('pick_a_date')}</span>}
                                         </Button>
                                     </div>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0" align="start">
-                                    <Calendar
-                                        initialFocus
-                                        mode="range"
-                                        defaultMonth={date?.from}
-                                        selected={date}
-                                        onSelect={setDate}
-                                        numberOfMonths={2}
-                                        locale={currentLocale}
-                                    />
-                                </PopoverContent>
-                            </Popover>
-                        </div>
-                        <Button onClick={handleGenerateReport} className="w-full sm:w-auto sm:justify-self-end">{t('generate_report')}</Button>
+                                </div>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={date?.from}
+                                    selected={date}
+                                    onSelect={setDate}
+                                    numberOfMonths={2}
+                                    locale={currentLocale}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                        <Button onClick={handleGenerateReport} className="w-full sm:w-auto sm:justify-self-start">{t('generate_report')}</Button>
                     </div>
                 </CardContent>
             </Card>
