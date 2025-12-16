@@ -46,7 +46,7 @@ export default function ReportsPage() {
         fr: fr,
         en: enUS
     };
-    const currentLocale = localeMap[language] || es;
+    const currentLocale = localeMap[language as keyof typeof localeMap] || es;
 
     const handleGenerateReport = () => {
         if (!date?.from || !date?.to || !selectedId) {
@@ -88,7 +88,7 @@ export default function ReportsPage() {
                         description: inventoryItem.description,
                         quantity: consumedItem.quantity,
                         unitCost: inventoryItem.cost,
-                        totalCost: consumedItem.quantity * consumedItem.cost,
+                        totalCost: consumedItem.quantity * inventoryItem.cost,
                     });
                 }
             });
