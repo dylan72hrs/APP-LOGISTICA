@@ -149,7 +149,7 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>{t('filters')}</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
                     <div className="space-y-2">
                         <Label>{t('report_type')}</Label>
                         <RadioGroup defaultValue="worker" value={reportType} onValueChange={(value: string) => {
@@ -232,51 +232,51 @@ export default function ReportsPage() {
                             </PopoverContent>
                         </Popover>
                     </div>
-
-                    <div className="space-y-2 col-span-1 lg:col-span-2">
-                        <Label>{t('date_range')}</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <div className="grid grid-cols-2 gap-2">
-                                     <Button
-                                        id="date-from"
-                                        variant={"outline"}
-                                        className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !date?.from && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {date?.from ? format(date.from, 'PPP', { locale: currentLocale }) : <span>{t('start_date')}</span>}
-                                    </Button>
-                                    <Button
-                                        id="date-to"
-                                        variant={"outline"}
-                                        className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !date?.to && "text-muted-foreground"
-                                        )}
-                                    >
-                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                        {date?.to ? format(date.to, 'PPP', { locale: currentLocale }) : <span>{t('end_date')}</span>}
-                                    </Button>
-                                </div>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={date?.from}
-                                    selected={date}
-                                    onSelect={setDate}
-                                    numberOfMonths={2}
-                                    locale={currentLocale}
-                                />
-                            </PopoverContent>
-                        </Popover>
+                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                        <div className="space-y-2 md:col-span-2">
+                            <Label>{t('date_range')}</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <Button
+                                            id="date-from"
+                                            variant={"outline"}
+                                            className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !date?.from && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {date?.from ? format(date.from, 'PPP', { locale: currentLocale }) : <span>{t('start_date')}</span>}
+                                        </Button>
+                                        <Button
+                                            id="date-to"
+                                            variant={"outline"}
+                                            className={cn(
+                                            "w-full justify-start text-left font-normal",
+                                            !date?.to && "text-muted-foreground"
+                                            )}
+                                        >
+                                            <CalendarIcon className="mr-2 h-4 w-4" />
+                                            {date?.to ? format(date.to, 'PPP', { locale: currentLocale }) : <span>{t('end_date')}</span>}
+                                        </Button>
+                                    </div>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar
+                                        initialFocus
+                                        mode="range"
+                                        defaultMonth={date?.from}
+                                        selected={date}
+                                        onSelect={setDate}
+                                        numberOfMonths={2}
+                                        locale={currentLocale}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <Button onClick={handleGenerateReport} className="w-full">{t('generate_report')}</Button>
                     </div>
-
-                    <Button onClick={handleGenerateReport} className="w-full">{t('generate_report')}</Button>
                 </CardContent>
             </Card>
 
