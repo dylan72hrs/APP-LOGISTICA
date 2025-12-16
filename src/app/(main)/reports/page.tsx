@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 import { es, fr, enUS } from 'date-fns/locale';
-import { Download, Check, ChevronsUpDown } from 'lucide-react';
+import { Download, Check, ChevronsUpDown, CalendarIcon } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/hooks/use-language';
 import * as XLSX from 'xlsx';
 import { useData } from '@/lib/hooks/use-data';
+import { Calendar } from '@/components/ui/calendar';
 
 type ReportType = 'worker' | 'project';
 
@@ -147,7 +148,7 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>{t('filters')}</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
                     <div className="space-y-2">
                         <Label>{t('report_type')}</Label>
                         <RadioGroup defaultValue="worker" value={reportType} onValueChange={(value: string) => {
@@ -230,6 +231,48 @@ export default function ReportsPage() {
                             </PopoverContent>
                         </Popover>
                     </div>
+
+                    <div className="space-y-2">
+                        <Label>{t('date_range')}</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    id="date"
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !date && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {date?.from ? (
+                                    date.to ? (
+                                        <>
+                                        {format(date.from, "LLL dd, y", { locale: currentLocale })} -{" "}
+                                        {format(date.to, "LLL dd, y", { locale: currentLocale })}
+                                        </>
+                                    ) : (
+                                        format(date.from, "LLL dd, y")
+                                    )
+                                    ) : (
+                                    <span>{t('pick_a_date')}</span>
+                                    )}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    initialFocus
+                                    mode="range"
+                                    defaultMonth={date?.from}
+                                    selected={date}
+                                    onSelect={setDate}
+                                    numberOfMonths={2}
+                                    locale={currentLocale}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
 
                     <Button onClick={handleGenerateReport} className="w-full">{t('generate_report')}</Button>
                 </CardContent>
