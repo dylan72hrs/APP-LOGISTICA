@@ -5,9 +5,8 @@ import { Button } from '@/components/ui/button';
 import { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
 import { es, fr, enUS } from 'date-fns/locale';
-import { Calendar as CalendarIcon, Download, Check, ChevronsUpDown } from 'lucide-react';
+import { Download, Check, ChevronsUpDown } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -31,10 +30,7 @@ interface ReportRow {
 export default function ReportsPage() {
     const { t, language } = useLanguage();
     const { consumptionRecords, workers, projects, inventory } = useData();
-    const [date, setDate] = useState<DateRange | undefined>({
-        from: new Date(),
-        to: new Date(),
-    });
+    const [date, setDate] = useState<DateRange | undefined>(undefined);
     const [reportType, setReportType] = useState<ReportType>('worker');
     const [selectedId, setSelectedId] = useState<string>('');
     const [reportData, setReportData] = useState<ReportRow[]>([]);
@@ -49,24 +45,24 @@ export default function ReportsPage() {
     const currentLocale = localeMap[language as keyof typeof localeMap] || es;
 
     const handleGenerateReport = () => {
-        if (!date?.from || !date?.to || !selectedId) {
+        if (!selectedId) {
             setReportData([]);
             return;
         }
 
         const filteredRecords = consumptionRecords.filter(record => {
-            // Set time to 00:00:00 for comparison to include the whole day
             const recordDate = new Date(record.date);
             recordDate.setHours(0, 0, 0, 0);
 
-            const fromDate = new Date(date.from!);
-            fromDate.setHours(0, 0, 0, 0);
-            
-            const toDate = new Date(date.to!);
-            toDate.setHours(23, 59, 59, 999);
-
-
-            const isInDateRange = recordDate >= fromDate && recordDate <= toDate;
+            let isInDateRange = true;
+            if (date?.from && date?.to) {
+                 const fromDate = new Date(date.from!);
+                fromDate.setHours(0, 0, 0, 0);
+                
+                const toDate = new Date(date.to!);
+                toDate.setHours(23, 59, 59, 999);
+                isInDateRange = recordDate >= fromDate && recordDate <= toDate;
+            }
             
             if (reportType === 'worker') {
                 return isInDateRange && record.workerId === selectedId;
@@ -102,7 +98,10 @@ export default function ReportsPage() {
         } else {
             title += projects.find(p => p.id === selectedId)?.name;
         }
-        title += ` (${format(date.from, 'LLL dd, y', {locale: currentLocale})} - ${format(date.to, 'LLL dd, y', {locale: currentLocale})})`;
+        if(date?.from && date?.to){
+             title += ` (${format(date.from, 'LLL dd, y', {locale: currentLocale})} - ${format(date.to, 'LLL dd, y', {locale: currentLocale})})`;
+        }
+       
         setReportTitle(title);
     };
 
@@ -148,48 +147,7 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>{t('filters')}</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
-                    <div className="space-y-2">
-                        <Label>{t('date_range')}</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    id="date"
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !date && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {date?.from ? (
-                                    date.to ? (
-                                        <>
-                                        {format(date.from, "LLL dd, y", { locale: currentLocale })} -{" "}
-                                        {format(date.to, "LLL dd, y", { locale: currentLocale })}
-                                        </>
-                                    ) : (
-                                        format(date.from, "LLL dd, y", { locale: currentLocale })
-                                    )
-                                    ) : (
-                                    <span>{t('pick_a_date')}</span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={date?.from}
-                                selected={date}
-                                onSelect={setDate}
-                                numberOfMonths={2}
-                                locale={currentLocale}
-                            />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
                     <div className="space-y-2">
                         <Label>{t('report_type')}</Label>
                         <RadioGroup defaultValue="worker" value={reportType} onValueChange={(value: string) => {
