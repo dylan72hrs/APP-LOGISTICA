@@ -16,7 +16,6 @@ import { useLanguage } from '@/lib/hooks/use-language';
 import * as XLSX from 'xlsx';
 import { useData } from '@/lib/hooks/use-data';
 import { Calendar } from '@/components/ui/calendar';
-import { Input } from '@/components/ui/input';
 
 type ReportType = 'worker' | 'project';
 
@@ -232,12 +231,12 @@ export default function ReportsPage() {
                             </PopoverContent>
                         </Popover>
                     </div>
-                    <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
-                        <div className="space-y-2 md:col-span-2">
+                    <div className="lg:col-span-3 grid grid-cols-1 gap-4">
+                        <div className="space-y-2">
                             <Label>{t('date_range')}</Label>
                             <Popover>
                                 <PopoverTrigger asChild>
-                                    <div className="grid grid-cols-2 gap-2">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                         <Button
                                             id="date-from"
                                             variant={"outline"}
@@ -275,7 +274,7 @@ export default function ReportsPage() {
                                 </PopoverContent>
                             </Popover>
                         </div>
-                        <Button onClick={handleGenerateReport} className="w-full">{t('generate_report')}</Button>
+                        <Button onClick={handleGenerateReport} className="w-full sm:w-auto sm:justify-self-end">{t('generate_report')}</Button>
                     </div>
                 </CardContent>
             </Card>
