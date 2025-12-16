@@ -16,6 +16,7 @@ import { useLanguage } from '@/lib/hooks/use-language';
 import * as XLSX from 'xlsx';
 import { useData } from '@/lib/hooks/use-data';
 import { Calendar } from '@/components/ui/calendar';
+import { Input } from '@/components/ui/input';
 
 type ReportType = 'worker' | 'project';
 
@@ -100,7 +101,7 @@ export default function ReportsPage() {
             title += projects.find(p => p.id === selectedId)?.name;
         }
         if(date?.from && date?.to){
-             title += ` (${format(date.from, 'LLL dd, y', {locale: currentLocale})} - ${format(date.to, 'LLL dd, y', {locale: currentLocale})})`;
+             title += ` (${format(date.from, 'PPP', {locale: currentLocale})} - ${format(date.to, 'PPP', {locale: currentLocale})})`;
         }
        
         setReportTitle(title);
@@ -232,32 +233,34 @@ export default function ReportsPage() {
                         </Popover>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-2 col-span-1 lg:col-span-2">
                         <Label>{t('date_range')}</Label>
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button
-                                    id="date"
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !date && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {date?.from ? (
-                                    date.to ? (
-                                        <>
-                                        {format(date.from, "LLL dd, y", { locale: currentLocale })} -{" "}
-                                        {format(date.to, "LLL dd, y", { locale: currentLocale })}
-                                        </>
-                                    ) : (
-                                        format(date.from, "LLL dd, y")
-                                    )
-                                    ) : (
-                                    <span>{t('pick_a_date')}</span>
-                                    )}
-                                </Button>
+                                <div className="grid grid-cols-2 gap-2">
+                                     <Button
+                                        id="date-from"
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !date?.from && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {date?.from ? format(date.from, 'PPP', { locale: currentLocale }) : <span>{t('start_date')}</span>}
+                                    </Button>
+                                    <Button
+                                        id="date-to"
+                                        variant={"outline"}
+                                        className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !date?.to && "text-muted-foreground"
+                                        )}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {date?.to ? format(date.to, 'PPP', { locale: currentLocale }) : <span>{t('end_date')}</span>}
+                                    </Button>
+                                </div>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
@@ -272,7 +275,6 @@ export default function ReportsPage() {
                             </PopoverContent>
                         </Popover>
                     </div>
-
 
                     <Button onClick={handleGenerateReport} className="w-full">{t('generate_report')}</Button>
                 </CardContent>

@@ -210,5 +210,7 @@
     "report_results": "Report Results",
     "export_to_excel": "Export to Excel",
     "consumption_report_for": "Consumption report for",
-    "open_in_new_tab": "Open in new tab"
+    "open_in_new_tab": "Open in new tab",
+    "start_date": "Start Date",
+    "end_date": "End Date"
 }
