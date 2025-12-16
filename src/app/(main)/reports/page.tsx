@@ -197,7 +197,7 @@ toDate.setHours(23,59,59,999);
                 <CardHeader>
                     <CardTitle>{t('filters')}</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
                      <div className="space-y-2">
                         <Label>{t('report_type')}</Label>
                         <RadioGroup defaultValue="worker" value={reportType} onValueChange={(value: string) => {
@@ -261,39 +261,32 @@ toDate.setHours(23,59,59,999);
                         </Popover>
                     </div>
 
-                    <div className="md:col-span-2 grid grid-cols-1 gap-4">
+                    <div className="space-y-2">
+                        <Label>{t('date_range')}</Label>
                         <Popover>
                             <PopoverTrigger asChild>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                     <div className="space-y-2">
-                                        <Label>{t('start_date')}</Label>
-                                        <Button
-                                            id="date-from"
-                                            variant={"outline"}
-                                            className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !date?.from && "text-muted-foreground"
-                                            )}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {date?.from ? format(date.from, 'PPP', { locale: currentLocale }) : <span>{t('pick_a_date')}</span>}
-                                        </Button>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label>{t('end_date')}</Label>
-                                        <Button
-                                            id="date-to"
-                                            variant={"outline"}
-                                            className={cn(
-                                            "w-full justify-start text-left font-normal",
-                                            !date?.to && "text-muted-foreground"
-                                            )}
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {date?.to ? format(date.to, 'PPP', { locale: currentLocale }) : <span>{t('pick_a_date')}</span>}
-                                        </Button>
-                                    </div>
-                                </div>
+                                <Button
+                                    id="date"
+                                    variant={"outline"}
+                                    className={cn(
+                                    "w-full justify-start text-left font-normal",
+                                    !date && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {date?.from ? (
+                                    date.to ? (
+                                        <>
+                                        {format(date.from, "LLL dd, y", { locale: currentLocale })} -{" "}
+                                        {format(date.to, "LLL dd, y", { locale: currentLocale })}
+                                        </>
+                                    ) : (
+                                        format(date.from, "LLL dd, y", { locale: currentLocale })
+                                    )
+                                    ) : (
+                                    <span>{t('pick_a_date')}</span>
+                                    )}
+                                </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
@@ -307,7 +300,9 @@ toDate.setHours(23,59,59,999);
                                 />
                             </PopoverContent>
                         </Popover>
-                        <Button onClick={handleGenerateReport} className="w-full sm:w-auto sm:justify-self-start">{t('generate_report')}</Button>
+                    </div>
+                    <div className="lg:col-span-3">
+                         <Button onClick={handleGenerateReport} className="w-full sm:w-auto">{t('generate_report')}</Button>
                     </div>
                 </CardContent>
             </Card>
