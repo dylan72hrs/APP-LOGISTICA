@@ -218,5 +218,6 @@
     "voucher_awaits_approval": "The consumption voucher awaits approval to be registered.",
     "pending_vouchers_queue": "Pending Vouchers Queue",
     "vouchers_awaiting_approval": "Vouchers awaiting supervisor authorization to register consumption.",
-    "no_pending_vouchers": "No pending vouchers."
+    "no_pending_vouchers": "No pending vouchers.",
+    "generate_report_to_see_results": "Generate a report to see the results here."
 }

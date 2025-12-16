@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function ReportsPage() {
     const { t } = useLanguage();
-    const { workers, projects, consumptionRecords } = useData();
+    const { workers, projects } = useData();
     const { toast } = useToast();
 
     const [filterType, setFilterType] = useState<'worker' | 'project'>('worker');
@@ -217,6 +217,18 @@ export default function ReportsPage() {
                         <Button onClick={handleGenerateReport}>{t('generate_report')}</Button>
                     </div>
                 </CardContent>
+            </Card>
+
+            {/* Placeholder for Report Results */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('report_results')}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex h-[300px] items-center justify-center rounded-md border border-dashed">
+                  <p className="text-muted-foreground">{t('generate_report_to_see_results')}</p>
+                </div>
+              </CardContent>
             </Card>
         </div>
     );

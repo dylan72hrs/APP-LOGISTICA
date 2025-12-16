@@ -218,5 +218,6 @@
     "voucher_awaits_approval": "Le bon de consommation attend l'approbation pour être enregistré.",
     "pending_vouchers_queue": "File d'attente des bons en attente",
     "vouchers_awaiting_approval": "Bons en attente de l'autorisation du superviseur pour enregistrer la consommation.",
-    "no_pending_vouchers": "Aucun bon en attente."
+    "no_pending_vouchers": "Aucun bon en attente.",
+    "generate_report_to_see_results": "Générez un rapport pour voir les résultats ici."
 }

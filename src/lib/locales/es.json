@@ -218,5 +218,6 @@
     "voucher_awaits_approval": "El vale de consumo espera por aprobación para ser registrado.",
     "pending_vouchers_queue": "Cola de Vales en Espera",
     "vouchers_awaiting_approval": "Vales que esperan la autorización del supervisor para registrar el consumo.",
-    "no_pending_vouchers": "No hay vales en espera."
+    "no_pending_vouchers": "No hay vales en espera.",
+    "generate_report_to_see_results": "Genera un reporte para ver los resultados aquí."
 }
