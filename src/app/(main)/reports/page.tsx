@@ -2,10 +2,7 @@
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
-import { DateRange } from 'react-day-picker';
-import { format } from 'date-fns';
-import { es, fr, enUS } from 'date-fns/locale';
-import { Download, Check, ChevronsUpDown, CalendarIcon } from 'lucide-react';
+import { Download, Check, ChevronsUpDown } from 'lucide-react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -15,7 +12,6 @@ import { cn } from '@/lib/utils';
 import { useLanguage } from '@/lib/hooks/use-language';
 import * as XLSX from 'xlsx';
 import { useData } from '@/lib/hooks/use-data';
-import { Calendar } from '@/components/ui/calendar';
 
 type ReportType = 'worker' | 'project';
 
@@ -37,19 +33,11 @@ interface ReportRow {
 export default function ReportsPage() {
     const { t, language } = useLanguage();
     const { consumptionRecords, workers, projects, inventory } = useData();
-    const [date, setDate] = useState<DateRange | undefined>(undefined);
     const [reportType, setReportType] = useState<ReportType>('worker');
     const [selectedId, setSelectedId] = useState<string>('');
     const [reportData, setReportData] = useState<ReportRow[]>([]);
     const [reportTitle, setReportTitle] = useState('');
     const [openCombobox, setOpenCombobox] = useState(false);
-
-    const localeMap = {
-        es: es,
-        fr: fr,
-        en: enUS
-    };
-    const currentLocale = localeMap[language as keyof typeof localeMap] || es;
 
     const handleGenerateReport = () => {
         if (!selectedId) {
@@ -58,24 +46,11 @@ export default function ReportsPage() {
         }
 
         const filteredRecords = consumptionRecords.filter(record => {
-            const recordDate = new Date(record.date);
-recordDate.setHours(0,0,0,0);
-
-            let isInDateRange = true;
-            if (date?.from && date?.to) {
-                 const fromDate = new Date(date.from!);
-fromDate.setHours(0,0,0,0);
-                
-                const toDate = new Date(date.to!);
-toDate.setHours(23,59,59,999);
-                isInDateRange = recordDate >= fromDate && recordDate <= toDate;
-            }
-            
             if (reportType === 'worker') {
-                return isInDateRange && record.workerId === selectedId;
+                return record.workerId === selectedId;
             }
             if (reportType === 'project') {
-                return isInDateRange && record.projectId === selectedId;
+                return record.projectId === selectedId;
             }
             return false;
         });
@@ -115,9 +90,6 @@ toDate.setHours(23,59,59,999);
             title += workers.find(w => w.id === selectedId)?.name;
         } else {
             title += projects.find(p => p.id === selectedId)?.name;
-        }
-        if(date?.from && date?.to){
-             title += ` (${format(date.from, 'PPP', {locale: currentLocale})} - ${format(date.to, 'PPP', {locale: currentLocale})})`;
         }
        
         setReportTitle(title);
@@ -261,48 +233,8 @@ toDate.setHours(23,59,59,999);
                         </Popover>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label>{t('date_range')}</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    id="date"
-                                    variant={"outline"}
-                                    className={cn(
-                                    "w-full justify-start text-left font-normal",
-                                    !date && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {date?.from ? (
-                                    date.to ? (
-                                        <>
-                                        {format(date.from, "LLL dd, y", { locale: currentLocale })} -{" "}
-                                        {format(date.to, "LLL dd, y", { locale: currentLocale })}
-                                        </>
-                                    ) : (
-                                        format(date.from, "LLL dd, y", { locale: currentLocale })
-                                    )
-                                    ) : (
-                                    <span>{t('pick_a_date')}</span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={date?.from}
-                                    selected={date}
-                                    onSelect={setDate}
-                                    numberOfMonths={2}
-                                    locale={currentLocale}
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
                     <div className="lg:col-span-3">
-                         <Button onClick={handleGenerateReport} className="w-full sm:w-auto">{t('generate_report')}</Button>
+                         <Button onClick={handleGenerateReport} className="w-full sm:w-auto" disabled={!selectedId}>{t('generate_report')}</Button>
                     </div>
                 </CardContent>
             </Card>
