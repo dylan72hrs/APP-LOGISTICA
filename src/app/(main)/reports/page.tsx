@@ -26,6 +26,12 @@ interface ReportRow {
     quantity: number;
     unitCost: number;
     totalCost: number;
+    // Project-specific fields
+    projectId?: string;
+    financialDimension?: string;
+    projectName?: string;
+    workerName?: string;
+    workerRut?: string;
 }
 
 export default function ReportsPage() {
@@ -53,15 +59,15 @@ export default function ReportsPage() {
 
         const filteredRecords = consumptionRecords.filter(record => {
             const recordDate = new Date(record.date);
-            recordDate.setHours(0, 0, 0, 0);
+recordDate.setHours(0,0,0,0);
 
             let isInDateRange = true;
             if (date?.from && date?.to) {
                  const fromDate = new Date(date.from!);
-                fromDate.setHours(0, 0, 0, 0);
+fromDate.setHours(0,0,0,0);
                 
                 const toDate = new Date(date.to!);
-                toDate.setHours(23, 59, 59, 999);
+toDate.setHours(23,59,59,999);
                 isInDateRange = recordDate >= fromDate && recordDate <= toDate;
             }
             
@@ -76,17 +82,28 @@ export default function ReportsPage() {
 
         const generatedData: ReportRow[] = [];
         filteredRecords.forEach(record => {
+            const projectInfo = projects.find(p => p.id === record.projectId);
+            const workerInfo = workers.find(w => w.id === record.workerId);
+
             record.items.forEach(consumedItem => {
                 const inventoryItem = inventory.find(inv => inv.id === consumedItem.itemId);
                 if (inventoryItem) {
-                    generatedData.push({
+                    const row: ReportRow = {
                         date: new Date(record.date).toLocaleDateString(language),
                         code: inventoryItem.code,
                         description: inventoryItem.description,
                         quantity: consumedItem.quantity,
                         unitCost: inventoryItem.cost,
                         totalCost: consumedItem.quantity * inventoryItem.cost,
-                    });
+                    };
+                    if (reportType === 'project') {
+                        row.projectId = record.projectId;
+                        row.financialDimension = projectInfo?.financialDimension;
+                        row.projectName = projectInfo?.name;
+                        row.workerName = workerInfo?.name;
+                        row.workerRut = workerInfo?.rut;
+                    }
+                    generatedData.push(row);
                 }
             });
         });
@@ -112,16 +129,48 @@ export default function ReportsPage() {
 
     const handleExportExcel = () => {
         if (reportData.length === 0) return;
+        
+        let headers: string[];
+        let dataToExport: (string | number | undefined)[][];
 
-        const headers = [t('date'), t('code'), t('description'), t('quantity'), t('unit_cost'), t('total_cost')];
-        const dataToExport = reportData.map(row => [
-            row.date,
-            row.code,
-            row.description,
-            row.quantity,
-            row.unitCost,
-            row.totalCost,
-        ]);
+        if (reportType === 'project') {
+            headers = [
+                t('date'), 
+                t('project_id'), 
+                t('financial_dimension'), 
+                t('project_name'), 
+                t('worker'), 
+                t('rut'),
+                t('code'), 
+                t('description'), 
+                t('quantity'), 
+                t('unit_cost'), 
+                t('total_cost')
+            ];
+            dataToExport = reportData.map(row => [
+                row.date,
+                row.projectId,
+                row.financialDimension,
+                row.projectName,
+                row.workerName,
+                row.workerRut,
+                row.code,
+                row.description,
+                row.quantity,
+                row.unitCost,
+                row.totalCost,
+            ]);
+        } else {
+             headers = [t('date'), t('code'), t('description'), t('quantity'), t('unit_cost'), t('total_cost')];
+             dataToExport = reportData.map(row => [
+                row.date,
+                row.code,
+                row.description,
+                row.quantity,
+                row.unitCost,
+                row.totalCost,
+            ]);
+        }
         
         const ws = XLSX.utils.aoa_to_sheet([headers, ...dataToExport]);
         const wb = XLSX.utils.book_new();
@@ -275,11 +324,20 @@ export default function ReportsPage() {
                             {t('export_to_excel')}
                         </Button>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="overflow-x-auto">
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>{t('date')}</TableHead>
+                                    {reportType === 'project' && (
+                                        <>
+                                            <TableHead>{t('project_id')}</TableHead>
+                                            <TableHead>{t('financial_dimension')}</TableHead>
+                                            <TableHead>{t('project_name')}</TableHead>
+                                            <TableHead>{t('worker')}</TableHead>
+                                            <TableHead>{t('rut')}</TableHead>
+                                        </>
+                                    )}
                                     <TableHead>{t('code')}</TableHead>
                                     <TableHead>{t('description')}</TableHead>
                                     <TableHead className="text-right">{t('quantity')}</TableHead>
@@ -291,6 +349,15 @@ export default function ReportsPage() {
                                 {reportData.map((row, index) => (
                                     <TableRow key={index}>
                                         <TableCell>{row.date}</TableCell>
+                                        {reportType === 'project' && (
+                                            <>
+                                                <TableCell>{row.projectId}</TableCell>
+                                                <TableCell>{row.financialDimension}</TableCell>
+                                                <TableCell>{row.projectName}</TableCell>
+                                                <TableCell>{row.workerName}</TableCell>
+                                                <TableCell>{row.workerRut}</TableCell>
+                                            </>
+                                        )}
                                         <TableCell>{row.code}</TableCell>
                                         <TableCell>{row.description}</TableCell>
                                         <TableCell className="text-right">{row.quantity}</TableCell>
@@ -301,7 +368,7 @@ export default function ReportsPage() {
                             </TableBody>
                             <TableFooter>
                                 <TableRow>
-                                    <TableCell colSpan={5} className="text-right font-bold text-lg">{t('total')}</TableCell>
+                                    <TableCell colSpan={reportType === 'project' ? 10 : 5} className="text-right font-bold text-lg">{t('total')}</TableCell>
                                     <TableCell className="text-right font-bold text-lg">${totalReportCost.toLocaleString(language)}</TableCell>
                                 </TableRow>
                             </TableFooter>
