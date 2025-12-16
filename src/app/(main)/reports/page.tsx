@@ -169,72 +169,73 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>{t('filters')}</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-end">
-                     <div className="space-y-2">
-                        <Label>{t('report_type')}</Label>
-                        <RadioGroup defaultValue="worker" value={reportType} onValueChange={(value: string) => {
-                            setReportType(value as ReportType);
-                            setSelectedId('');
-                            setReportData([]);
-                        }} className="flex items-center space-x-4 pt-2">
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="worker" id="r-worker" />
-                                <Label htmlFor="r-worker">{t('worker')}</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="project" id="r-project" />
-                                <Label htmlFor="r-project">{t('project')}</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
+                <CardContent className="space-y-6">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                        <div className="space-y-2">
+                            <Label>{t('report_type')}</Label>
+                            <RadioGroup defaultValue="worker" value={reportType} onValueChange={(value: string) => {
+                                setReportType(value as ReportType);
+                                setSelectedId('');
+                                setReportData([]);
+                            }} className="flex items-center space-x-4 pt-2">
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="worker" id="r-worker" />
+                                    <Label htmlFor="r-worker">{t('worker')}</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="project" id="r-project" />
+                                    <Label htmlFor="r-project">{t('project')}</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
 
-                    <div className="space-y-2">
-                         <Label htmlFor="select-entity">{reportType === 'worker' ? t('worker') : t('project')}</Label>
-                         <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                            <PopoverTrigger asChild>
-                                <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={openCombobox}
-                                className="w-full justify-between"
-                                >
-                                {currentSelectionLabel}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                <Command>
-                                <CommandInput placeholder={reportType === 'worker' ? t('search_worker') : t('search_project')} />
-                                <CommandList>
-                                    <CommandEmpty>{t('no_results_found')}</CommandEmpty>
-                                    <CommandGroup>
-                                        {(reportType === 'worker' ? workers : projects).map(item => (
-                                            <CommandItem
-                                                key={item.id}
-                                                value={`${item.name} ${reportType === 'worker' ? (item as any).rut : item.id}`}
-                                                onSelect={() => {
-                                                    setSelectedId(item.id);
-                                                    setOpenCombobox(false);
-                                                }}
-                                            >
-                                                <Check
-                                                    className={cn(
-                                                    "mr-2 h-4 w-4",
-                                                    selectedId === item.id ? "opacity-100" : "opacity-0"
-                                                    )}
-                                                />
-                                                {item.name}
-                                            </CommandItem>
-                                        ))}
-                                    </CommandGroup>
-                                </CommandList>
-                                </Command>
-                            </PopoverContent>
-                        </Popover>
+                        <div className="space-y-2">
+                            <Label htmlFor="select-entity">{reportType === 'worker' ? t('worker') : t('project')}</Label>
+                            <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={openCombobox}
+                                    className="w-full justify-between"
+                                    >
+                                    {currentSelectionLabel}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <Command>
+                                    <CommandInput placeholder={reportType === 'worker' ? t('search_worker') : t('search_project')} />
+                                    <CommandList>
+                                        <CommandEmpty>{t('no_results_found')}</CommandEmpty>
+                                        <CommandGroup>
+                                            {(reportType === 'worker' ? workers : projects).map(item => (
+                                                <CommandItem
+                                                    key={item.id}
+                                                    value={`${item.name} ${reportType === 'worker' ? (item as any).rut : item.id}`}
+                                                    onSelect={() => {
+                                                        setSelectedId(item.id);
+                                                        setOpenCombobox(false);
+                                                    }}
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        selectedId === item.id ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    {item.name}
+                                                </CommandItem>
+                                            ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                     </div>
-
-                    <div className="lg:col-span-3">
-                         <Button onClick={handleGenerateReport} className="w-full sm:w-auto" disabled={!selectedId}>{t('generate_report')}</Button>
+                    <div>
+                         <Button onClick={handleGenerateReport} disabled={!selectedId}>{t('generate_report')}</Button>
                     </div>
                 </CardContent>
             </Card>
