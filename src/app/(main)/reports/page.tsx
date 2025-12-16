@@ -13,7 +13,6 @@ import { ChevronsUpDown, Check, Calendar as CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { DateRange } from 'react-day-picker';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
 
@@ -26,13 +25,14 @@ export default function ReportsPage() {
     const [filterType, setFilterType] = useState<'worker' | 'project'>('worker');
     const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-    const [dateRange, setDateRange] = useState<DateRange | undefined>();
+    const [startDate, setStartDate] = useState<Date | undefined>();
+    const [endDate, setEndDate] = useState<Date | undefined>();
 
     const [openWorkerCombobox, setOpenWorkerCombobox] = useState(false);
     const [openProjectCombobox, setOpenProjectCombobox] = useState(false);
 
     const handleGenerateReport = () => {
-        if (!dateRange?.from || !dateRange?.to) {
+        if (!startDate || !endDate) {
             toast({
                 variant: 'destructive',
                 title: t('error'),
@@ -41,7 +41,7 @@ export default function ReportsPage() {
             return;
         }
 
-        if (dateRange.from > dateRange.to) {
+        if (startDate > endDate) {
             toast({
                 variant: 'destructive',
                 title: t('error'),
@@ -55,12 +55,13 @@ export default function ReportsPage() {
             filterType,
             selectedWorker,
             selectedProject,
-            dateRange
+            startDate,
+            endDate
         });
 
         toast({
             title: 'Informe Generado (simulación)',
-            description: `Filtros aplicados: ${filterType}, Fechas: ${format(dateRange.from, 'PPP', { locale: es })} - ${format(dateRange.to, 'PPP', { locale: es })}`
+            description: `Filtros aplicados: ${filterType}, Fechas: ${format(startDate, 'PPP', { locale: es })} - ${format(endDate, 'PPP', { locale: es })}`
         })
     }
 
@@ -75,52 +76,67 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>{t('filters')}</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Date Range Picker */}
-                    <div className="space-y-2 md:col-span-1">
-                        <Label>{t('date_range')}</Label>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Date Pickers */}
+                    <div className="space-y-2">
+                        <Label>{t('start_date')}</Label>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
-                                    id="date"
                                     variant={"outline"}
                                     className={cn(
                                         "w-full justify-start text-left font-normal",
-                                        !dateRange && "text-muted-foreground"
+                                        !startDate && "text-muted-foreground"
                                     )}
                                 >
                                     <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {dateRange?.from ? (
-                                        dateRange.to ? (
-                                            <>
-                                                {format(dateRange.from, "LLL dd, y", { locale: es })} -{" "}
-                                                {format(dateRange.to, "LLL dd, y", { locale: es })}
-                                            </>
-                                        ) : (
-                                            format(dateRange.from, "LLL dd, y", { locale: es })
-                                        )
-                                    ) : (
-                                        <span>{t('pick_a_date')}</span>
-                                    )}
+                                    {startDate ? format(startDate, "PPP", { locale: es }) : <span>{t('pick_a_date')}</span>}
                                 </Button>
                             </PopoverTrigger>
                             <PopoverContent className="w-auto p-0" align="start">
-                                 <div className='p-4 font-semibold text-center'>{('Seleccione el rango de fechas')}</div>
                                 <Calendar
+                                    mode="single"
+                                    selected={startDate}
+                                    onSelect={setStartDate}
                                     initialFocus
-                                    mode="range"
-                                    defaultMonth={dateRange?.from}
-                                    selected={dateRange}
-                                    onSelect={setDateRange}
-                                    numberOfMonths={2}
                                     locale={es}
                                 />
                             </PopoverContent>
                         </Popover>
                     </div>
 
+                    <div className="space-y-2">
+                        <Label>{t('end_date')}</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn(
+                                        "w-full justify-start text-left font-normal",
+                                        !endDate && "text-muted-foreground"
+                                    )}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {endDate ? format(endDate, "PPP", { locale: es }) : <span>{t('pick_a_date')}</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <Calendar
+                                    mode="single"
+                                    selected={endDate}
+                                    onSelect={setEndDate}
+                                    initialFocus
+                                    locale={es}
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </div>
+
+                    {/* Spacer to align next items */}
+                    <div className="hidden lg:block"></div>
+
                     {/* Filter Type */}
-                    <div className="space-y-2 md:col-span-1">
+                    <div className="space-y-2">
                         <Label>{t('report_type')}</Label>
                         <RadioGroup defaultValue="worker" onValueChange={(value: 'worker' | 'project') => {
                             setFilterType(value);
@@ -139,10 +155,10 @@ export default function ReportsPage() {
                     </div>
 
                     {/* Worker/Project Selector */}
-                    <div className="space-y-2 md:col-span-1">
+                    <div className="space-y-2">
+                        <Label>{filterType === 'worker' ? t('worker') : t('project')}</Label>
                         {filterType === 'worker' ? (
                              <>
-                                <Label>{t('worker')}</Label>
                                 <Popover open={openWorkerCombobox} onOpenChange={setOpenWorkerCombobox}>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" role="combobox" className="w-full justify-between">
@@ -177,7 +193,6 @@ export default function ReportsPage() {
                             </>
                         ) : (
                             <>
-                                <Label>{t('project')}</Label>
                                 <Popover open={openProjectCombobox} onOpenChange={setOpenProjectCombobox}>
                                     <PopoverTrigger asChild>
                                         <Button variant="outline" role="combobox" className="w-full justify-between">
@@ -213,7 +228,7 @@ export default function ReportsPage() {
                         )}
                     </div>
 
-                    <div className="md:col-span-3 flex justify-end">
+                    <div className="lg:col-start-3 flex justify-end items-end">
                         <Button onClick={handleGenerateReport}>{t('generate_report')}</Button>
                     </div>
                 </CardContent>
