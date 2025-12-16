@@ -9,14 +9,25 @@ import type { Worker, Project, InventoryItem, ConsumptionRecord } from '@/lib/ty
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useToast } from '@/hooks/use-toast';
-import { Eye } from 'lucide-react';
+import { Eye, Hourglass, CheckCircle, Search, UserSearch, PackageSearch, Trash2 } from 'lucide-react';
 import { ValeConsumo } from '@/components/vale-consumo';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useData } from '@/lib/hooks/use-data';
-import { UserSearch, Search, PackageSearch, Trash2 } from 'lucide-react';
 
 interface SelectedItem extends InventoryItem {
   consumeQuantity: number;
+}
+
+interface PendingVoucher {
+    id: string;
+    date: Date;
+    worker: Worker | null;
+    project: Project | null;
+    items: SelectedItem[];
+    totalCost: number;
+    warehouseId: string;
+    warehouseName: string;
+    deliveredBy: string;
 }
 
 export default function ConsumptionsPage() {
@@ -44,7 +55,8 @@ export default function ConsumptionsPage() {
   const [productCodeInput, setProductCodeInput] = useState('');
   const productCodeInputRef = useRef<HTMLInputElement>(null);
   
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [pendingVouchers, setPendingVouchers] = useState<PendingVoucher[]>([]);
+  const [reviewingVoucher, setReviewingVoucher] = useState<PendingVoucher | null>(null);
 
   const warehouseIdToFilter = useMemo(() => {
     if (user?.role === 'operator') {
@@ -137,45 +149,18 @@ export default function ConsumptionsPage() {
     return selectedItems.reduce((acc, item) => acc + item.cost * item.consumeQuantity, 0);
   }, [selectedItems]);
 
-  const consumptionData = useMemo(() => ({
-    id: `VC-${Date.now()}`,
-    date: new Date(),
-    worker: selectedWorker,
-    project: selectedProject,
-    items: selectedItems,
-    totalCost,
-    warehouse: warehouseIdToFilter ? warehouses.find(w => w.id === warehouseIdToFilter)?.name || 'N/A' : 'N/A',
-    deliveredBy: user?.name || 'N/A',
-  }), [selectedWorker, selectedProject, selectedItems, totalCost, warehouseIdToFilter, user?.name, warehouses]);
+  const consumptionDataForVoucher = useMemo(() => ({
+    id: reviewingVoucher?.id || `VC-${Date.now()}`,
+    date: reviewingVoucher?.date || new Date(),
+    worker: reviewingVoucher?.worker || selectedWorker,
+    project: reviewingVoucher?.project || selectedProject,
+    items: reviewingVoucher?.items || selectedItems,
+    totalCost: reviewingVoucher?.totalCost || totalCost,
+    warehouse: reviewingVoucher?.warehouseName || (warehouseIdToFilter ? warehouses.find(w => w.id === warehouseIdToFilter)?.name || 'N/A' : 'N/A'),
+    deliveredBy: reviewingVoucher?.deliveredBy || user?.name || 'N/A',
+  }), [reviewingVoucher, selectedWorker, selectedProject, selectedItems, totalCost, warehouseIdToFilter, user?.name, warehouses]);
 
-  const handleRegisterConsumption = () => {
-    if (!isFormComplete) {
-      toast({ variant: 'destructive', title: t('error'), description: t('please_fill_all_fields') });
-      return;
-    }
-    
-    // 1. Update inventory
-    selectedItems.forEach(consumedItem => {
-      const originalItem = inventory.find(i => i.id === consumedItem.id && i.warehouseId === warehouseIdToFilter);
-      if (originalItem) {
-        updateInventoryItemQuantity(consumedItem.id, warehouseIdToFilter!, originalItem.quantity - consumedItem.consumeQuantity);
-      }
-    });
-    
-    // 2. Create consumption record
-    const newRecord: ConsumptionRecord = {
-        id: consumptionData.id,
-        date: consumptionData.date,
-        workerId: consumptionData.worker!.id,
-        projectId: consumptionData.project!.id,
-        items: consumptionData.items.map(i => ({ itemId: i.id, quantity: i.consumeQuantity })),
-        warehouseId: warehouseIdToFilter!,
-    };
-    addConsumptionRecord(newRecord);
-
-    toast({ title: t('consumption_registered'), description: t('stock_updated_successfully') });
-    
-    // 3. Reset form
+  const resetForm = () => {
     setRutInput('');
     setSelectedWorker(null);
     setProjectIdInput('');
@@ -183,50 +168,105 @@ export default function ConsumptionsPage() {
     setSelectedItems([]);
   };
 
- const handlePreview = () => {
-    if (!isFormComplete) {
+  const handleSendToPending = () => {
+     if (!isFormComplete) {
       toast({ variant: 'destructive', title: t('error'), description: t('please_fill_all_fields') });
       return;
     }
-    const valeContent = document.getElementById('vale-for-print')?.innerHTML;
-    if (valeContent) {
-      const valeWindow = window.open('', '_blank', 'width=800,height=600');
-      if (valeWindow) {
-        valeWindow.document.write(`
-          <html>
-            <head>
-              <title>${t('consumption_voucher_preview')}</title>
-              <script src="https://cdn.tailwindcss.com"></script>
-              <style>
-                body { font-family: Arial, sans-serif; }
-                @media print {
-                  #print-button { display: none; }
-                  @page { 
-                    size: auto;
-                    margin: 1.5cm; 
-                  }
-                   body {
-                    -webkit-print-color-adjust: exact;
-                    print-color-adjust: exact;
-                  }
-                }
-              </style>
-            </head>
-            <body class="bg-white">
-              <div class="max-w-4xl mx-auto p-8">
-                ${valeContent}
-                <div class="mt-8 text-center">
-                  <button id="print-button" onclick="window.print()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700">
-                    ${t('print')}
-                  </button>
-                </div>
-              </div>
-            </body>
-          </html>
-        `);
-        valeWindow.document.close();
+    const newPendingVoucher: PendingVoucher = {
+        id: `VC-${Date.now()}`,
+        date: new Date(),
+        worker: selectedWorker,
+        project: selectedProject,
+        items: selectedItems,
+        totalCost,
+        warehouseId: warehouseIdToFilter!,
+        warehouseName: warehouses.find(w => w.id === warehouseIdToFilter)?.name || 'N/A',
+        deliveredBy: user?.name || 'N/A',
+    };
+    setPendingVouchers(prev => [newPendingVoucher, ...prev]);
+    toast({ title: t('voucher_sent_to_pending'), description: t('voucher_awaits_approval') });
+    resetForm();
+  };
+
+  const handleRegisterConsumption = (voucher: PendingVoucher) => {
+    // 1. Update inventory
+    voucher.items.forEach(consumedItem => {
+      const originalItem = inventory.find(i => i.id === consumedItem.id && i.warehouseId === voucher.warehouseId);
+      if (originalItem) {
+        updateInventoryItemQuantity(consumedItem.id, voucher.warehouseId, originalItem.quantity - consumedItem.consumeQuantity);
       }
+    });
+    
+    // 2. Create consumption record
+    const newRecord: ConsumptionRecord = {
+        id: voucher.id,
+        date: voucher.date,
+        workerId: voucher.worker!.id,
+        projectId: voucher.project!.id,
+        items: voucher.items.map(i => ({ itemId: i.id, quantity: i.consumeQuantity })),
+        warehouseId: voucher.warehouseId,
+    };
+    addConsumptionRecord(newRecord);
+
+    // 3. Remove from pending list
+    setPendingVouchers(prev => prev.filter(v => v.id !== voucher.id));
+
+    toast({ title: t('consumption_registered'), description: t('stock_updated_successfully') });
+  };
+
+ const handlePreview = (voucher?: PendingVoucher) => {
+    if (voucher) {
+      setReviewingVoucher(voucher);
+    } else {
+       if (!isFormComplete) {
+        toast({ variant: 'destructive', title: t('error'), description: t('please_fill_all_fields') });
+        return;
+      }
+      setReviewingVoucher(null); // Use current form data
     }
+    
+    setTimeout(() => {
+        const valeContent = document.getElementById('vale-for-print')?.innerHTML;
+        if (valeContent) {
+        const valeWindow = window.open('', '_blank', 'width=800,height=600');
+        if (valeWindow) {
+            valeWindow.document.write(`
+            <html>
+                <head>
+                <title>${t('consumption_voucher_preview')}</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+                <style>
+                    body { font-family: Arial, sans-serif; }
+                    @media print {
+                    #print-button { display: none; }
+                    @page { 
+                        size: auto;
+                        margin: 1.5cm; 
+                    }
+                    body {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    }
+                </style>
+                </head>
+                <body class="bg-white">
+                <div class="max-w-4xl mx-auto p-8">
+                    ${valeContent}
+                    <div class="mt-8 text-center">
+                    <button id="print-button" onclick="window.print()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700">
+                        ${t('print')}
+                    </button>
+                    </div>
+                </div>
+                </body>
+            </html>
+            `);
+            valeWindow.document.close();
+        }
+        }
+    }, 100);
   };
   const isFormComplete = !!selectedWorker && !!selectedProject && selectedItems.length > 0;
 
@@ -361,24 +401,68 @@ export default function ConsumptionsPage() {
         </CardFooter>
       </Card>
       <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={handlePreview} disabled={!isFormComplete}>
+          <Button variant="outline" onClick={() => handlePreview()} disabled={!isFormComplete}>
             <Eye className="mr-2" />
             {t('preview_voucher')}
           </Button>
-          <Button onClick={handleRegisterConsumption} disabled={!isFormComplete}>
-              {t('register_consumption')}
+          <Button onClick={handleSendToPending} disabled={!isFormComplete}>
+              <Hourglass className="mr-2" />
+              {t('send_to_pending')}
           </Button>
       </div>
+
+       <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>{t('pending_vouchers_queue')}</CardTitle>
+          <CardDescription>{t('vouchers_awaiting_approval')}</CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t('date')}</TableHead>
+                <TableHead>{t('worker')}</TableHead>
+                <TableHead>{t('project')}</TableHead>
+                <TableHead>{t('warehouse')}</TableHead>
+                <TableHead className="text-right">{t('total_cost')}</TableHead>
+                <TableHead className="text-right">{t('actions')}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pendingVouchers.length > 0 ? pendingVouchers.map(voucher => (
+                <TableRow key={voucher.id}>
+                  <TableCell>{new Date(voucher.date).toLocaleDateString(language)}</TableCell>
+                  <TableCell>{voucher.worker?.name}</TableCell>
+                  <TableCell>{voucher.project?.name}</TableCell>
+                  <TableCell>{voucher.warehouseName}</TableCell>
+                  <TableCell className="text-right font-medium">${voucher.totalCost.toLocaleString(language)}</TableCell>
+                  <TableCell className="text-right space-x-2">
+                    <Button variant="ghost" size="icon" onClick={() => handlePreview(voucher)}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="default" size="sm" onClick={() => handleRegisterConsumption(voucher)}>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      {t('register_consumption')}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">{t('no_pending_vouchers')}</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
     
     {/* Hidden component to generate HTML for printing */}
     <div className="hidden">
       <div id="vale-for-print">
-        <ValeConsumo data={consumptionData} />
+        <ValeConsumo data={consumptionDataForVoucher} />
       </div>
     </div>
     </>
   );
 }
-
-    

@@ -212,5 +212,11 @@
     "consumption_report_for": "Consumption report for",
     "open_in_new_tab": "Open in new tab",
     "start_date": "Start Date",
-    "end_date": "End Date"
+    "end_date": "End Date",
+    "send_to_pending": "Send to Pending",
+    "voucher_sent_to_pending": "Voucher sent to pending",
+    "voucher_awaits_approval": "The consumption voucher awaits approval to be registered.",
+    "pending_vouchers_queue": "Pending Vouchers Queue",
+    "vouchers_awaiting_approval": "Vouchers awaiting supervisor authorization to register consumption.",
+    "no_pending_vouchers": "No pending vouchers."
 }

@@ -212,5 +212,11 @@
     "consumption_report_for": "Reporte de consumo para",
     "open_in_new_tab": "Abrir en nueva pestaña",
     "start_date": "Fecha Inicial",
-    "end_date": "Fecha Final"
+    "end_date": "Fecha Final",
+    "send_to_pending": "Enviar a Espera",
+    "voucher_sent_to_pending": "Vale enviado a espera",
+    "voucher_awaits_approval": "El vale de consumo espera por aprobación para ser registrado.",
+    "pending_vouchers_queue": "Cola de Vales en Espera",
+    "vouchers_awaiting_approval": "Vales que esperan la autorización del supervisor para registrar el consumo.",
+    "no_pending_vouchers": "No hay vales en espera."
 }

@@ -212,5 +212,11 @@
     "consumption_report_for": "Rapport de consommation pour",
     "open_in_new_tab": "Ouvrir dans un nouvel onglet",
     "start_date": "Date de début",
-    "end_date": "Date de fin"
+    "end_date": "Date de fin",
+    "send_to_pending": "Envoyer en Attente",
+    "voucher_sent_to_pending": "Bon envoyé en attente",
+    "voucher_awaits_approval": "Le bon de consommation attend l'approbation pour être enregistré.",
+    "pending_vouchers_queue": "File d'attente des bons en attente",
+    "vouchers_awaiting_approval": "Bons en attente de l'autorisation du superviseur pour enregistrer la consommation.",
+    "no_pending_vouchers": "Aucun bon en attente."
 }
