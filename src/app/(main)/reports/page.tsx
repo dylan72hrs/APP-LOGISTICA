@@ -6,20 +6,22 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useData } from '@/lib/hooks/use-data';
-import type { Project, Worker } from '@/lib/types';
+import type { Project, Worker, InventoryItem } from '@/lib/types';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { ChevronsUpDown, Check, Calendar as CalendarIcon } from 'lucide-react';
+import { ChevronsUpDown, Check, Calendar as CalendarIcon, Printer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ReporteTrabajador, type WorkerReportData } from '@/components/reporte-trabajador';
 
 
 export default function ReportsPage() {
-    const { t } = useLanguage();
-    const { workers, projects } = useData();
+    const { t, language } = useLanguage();
+    const { workers, projects, consumptionRecords, inventory } = useData();
     const { toast } = useToast();
 
     const [filterType, setFilterType] = useState<'worker' | 'project'>('worker');
@@ -27,6 +29,8 @@ export default function ReportsPage() {
     const [selectedProject, setSelectedProject] = useState<Project | null>(null);
     const [startDate, setStartDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
+    
+    const [reportData, setReportData] = useState<WorkerReportData | null>(null);
 
     const [openWorkerCombobox, setOpenWorkerCombobox] = useState(false);
     const [openProjectCombobox, setOpenProjectCombobox] = useState(false);
@@ -49,20 +53,101 @@ export default function ReportsPage() {
             });
             return;
         }
+        
+        if (filterType === 'worker') {
+            if (!selectedWorker) {
+                toast({ variant: 'destructive', title: t('error'), description: 'Por favor, seleccione un trabajador.' });
+                return;
+            }
+            
+            const workerConsumptions = consumptionRecords.filter(record => 
+                record.workerId === selectedWorker.id &&
+                record.date >= startDate &&
+                record.date <= endDate
+            );
 
-        // Logic to generate report will be implemented here
-        console.log({
-            filterType,
-            selectedWorker,
-            selectedProject,
-            startDate,
-            endDate
-        });
+            const itemsConsumed = workerConsumptions.flatMap(record => 
+                record.items.map(item => {
+                    const inventoryItem = inventory.find(inv => inv.id === item.itemId);
+                    return {
+                        date: record.date,
+                        code: inventoryItem?.code || 'N/A',
+                        description: inventoryItem?.description || 'N/A',
+                        quantity: item.quantity
+                    }
+                })
+            ).sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        toast({
-            title: 'Informe Generado (simulación)',
-            description: `Filtros aplicados: ${filterType}, Fechas: ${format(startDate, 'PPP', { locale: es })} - ${format(endDate, 'PPP', { locale: es })}`
-        })
+            const totalItems = itemsConsumed.reduce((sum, item) => sum + item.quantity, 0);
+
+            const generatedReport: WorkerReportData = {
+                id: `REP-${Date.now()}`,
+                generationDate: new Date(),
+                startDate,
+                endDate,
+                worker: selectedWorker,
+                items: itemsConsumed,
+                totalItemsConsumed: totalItems,
+            };
+            
+            setReportData(generatedReport);
+            toast({ title: 'Informe Generado', description: `Se ha generado el informe para ${selectedWorker.name}.` });
+
+        } else if (filterType === 'project') {
+             if (!selectedProject) {
+                toast({ variant: 'destructive', title: t('error'), description: 'Por favor, seleccione un proyecto.' });
+                return;
+            }
+            // Logic for project report will be implemented here
+            setReportData(null);
+            toast({ title: 'Funcionalidad no implementada', description: 'La generación de informes por proyecto se implementará pronto.' });
+        }
+    }
+    
+    const handlePrintReport = () => {
+        if (!reportData) return;
+
+        setTimeout(() => {
+            const reportContent = document.getElementById('report-for-print')?.innerHTML;
+            if (reportContent) {
+                const printWindow = window.open('', '_blank', 'width=800,height=600');
+                if (printWindow) {
+                    printWindow.document.write(`
+                        <html>
+                            <head>
+                            <title>${t('consumption_report_for')} ${reportData.worker.name}</title>
+                            <script src="https://cdn.tailwindcss.com"></script>
+                            <style>
+                                body { font-family: Arial, sans-serif; }
+                                @media print {
+                                #print-button { display: none; }
+                                @page { 
+                                    size: letter;
+                                    margin: 0.5in; 
+                                }
+                                body {
+                                    -webkit-print-color-adjust: exact;
+                                    print-color-adjust: exact;
+                                }
+                                }
+                            </style>
+                            </head>
+                            <body class="bg-white">
+                                <div class="max-w-4xl mx-auto p-4">
+                                ${reportContent}
+                                 <div class="mt-8 text-center no-print">
+                                    <button id="print-button" onclick="window.print()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700">
+                                        ${t('print')}
+                                    </button>
+                                </div>
+                                </div>
+                            </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                }
+            }
+        }, 100);
     }
 
     return (
@@ -77,7 +162,6 @@ export default function ReportsPage() {
                     <CardTitle>{t('filters')}</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Date Pickers */}
                     <div className="space-y-2">
                         <Label>{t('start_date')}</Label>
                         <Popover>
@@ -132,16 +216,15 @@ export default function ReportsPage() {
                         </Popover>
                     </div>
 
-                    {/* Spacer to align next items */}
                     <div className="hidden lg:block"></div>
 
-                    {/* Filter Type */}
                     <div className="space-y-2">
                         <Label>{t('report_type')}</Label>
                         <RadioGroup defaultValue="worker" onValueChange={(value: 'worker' | 'project') => {
                             setFilterType(value);
                             setSelectedProject(null);
                             setSelectedWorker(null);
+                            setReportData(null);
                         }} className="flex items-center space-x-4 pt-2">
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="worker" id="r-worker" />
@@ -154,7 +237,6 @@ export default function ReportsPage() {
                         </RadioGroup>
                     </div>
 
-                    {/* Worker/Project Selector */}
                     <div className="space-y-2">
                         <Label>{filterType === 'worker' ? t('worker') : t('project')}</Label>
                         {filterType === 'worker' ? (
@@ -234,17 +316,52 @@ export default function ReportsPage() {
                 </CardContent>
             </Card>
 
-            {/* Placeholder for Report Results */}
-            <Card>
-              <CardHeader>
-                <CardTitle>{t('report_results')}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex h-[300px] items-center justify-center rounded-md border border-dashed">
-                  <p className="text-muted-foreground">{t('generate_report_to_see_results')}</p>
+            {reportData && (
+                 <Card>
+                    <CardHeader className='flex-row items-center justify-between'>
+                        <div>
+                            <CardTitle>{t('report_results')}</CardTitle>
+                            <CardDescription>{t('consumption_report_for')} {reportData.worker.name}</CardDescription>
+                        </div>
+                        <Button onClick={handlePrintReport} variant="outline" size="sm">
+                            <Printer className="mr-2 h-4 w-4"/>
+                            {t('print')}
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>{t('date')}</TableHead>
+                                    <TableHead>{t('code')}</TableHead>
+                                    <TableHead>{t('description')}</TableHead>
+                                    <TableHead className='text-right'>{t('quantity')}</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {reportData.items.map((item, index) => (
+                                    <TableRow key={index}>
+                                        <TableCell>{item.date.toLocaleDateString(language)}</TableCell>
+                                        <TableCell>{item.code}</TableCell>
+                                        <TableCell>{item.description}</TableCell>
+                                        <TableCell className='text-right'>{item.quantity}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                         <div className="text-right font-bold mt-4 pr-4">
+                            Total Items: {reportData.totalItemsConsumed}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Hidden component to generate HTML for printing */}
+            <div className="hidden">
+                <div id="report-for-print">
+                    {reportData && <ReporteTrabajador data={reportData} />}
                 </div>
-              </CardContent>
-            </Card>
+            </div>
         </div>
     );
 }
