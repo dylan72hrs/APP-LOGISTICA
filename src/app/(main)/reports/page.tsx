@@ -133,25 +133,23 @@ export default function ReportsPage() {
         const projectNamesRow: (string|null)[] = [t('epp_item_description'), null, null, null];
         projectsInReport.forEach(proj => projectNamesRow.push(proj.name, null));
         headers.push(projectNamesRow);
-
+        
         const projectIdsRow: (string|null)[] = [null, null, null, null];
         projectsInReport.forEach(proj => projectIdsRow.push(proj.id, null));
         headers.push(projectIdsRow);
-
-        const subHeaderRow = [t('description'), t('size_unit'), t('code'), t('price_unit_cost')];
+        
+        const subHeaderRow = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
         projectsInReport.forEach(() => subHeaderRow.push("CANT", "VALOR"));
         headers.push(subHeaderRow);
 
-        merges.push({ s: { r: 2, c: 0 }, e: { r: 4, c: 0 } }); // Merge "Elemento..."
-        merges.push({ s: { r: 2, c: 1 }, e: { r: 4, c: 1 } }); 
-        merges.push({ s: { r: 2, c: 2 }, e: { r: 4, c: 2 } }); 
-        merges.push({ s: { r: 2, c: 3 }, e: { r: 4, c: 3 } }); 
+        merges.push({ s: { r: 2, c: 0 }, e: { r: 3, c: 3 } });
 
         projectsInReport.forEach((_, index) => {
             const startCol = 4 + index * 2;
             merges.push({ s: { r: 2, c: startCol }, e: { r: 2, c: startCol + 1 } }); // Project Name
             merges.push({ s: { r: 3, c: startCol }, e: { r: 3, c: startCol + 1 } }); // Project ID
         });
+
 
         const data: (string | number)[][] = [];
         itemsInReport.forEach(item => {
@@ -339,7 +337,7 @@ export default function ReportsPage() {
                         <Table className="border">
                            <TableHeader>
                                 <TableRow>
-                                    <TableHead className="border text-center font-bold bg-muted/50 p-2" colSpan={4} rowSpan={3}>{t('epp_item_description')}</TableHead>
+                                    <TableHead className="border text-center font-bold bg-muted/50 p-2" colSpan={4} rowSpan={2}>{t('epp_item_description')}</TableHead>
                                     {reportData.projectsInReport.map((proj, index) => (
                                         <TableHead key={`proj-h-${index}`} className="border text-center font-bold bg-muted/50 p-2" colSpan={2}>{proj.name}</TableHead>
                                     ))}
@@ -350,18 +348,16 @@ export default function ReportsPage() {
                                     ))}
                                 </TableRow>
                                  <TableRow>
+                                     <TableHead className="border font-bold bg-muted/50 p-2">Descripción</TableHead>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">Talla</TableHead>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">Cód. AX</TableHead>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">Precio ($)</TableHead>
                                     {reportData.projectsInReport.map((_, index) => (
                                         <React.Fragment key={`sub-h-${index}`}>
                                             <TableHead className="border text-center font-bold bg-muted/50 p-2">CANT</TableHead>
                                             <TableHead className="border text-center font-bold bg-muted/50 p-2">VALOR</TableHead>
                                         </React.Fragment>
                                     ))}
-                                </TableRow>
-                                <TableRow>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][0]}</TableHead>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][1]}</TableHead>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][2]}</TableHead>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][3]}</TableHead>
                                 </TableRow>
                            </TableHeader>
                            <TableBody>
