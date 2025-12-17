@@ -12,7 +12,7 @@ import { useData } from '@/lib/hooks/use-data';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { es as esLocale, enUS as enLocale, fr as frLocale } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
-import type { ConsumptionRecord, InventoryItem, Project, Warehouse } from '@/lib/types';
+import type { ConsumptionRecord, InventoryItem, Project, Warehouse, Worker } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
@@ -44,7 +44,7 @@ type ReportData = ProjectReportData | WarehouseReportData | null;
 
 
 export default function ReportsPage() {
-    const { consumptionRecords, inventory, projects, warehouses } = useData();
+    const { consumptionRecords, inventory, projects, warehouses, workers } = useData();
     const { t, language } = useLanguage();
 
     const [startDate, setStartDate] = useState<Date | undefined>();
@@ -127,35 +127,31 @@ export default function ReportsPage() {
         const formattedEndDate = format(endDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         
         headers.push([`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`]);
-        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 4 + projectsInReport.length * 2 } });
+        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } });
         headers.push([]);
 
-        const headerRow3 = ["Elemento Protección Personal", null, null, null];
-        const projectNamesRow = [null, null, null, null];
-        projectsInReport.forEach(proj => {
-            headerRow3.push(null, null); // placeholder for merges
-            projectNamesRow.push(proj.name, null)
-        });
-        headers.push(headerRow3);
-        
+        const projectNamesRow = ["Elemento Protección Personal", null, null, null];
+        projectsInReport.forEach(proj => projectNamesRow.push(proj.name, null));
+        headers.push(projectNamesRow);
+
         const projectIdsRow = [null, null, null, null];
-        projectsInReport.forEach(proj => {
-            projectIdsRow.push(proj.id, null);
-        });
+        projectsInReport.forEach(proj => projectIdsRow.push(proj.id, null));
         headers.push(projectIdsRow);
 
-        merges.push({ s: { r: 2, c: 0 }, e: { r: 4, c: 3 } }); // Merge for "Elemento..."
-        
+        const subHeaderRow = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
+        projectsInReport.forEach(() => subHeaderRow.push("CANT", "VALOR"));
+        headers.push(subHeaderRow);
+
+        merges.push({ s: { r: 2, c: 0 }, e: { r: 4, c: 0 } }); // Merge "Elemento..."
+        merges.push({ s: { r: 2, c: 1 }, e: { r: 4, c: 1 } }); 
+        merges.push({ s: { r: 2, c: 2 }, e: { r: 4, c: 2 } }); 
+        merges.push({ s: { r: 2, c: 3 }, e: { r: 4, c: 3 } }); 
+
         projectsInReport.forEach((_, index) => {
-            merges.push({ s: { r: 2, c: 4 + index * 2 }, e: { r: 2, c: 5 + index * 2 } }); // Project Name
-            merges.push({ s: { r: 3, c: 4 + index * 2 }, e: { r: 3, c: 5 + index * 2 } }); // Project ID
+            const startCol = 4 + index * 2;
+            merges.push({ s: { r: 2, c: startCol }, e: { r: 2, c: startCol + 1 } }); // Project Name
+            merges.push({ s: { r: 3, c: startCol }, e: { r: 3, c: startCol + 1 } }); // Project ID
         });
-        
-        const headerRow5 = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
-        projectsInReport.forEach(() => {
-            headerRow5.push("CANT", "VALOR");
-        });
-        headers.push(headerRow5);
 
         const data: (string | number)[][] = [];
         itemsInReport.forEach(item => {
@@ -184,35 +180,28 @@ export default function ReportsPage() {
             return recordDate >= startDate && recordDate <= endDate;
         });
     
-        const consumptionByWarehouse: Record<string, Record<string, number>> = {};
-    
-        for (const record of filteredConsumptions) {
-            if (!consumptionByWarehouse[record.warehouseId]) {
-                consumptionByWarehouse[record.warehouseId] = {};
-            }
-            for (const item of record.items) {
-                const currentQty = consumptionByWarehouse[record.warehouseId][item.itemId] || 0;
-                consumptionByWarehouse[record.warehouseId][item.itemId] = currentQty + item.quantity;
-            }
-        }
-    
-        const headers = [[t('country'), t('warehouse'), t('code'), t('description'), t('total_consumed_quantity')]];
+        const headers = [[t('month'), t('country'), t('warehouse'), t('project_id'), t('project_name'), t('worker'), t('code'), t('description'), t('quantity')]];
         const data: (string | number)[][] = [];
-    
-        for (const warehouseId in consumptionByWarehouse) {
-            const warehouse = warehouses.find(w => w.id === warehouseId);
-            if (!warehouse) continue;
-    
-            for (const itemId in consumptionByWarehouse[warehouseId]) {
-                const item = inventory.find(i => i.id === itemId);
-                if (!item) continue;
-    
+
+        for (const record of filteredConsumptions) {
+            const warehouse = warehouses.find(w => w.id === record.warehouseId);
+            const project = projects.find(p => p.id === record.projectId);
+            const worker = workers.find(w => w.id === record.workerId);
+            const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
+
+            for (const consumedItem of record.items) {
+                const item = inventory.find(i => i.id === consumedItem.itemId);
+                
                 data.push([
-                    warehouse.country,
-                    warehouse.name,
-                    item.code,
-                    item.description,
-                    consumptionByWarehouse[warehouseId][itemId],
+                    format(recordDate, 'MMMM', { locale: dateLocales[language] }),
+                    warehouse?.country || 'N/A',
+                    warehouse?.name || 'N/A',
+                    project?.id || 'N/A',
+                    project?.name || 'N/A',
+                    worker?.name || 'N/A',
+                    item?.code || 'N/A',
+                    item?.description || 'N/A',
+                    consumedItem.quantity,
                 ]);
             }
         }
@@ -247,10 +236,7 @@ export default function ReportsPage() {
              sheetData = [
                 reportData.headers[0],
                 reportData.headers[1],
-                [reportData.headers[2][0], null, null, null, ...reportData.projectsInReport.flatMap(p => [p.name, null])],
-                [null, null, null, null, ...reportData.projectsInReport.flatMap(p => [p.id, null])],
-                [null, ...reportData.headers[4]],
-                ...reportData.data.map(row => ["",...row])
+                ...reportData.headers.slice(2)
             ];
             const ws = XLSX.utils.aoa_to_sheet(sheetData, {cellDates: true});
             ws['!merges'] = reportData.merges;
@@ -354,7 +340,7 @@ export default function ReportsPage() {
                         <Table className="border">
                            <TableHeader>
                                 <TableRow>
-                                    <TableHead className="border text-center font-bold bg-muted/50 p-2" colSpan={4} rowSpan={2}>{reportData.headers[2][0]}</TableHead>
+                                    <TableHead className="border text-center font-bold bg-muted/50 p-2" colSpan={4} rowSpan={3}>{t('epp_item_description')}</TableHead>
                                     {reportData.projectsInReport.map((proj, index) => (
                                         <TableHead key={`proj-h-${index}`} className="border text-center font-bold bg-muted/50 p-2" colSpan={2}>{proj.name}</TableHead>
                                     ))}
@@ -365,16 +351,18 @@ export default function ReportsPage() {
                                     ))}
                                 </TableRow>
                                  <TableRow>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][0]}</TableHead>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][1]}</TableHead>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][2]}</TableHead>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][3]}</TableHead>
                                     {reportData.projectsInReport.map((_, index) => (
                                         <React.Fragment key={`sub-h-${index}`}>
                                             <TableHead className="border text-center font-bold bg-muted/50 p-2">CANT</TableHead>
                                             <TableHead className="border text-center font-bold bg-muted/50 p-2">VALOR</TableHead>
                                         </React.Fragment>
                                     ))}
+                                </TableRow>
+                                <TableRow>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][0]}</TableHead>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][1]}</TableHead>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][2]}</TableHead>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][3]}</TableHead>
                                 </TableRow>
                            </TableHeader>
                            <TableBody>
@@ -401,7 +389,7 @@ export default function ReportsPage() {
                            <TableHeader>
                                 <TableRow>
                                     {reportData.headers[0].map((header, index) => (
-                                        <TableHead key={index} className="border text-center font-bold bg-muted/50 p-2">{header}</TableHead>
+                                        <TableHead key={index} className="border text-left font-bold bg-muted/50 p-2">{header}</TableHead>
                                     ))}
                                 </TableRow>
                            </TableHeader>

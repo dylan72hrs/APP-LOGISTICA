@@ -236,6 +236,8 @@
     "report_will_be_downloaded_automatically": "Le fichier .xlsx sera téléchargé automatiquement.",
     "report_will_be_displayed_here": "Le rapport s'affichera ici une fois généré.",
     "consumption_by_project": "Consommation par Projet",
-    "total_consumption_by_warehouse": "Consommation Totale par Entrepôt",
-    "total_consumed_quantity": "Quantité Totale Consommée"
+    "total_consumption_by_warehouse": "Consommation Détaillée par Entrepôt",
+    "total_consumed_quantity": "Quantité Totale Consommée",
+    "epp_item_description": "Description de l'Équipement de Protection Individuelle",
+    "project_name": "Projet"
 }

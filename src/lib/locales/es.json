@@ -236,6 +236,8 @@
     "report_will_be_downloaded_automatically": "El archivo .xlsx se descargará automáticamente.",
     "report_will_be_displayed_here": "El informe se mostrará aquí una vez que se genere.",
     "consumption_by_project": "Consumo por Proyecto",
-    "total_consumption_by_warehouse": "Consumo Total por Bodega",
-    "total_consumed_quantity": "Cantidad Total Consumida"
+    "total_consumption_by_warehouse": "Consumo Detallado por Bodega",
+    "total_consumed_quantity": "Cantidad Total Consumida",
+    "epp_item_description": "Descripción del Elemento de Protección Personal",
+    "project_name": "Proyecto"
 }
