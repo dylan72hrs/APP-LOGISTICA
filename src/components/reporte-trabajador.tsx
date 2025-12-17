@@ -118,20 +118,6 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
                     <p className="text-md font-bold">Total de Ítems Consumidos: {data.totalItemsConsumed}</p>
                 </div>
             </section>
-
-            <footer className="mt-auto pt-16 grid grid-cols-2 gap-8 text-center">
-                <div>
-                    <div className="border-t border-black w-3/4 mx-auto pt-2">
-                        <p className="font-bold">{data.worker.name}</p>
-                        <p className="text-sm">{t('signature_worker')}</p>
-                    </div>
-                </div>
-                <div>
-                    <div className="border-t border-black w-3/4 mx-auto pt-2">
-                         <p className="text-sm">{t('signature_supervisor')}</p>
-                    </div>
-                </div>
-            </footer>
         </div>
     );
 });
