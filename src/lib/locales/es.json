@@ -241,5 +241,6 @@
     "worker_name": "Nombre Trabajador",
     "worker_position": "Cargo Trabajador",
     "total_consumed_quantity": "Cantidad Total Consumida",
-    "epp_item_description": "Descripción del Elemento de Protección Personal"
+    "epp_item_description": "Descripción del Elemento de Protección Personal",
+    "ai_restock": "Reposición con IA"
 }

@@ -7,7 +7,7 @@ export default function RestockPage() {
     const { t } = useLanguage();
     return (
         <PlaceholderPage 
-            title={t('restock_suggestions')}
+            title={t('ai_restock')}
             description={t('use_ai_for_restock_recommendations')}
             icon={BrainCircuit}
         />

@@ -241,5 +241,6 @@
     "worker_name": "Nom du travailleur",
     "worker_position": "Poste du travailleur",
     "total_consumed_quantity": "Quantité Totale Consommée",
-    "epp_item_description": "Description de l'Équipement de Protection Individuelle"
+    "epp_item_description": "Description de l'Équipement de Protection Individuelle",
+    "ai_restock": "Réapprovisionnement IA"
 }

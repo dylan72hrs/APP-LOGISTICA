@@ -241,5 +241,6 @@
     "worker_name": "Worker Name",
     "worker_position": "Worker Position",
     "total_consumed_quantity": "Total Consumed Quantity",
-    "epp_item_description": "Personal Protective Equipment Description"
+    "epp_item_description": "Personal Protective Equipment Description",
+    "ai_restock": "AI Restock"
 }
