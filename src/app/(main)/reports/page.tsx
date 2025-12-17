@@ -73,7 +73,7 @@ export default function ReportsPage() {
     }, []);
 
     const processReportData = (): ReportData | null => {
-         if (!startDate || !endDate) return null;
+        if (!startDate || !endDate) return null;
 
         const filteredConsumptions = consumptionRecords.filter(record => {
             const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
@@ -112,12 +112,15 @@ export default function ReportsPage() {
         const formattedStartDate = format(startDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         const formattedEndDate = format(endDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         
+        // Row 1: Title
         const titleRow = [`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`];
         headers.push(titleRow);
         merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } });
         
+        // Row 2: Empty
         headers.push([]);
 
+        // Row 3: "Elemento Protección Personal" and Project Names
         const headerRow3 = ["Elemento Protección Personal", null, null, null];
         projectsInReport.forEach(proj => {
             headerRow3.push(proj.name, null);
@@ -128,6 +131,7 @@ export default function ReportsPage() {
             merges.push({ s: { r: 2, c: 4 + index * 2 }, e: { r: 2, c: 5 + index * 2 } });
         });
 
+        // Row 4: Project IDs
         const headerRow4 = [null, null, null, null];
         projectsInReport.forEach(proj => {
             headerRow4.push(proj.id, null);
@@ -137,6 +141,7 @@ export default function ReportsPage() {
             merges.push({ s: { r: 3, c: 4 + index * 2 }, e: { r: 3, c: 5 + index * 2 } });
         });
 
+        // Row 5: Column details
         const headerRow5 = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
         projectsInReport.forEach(() => {
             headerRow5.push("CANT", "VALOR");
@@ -255,31 +260,20 @@ export default function ReportsPage() {
                            <TableHeader>
                                 {reportData.headers.map((row, rowIndex) => (
                                     <TableRow key={`header-${rowIndex}`}>
-                                        {(() => {
-                                            let cellIndex = 0;
-                                            const cells = [];
-                                            while (cellIndex < row.length) {
-                                                const cell = row[cellIndex];
-                                                if (cell !== null) {
-                                                    const merge = reportData.merges.find(m => m.s.r === rowIndex && m.s.c === cellIndex);
-                                                    const colSpan = merge ? merge.e.c - merge.s.c + 1 : 1;
-                                                    cells.push(
-                                                        <TableHead 
-                                                            key={`header-${rowIndex}-${cellIndex}`} 
-                                                            colSpan={colSpan}
-                                                            className="border text-center font-bold bg-muted/50"
-                                                        >
-                                                            {cell}
-                                                        </TableHead>
-                                                    );
-                                                    cellIndex += colSpan;
-                                                } else {
-                                                    // This handles the null placeholders for merged cells
-                                                    cellIndex++;
-                                                }
-                                            }
-                                            return cells;
-                                        })()}
+                                        {row.map((cell, cellIndex) => {
+                                            if(cell === null) return null; // Skip rendering for null placeholders used in merges
+                                            const merge = reportData.merges.find(m => m.s.r === rowIndex && m.s.c === cellIndex);
+                                            const colSpan = merge ? merge.e.c - merge.s.c + 1 : 1;
+                                            return (
+                                                <TableHead 
+                                                    key={`header-${rowIndex}-${cellIndex}`} 
+                                                    colSpan={colSpan}
+                                                    className="border text-center font-bold bg-muted/50"
+                                                >
+                                                    {cell}
+                                                </TableHead>
+                                            );
+                                        })}
                                     </TableRow>
                                 ))}
                            </TableHeader>
