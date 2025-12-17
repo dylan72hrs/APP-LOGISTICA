@@ -11,11 +11,13 @@ import { useData } from '@/lib/hooks/use-data';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { es as esLocale, enUS as enLocale, fr as frLocale } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
-import type { ConsumptionRecord, InventoryItem, Project } from '@/lib/types';
+import type { ConsumptionRecord, InventoryItem, Project, Warehouse } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 
 type FilterType = 'week' | 'month' | 'year' | 'range';
+type ReportType = 'byProject' | 'totalByWarehouse';
 
 const dateLocales = {
   es: esLocale,
@@ -23,20 +25,31 @@ const dateLocales = {
   fr: frLocale,
 };
 
-interface ReportData {
-  headers: (string | null)[][];
-  merges: XLSX.Range[];
-  data: (string | number)[][];
-  projectsInReport: Project[];
+interface ProjectReportData {
+    type: 'byProject';
+    headers: (string | null)[][];
+    merges: XLSX.Range[];
+    data: (string | number)[][];
+    projectsInReport: Project[];
 }
 
+interface WarehouseReportData {
+    type: 'totalByWarehouse';
+    headers: (string | null)[][];
+    data: (string | number)[][];
+}
+
+type ReportData = ProjectReportData | WarehouseReportData | null;
+
+
 export default function ReportsPage() {
-    const { consumptionRecords, inventory, projects } = useData();
+    const { consumptionRecords, inventory, projects, warehouses } = useData();
     const { t, language } = useLanguage();
 
     const [startDate, setStartDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
     const [filterType, setFilterType] = useState<FilterType>('month');
+    const [reportType, setReportType] = useState<ReportType>('byProject');
 
     const [reportData, setReportData] = useState<ReportData | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
@@ -59,20 +72,20 @@ export default function ReportsPage() {
                 end = endOfYear(now);
                 break;
             case 'range':
-                start = startDate; // Keep existing if switching to range
+                start = startDate;
                 end = endDate;
                 break;
         }
         setStartDate(start);
         setEndDate(end);
-        setReportData(null); // Reset preview on date change
+        setReportData(null); 
     };
-
+    
     useEffect(() => {
         handleFilterTypeChange('month');
     }, []);
 
-    const processReportData = (): ReportData | null => {
+    const processProjectReportData = (): ProjectReportData | null => {
         if (!startDate || !endDate) return null;
 
         const filteredConsumptions = consumptionRecords.filter(record => {
@@ -112,46 +125,39 @@ export default function ReportsPage() {
         const formattedStartDate = format(startDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         const formattedEndDate = format(endDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         
-        // Row 1: Title
-        const titleRow = [`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`];
-        headers.push(titleRow);
+        headers.push([`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`]);
         merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } });
-        
-        // Row 2: Empty
         headers.push([]);
 
-        // Row 3: "Elemento Protección Personal" and Project Names
         const headerRow3 = ["Elemento Protección Personal", null, null, null];
-        projectsInReport.forEach(proj => {
-            headerRow3.push(proj.name, null);
-        });
-        headers.push(headerRow3);
-        merges.push({ s: { r: 2, c: 0 }, e: { r: 3, c: 3 } }); // Span A3:D4
-        projectsInReport.forEach((_, index) => {
-            merges.push({ s: { r: 2, c: 4 + index * 2 }, e: { r: 2, c: 5 + index * 2 } });
-        });
-
-        // Row 4: Project IDs
         const headerRow4 = [null, null, null, null];
         projectsInReport.forEach(proj => {
+            headerRow3.push(proj.name, null);
             headerRow4.push(proj.id, null);
         });
-        headers.push(headerRow4);
+        headers.push(headerRow3, headerRow4);
+
+        merges.push({ s: { r: 2, c: 0 }, e: { r: 4, c: 0 } });
+
         projectsInReport.forEach((_, index) => {
+            merges.push({ s: { r: 2, c: 4 + index * 2 }, e: { r: 2, c: 5 + index * 2 } });
             merges.push({ s: { r: 3, c: 4 + index * 2 }, e: { r: 3, c: 5 + index * 2 } });
         });
         
-
-        // Row 5: Column details
-        const headerRow5 = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
+        const headerRow5 = [null, "Descripción", "Talla", "Cód. AX", "Precio ($)"];
         projectsInReport.forEach(() => {
             headerRow5.push("CANT", "VALOR");
         });
         headers.push(headerRow5);
 
+        merges.push({ s: { r: 2, c: 1 }, e: { r: 4, c: 1 } });
+        merges.push({ s: { r: 2, c: 2 }, e: { r: 4, c: 2 } });
+        merges.push({ s: { r: 2, c: 3 }, e: { r: 4, c: 3 } });
+
         const data: (string | number)[][] = [];
         itemsInReport.forEach(item => {
             const row: (string | number)[] = [
+                "", 
                 item.description,
                 item.size,
                 item.code,
@@ -165,12 +171,63 @@ export default function ReportsPage() {
             data.push(row);
         });
 
-        return { headers, merges, data, projectsInReport };
+        return { type: 'byProject', headers, merges, data, projectsInReport };
     }
+
+    const processWarehouseReportData = (): WarehouseReportData | null => {
+        if (!startDate || !endDate) return null;
+    
+        const filteredConsumptions = consumptionRecords.filter(record => {
+            const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
+            return recordDate >= startDate && recordDate <= endDate;
+        });
+    
+        const consumptionByWarehouse: Record<string, Record<string, number>> = {};
+    
+        for (const record of filteredConsumptions) {
+            if (!consumptionByWarehouse[record.warehouseId]) {
+                consumptionByWarehouse[record.warehouseId] = {};
+            }
+            for (const item of record.items) {
+                const currentQty = consumptionByWarehouse[record.warehouseId][item.itemId] || 0;
+                consumptionByWarehouse[record.warehouseId][item.itemId] = currentQty + item.quantity;
+            }
+        }
+    
+        const headers = [[t('country'), t('warehouse'), t('code'), t('description'), t('total_consumed_quantity')]];
+        const data: (string | number)[][] = [];
+    
+        for (const warehouseId in consumptionByWarehouse) {
+            const warehouse = warehouses.find(w => w.id === warehouseId);
+            if (!warehouse) continue;
+    
+            for (const itemId in consumptionByWarehouse[warehouseId]) {
+                const item = inventory.find(i => i.id === itemId);
+                if (!item) continue;
+    
+                data.push([
+                    warehouse.country,
+                    warehouse.name,
+                    item.code,
+                    item.description,
+                    consumptionByWarehouse[warehouseId][itemId],
+                ]);
+            }
+        }
+        
+        data.sort((a,b) => String(a[1]).localeCompare(String(b[1])) || String(a[3]).localeCompare(String(b[3])));
+    
+        return { type: 'totalByWarehouse', headers, data };
+    };
 
     const handleGenerateReport = () => {
         setIsGenerating(true);
-        const processedData = processReportData();
+        let processedData;
+        if (reportType === 'byProject') {
+            processedData = processProjectReportData();
+        } else {
+            processedData = processWarehouseReportData();
+        }
         setReportData(processedData);
         setIsGenerating(false);
     }
@@ -180,10 +237,18 @@ export default function ReportsPage() {
         
         const sheetData = [...reportData.headers, ...reportData.data];
         const ws = XLSX.utils.aoa_to_sheet(sheetData, {cellDates: true});
-        ws['!merges'] = reportData.merges;
+        
+        if (reportData.type === 'byProject') {
+             ws['!merges'] = reportData.merges;
+        }
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Consumo_Proyectos');
-        XLSX.writeFile(wb, `Consumo_EPP_por_Proyecto_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
+        const fileName = reportType === 'byProject' 
+            ? `Consumo_EPP_por_Proyecto_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
+            : `Consumo_Total_por_Bodega_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+
+        XLSX.writeFile(wb, fileName);
     };
 
     return (
@@ -197,46 +262,61 @@ export default function ReportsPage() {
                 <CardHeader>
                     <CardTitle>{t('filters')}</CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-wrap items-center gap-6">
-                    <div className="space-y-2">
-                        <Label>{t('date_range')}</Label>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Button variant={filterType === 'week' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('week')}>{t('week')}</Button>
-                            <Button variant={filterType === 'month' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('month')}>{t('month')}</Button>
-                            <Button variant={filterType === 'year' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('year')}>{t('year')}</Button>
-                            <Button variant={filterType === 'range' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('range')}>{t('range')}</Button>
-                            
-                            {filterType === 'range' && (
-                                <Popover>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            id="date"
-                                            variant={"outline"}
-                                            className="w-full sm:w-[300px] justify-start text-left font-normal"
-                                        >
-                                            <CalendarIcon className="mr-2 h-4 w-4" />
-                                            {startDate && endDate ? (
-                                                <>
-                                                    {format(startDate, "LLL dd, y", { locale: dateLocales[language] })} - {format(endDate, "LLL dd, y", { locale: dateLocales[language] })}
-                                                </>
-                                            ) : (
-                                                <span>{t('pick_a_date')}</span>
-                                            )}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            initialFocus
-                                            mode="range"
-                                            defaultMonth={startDate}
-                                            selected={{ from: startDate, to: endDate }}
-                                            onSelect={(range) => { setStartDate(range?.from); setEndDate(range?.to); setReportData(null); }}
-                                            numberOfMonths={2}
-                                            locale={dateLocales[language]}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
-                            )}
+                <CardContent className="flex flex-col gap-6">
+                    <div className="flex flex-wrap items-start gap-8">
+                        <div className="space-y-2">
+                            <Label>{t('date_range')}</Label>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button variant={filterType === 'week' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('week')}>{t('week')}</Button>
+                                <Button variant={filterType === 'month' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('month')}>{t('month')}</Button>
+                                <Button variant={filterType === 'year' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('year')}>{t('year')}</Button>
+                                <Button variant={filterType === 'range' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('range')}>{t('range')}</Button>
+                                
+                                {filterType === 'range' && (
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <Button
+                                                id="date"
+                                                variant={"outline"}
+                                                className="w-full sm:w-[300px] justify-start text-left font-normal"
+                                            >
+                                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                                {startDate && endDate ? (
+                                                    <>
+                                                        {format(startDate, "LLL dd, y", { locale: dateLocales[language] })} - {format(endDate, "LLL dd, y", { locale: dateLocales[language] })}
+                                                    </>
+                                                ) : (
+                                                    <span>{t('pick_a_date')}</span>
+                                                )}
+                                            </Button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0" align="start">
+                                            <Calendar
+                                                initialFocus
+                                                mode="range"
+                                                defaultMonth={startDate}
+                                                selected={{ from: startDate, to: endDate }}
+                                                onSelect={(range) => { setStartDate(range?.from); setEndDate(range?.to); setReportData(null); }}
+                                                numberOfMonths={2}
+                                                locale={dateLocales[language]}
+                                            />
+                                        </PopoverContent>
+                                    </Popover>
+                                )}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{t('report_type')}</Label>
+                            <RadioGroup value={reportType} onValueChange={(val: any) => { setReportType(val); setReportData(null); }} className="flex gap-4">
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="byProject" id="byProject" />
+                                    <Label htmlFor="byProject">{t('consumption_by_project')}</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="totalByWarehouse" id="totalByWarehouse" />
+                                    <Label htmlFor="totalByWarehouse">{t('total_consumption_by_warehouse')}</Label>
+                                </div>
+                            </RadioGroup>
                         </div>
                     </div>
                      <div className="flex gap-2">
@@ -251,7 +331,7 @@ export default function ReportsPage() {
                 </CardContent>
             </Card>
 
-            {reportData ? (
+            {reportData?.type === 'byProject' ? (
                 <Card>
                     <CardHeader>
                         <CardTitle>{t('report_preview')}</CardTitle>
@@ -259,38 +339,65 @@ export default function ReportsPage() {
                     <CardContent className="overflow-x-auto">
                         <Table className="border">
                            <TableHeader>
-                                {reportData.headers.map((row, rowIndex) => {
-                                    // Skip rows 0 and 1 for UI preview
-                                    if (rowIndex < 2) return null;
-                                    
-                                    return (
-                                        <TableRow key={`header-${rowIndex}`}>
-                                            {row.map((cell, cellIndex) => {
-                                                if(cell === null) return null; // Skip rendering for null placeholders used in merges
-                                                const merge = reportData.merges.find(m => m.s.r === rowIndex && m.s.c === cellIndex);
-                                                const colSpan = merge ? merge.e.c - merge.s.c + 1 : 1;
-                                                const rowSpan = merge ? merge.e.r - merge.s.r + 1 : 1;
-                                                
-                                                return (
-                                                    <TableHead 
-                                                        key={`header-${rowIndex}-${cellIndex}`} 
-                                                        colSpan={colSpan}
-                                                        rowSpan={rowSpan}
-                                                        className="border text-center font-bold bg-muted/50"
-                                                    >
-                                                        {cell}
-                                                    </TableHead>
-                                                );
-                                            })}
-                                        </TableRow>
-                                    );
-                                })}
+                                <TableRow>
+                                    <TableHead className="border text-center font-bold bg-muted/50 p-2" colSpan={4} rowSpan={3}>{reportData.headers[2][0]}</TableHead>
+                                    {reportData.projectsInReport.map((proj, index) => (
+                                        <TableHead key={`proj-h-${index}`} className="border text-center font-bold bg-muted/50 p-2" colSpan={2}>{proj.name}</TableHead>
+                                    ))}
+                                </TableRow>
+                                <TableRow>
+                                    {reportData.projectsInReport.map((proj, index) => (
+                                        <TableHead key={`proj-id-h-${index}`} className="border text-center font-bold bg-muted/50 p-2" colSpan={2}>{proj.id}</TableHead>
+                                    ))}
+                                </TableRow>
+                                 <TableRow>
+                                    {reportData.projectsInReport.map((_, index) => (
+                                        <React.Fragment key={`sub-h-${index}`}>
+                                            <TableHead className="border text-center font-bold bg-muted/50 p-2">CANT</TableHead>
+                                            <TableHead className="border text-center font-bold bg-muted/50 p-2">VALOR</TableHead>
+                                        </React.Fragment>
+                                    ))}
+                                </TableRow>
+                                <TableRow>
+                                    <TableHead className="border text-center font-bold bg-muted/50 p-2">{reportData.headers[4][1]}</TableHead>
+                                    <TableHead className="border text-center font-bold bg-muted/50 p-2">{reportData.headers[4][2]}</TableHead>
+                                    <TableHead className="border text-center font-bold bg-muted/50 p-2">{reportData.headers[4][3]}</TableHead>
+                                    <TableHead className="border text-center font-bold bg-muted/50 p-2">{reportData.headers[4][4]}</TableHead>
+                                </TableRow>
+                           </TableHeader>
+                           <TableBody>
+                                {reportData.data.map((row, rowIndex) => (
+                                    <TableRow key={`data-${rowIndex}`}>
+                                        {row.slice(1).map((cell, cellIndex) => (
+                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className={`border p-2 ${cellIndex >= 4 ? 'text-right' : ''}`}>
+                                                {typeof cell === 'number' ? cell.toLocaleString(language) : cell}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                           </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            ) : reportData?.type === 'totalByWarehouse' ? (
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>{t('report_preview')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="overflow-x-auto">
+                        <Table className="border">
+                           <TableHeader>
+                                <TableRow>
+                                    {reportData.headers[0].map((header, index) => (
+                                        <TableHead key={index} className="border text-center font-bold bg-muted/50 p-2">{header}</TableHead>
+                                    ))}
+                                </TableRow>
                            </TableHeader>
                            <TableBody>
                                 {reportData.data.map((row, rowIndex) => (
                                     <TableRow key={`data-${rowIndex}`}>
                                         {row.map((cell, cellIndex) => (
-                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className={`border ${cellIndex >= 4 ? 'text-right' : ''}`}>
+                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className={`border p-2 ${cellIndex > 1 ? 'text-right' : ''}`}>
                                                 {typeof cell === 'number' ? cell.toLocaleString(language) : cell}
                                             </TableCell>
                                         ))}

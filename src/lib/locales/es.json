@@ -201,7 +201,7 @@
     "filters": "Filtros",
     "date_range": "Rango de Fechas",
     "pick_a_date": "Elige una fecha",
-    "report_type": "Tipo de Reporte",
+    "report_type": "Tipo de Informe",
     "generate_report": "Generar Informe",
     "select_a_worker": "Selecciona un trabajador",
     "select_a_project": "Selecciona un proyecto",
@@ -234,5 +234,8 @@
     "report_preview": "Vista Previa del Informe",
     "select_dates_and_generate": "Selecciona un rango de fechas y genera tu reporte.",
     "report_will_be_downloaded_automatically": "El archivo .xlsx se descargará automáticamente.",
-    "report_will_be_displayed_here": "El informe se mostrará aquí una vez que se genere."
+    "report_will_be_displayed_here": "El informe se mostrará aquí una vez que se genere.",
+    "consumption_by_project": "Consumo por Proyecto",
+    "total_consumption_by_warehouse": "Consumo Total por Bodega",
+    "total_consumed_quantity": "Cantidad Total Consumida"
 }
