@@ -242,5 +242,20 @@
     "worker_position": "Poste du travailleur",
     "total_consumed_quantity": "Quantité Totale Consommée",
     "epp_item_description": "Description de l'Équipement de Protection Individuelle",
-    "ai_restock": "Réapprovisionnement IA"
+    "ai_restock": "Réapprovisionnement IA",
+    "calculation_parameters": "Paramètres de Calcul",
+    "lead_time_days": "Délai de livraison (jours)",
+    "desired_stock_level_days": "Niveau de stock souhaité (jours)",
+    "generate_suggestions": "Générer des suggestions",
+    "download_format": "Télécharger le format",
+    "upload_min_max": "Télécharger Min/Max",
+    "suggested_quantity_to_order": "Quantité suggérée à commander",
+    "generate_suggestions_to_see_results": "Générez des suggestions pour voir les résultats ici.",
+    "ai_will_calculate_eoq": "L'IA analysera la consommation, calculera le point de commande, l'EOQ et le stock de sécurité.",
+    "admin_select_warehouse_for_ai": "En tant qu'administrateur, vous devez sélectionner un entrepôt spécifique pour exécuter l'analyse IA.",
+    "no_data_available": "Pas de Données Disponibles",
+    "not_enough_data_for_ai": "Il n'y a pas assez de données d'inventaire ou de consommation pour l'entrepôt sélectionné pour exécuter l'analyse.",
+    "ai_suggestion_error": "L'IA n'a pas pu générer de suggestions. Veuillez réessayer.",
+    "ai_thinking": "L'IA réfléchit...",
+    "ai_analyzing_data": "Analyse des habitudes de consommation et calcul du stock optimal..."
 }

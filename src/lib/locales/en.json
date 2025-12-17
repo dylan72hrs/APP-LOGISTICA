@@ -242,5 +242,20 @@
     "worker_position": "Worker Position",
     "total_consumed_quantity": "Total Consumed Quantity",
     "epp_item_description": "Personal Protective Equipment Description",
-    "ai_restock": "AI Restock"
+    "ai_restock": "AI Restock",
+    "calculation_parameters": "Calculation Parameters",
+    "lead_time_days": "Lead Time (days)",
+    "desired_stock_level_days": "Desired Stock Level (days)",
+    "generate_suggestions": "Generate Suggestions",
+    "download_format": "Download Format",
+    "upload_min_max": "Upload Min/Max",
+    "suggested_quantity_to_order": "Suggested Quantity to Order",
+    "generate_suggestions_to_see_results": "Generate suggestions to see the results here.",
+    "ai_will_calculate_eoq": "The AI will analyze consumption, calculate the reorder point, EOQ, and safety stock.",
+    "admin_select_warehouse_for_ai": "As an administrator, you must select a specific warehouse to run the AI analysis.",
+    "no_data_available": "No Data Available",
+    "not_enough_data_for_ai": "There is not enough inventory or consumption data for the selected warehouse to run the analysis.",
+    "ai_suggestion_error": "The AI could not generate suggestions. Please try again.",
+    "ai_thinking": "AI is thinking...",
+    "ai_analyzing_data": "Analyzing consumption patterns and calculating optimal stock..."
 }
