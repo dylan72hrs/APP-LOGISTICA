@@ -246,8 +246,13 @@ export default function WorkersPage() {
 
 function WorkerForm({ worker, onSave }: { worker: Worker | null, onSave: (data: FormData) => void }) {
     const { t } = useLanguage();
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        onSave(formData);
+    }
     return (
-        <form action={onSave} className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
             <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label htmlFor="rut">{t('rut')}</Label>
                 <Input id="rut" name="rut" defaultValue={worker?.rut} required disabled={!!worker} />

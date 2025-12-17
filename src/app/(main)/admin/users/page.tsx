@@ -186,8 +186,14 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
         }
     }
 
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        onSave(formData);
+    }
+
     return (
-        <form action={onSave} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
                 <Label htmlFor="name">{t('full_name')}</Label>
                 <Input id="name" name="name" defaultValue={user?.name} required />

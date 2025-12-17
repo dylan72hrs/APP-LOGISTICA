@@ -346,8 +346,15 @@ export default function InventoryPage() {
 
 function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data: FormData) => void }) {
     const { t } = useLanguage();
+    
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        onSave(formData);
+    }
+    
     return (
-        <form action={onSave} className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
             <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label htmlFor="code">{t('code')}</Label>
                 <Input id="code" name="code" defaultValue={item?.code} required disabled={!!item} />

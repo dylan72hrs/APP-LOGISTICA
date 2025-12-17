@@ -140,8 +140,15 @@ export default function WarehousesPage() {
 
 function WarehouseForm({ warehouse, onSave }: { warehouse: Warehouse | null, onSave: (data: FormData) => void }) {
     const { t } = useLanguage();
+
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        onSave(formData);
+    }
+    
     return (
-        <form action={onSave} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
                 <Label htmlFor="name">{t('warehouse_name')}</Label>
                 <Input id="name" name="name" defaultValue={warehouse?.name} placeholder="Ej: ANTF-01" required />

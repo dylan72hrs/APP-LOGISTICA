@@ -250,8 +250,15 @@ export default function ProjectsPage() {
 
 function ProjectForm({ project, onSave }: { project: Project | null, onSave: (data: FormData) => void }) {
     const { t } = useLanguage();
+    
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        onSave(formData);
+    }
+    
     return (
-        <form action={onSave} className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
             <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label htmlFor="id">{t('project_id')}</Label>
                 <Input id="id" name="id" defaultValue={project?.id} required disabled={!!project} />
