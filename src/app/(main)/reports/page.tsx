@@ -253,23 +253,33 @@ export default function ReportsPage() {
                     <CardContent className="overflow-x-auto">
                         <Table className="border">
                            <TableHeader>
-                                {/* We render headers manually to handle colspan */}
                                 {reportData.headers.map((row, rowIndex) => (
                                     <TableRow key={`header-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => {
-                                            if (cell === null) return null;
-                                            const merge = reportData.merges.find(m => m.s.r === rowIndex && m.s.c === cellIndex);
-                                            const colSpan = merge ? merge.e.c - merge.s.c + 1 : 1;
-                                            return (
-                                                <TableHead 
-                                                    key={`header-${rowIndex}-${cellIndex}`} 
-                                                    colSpan={colSpan}
-                                                    className="border text-center font-bold bg-muted/50"
-                                                >
-                                                    {cell}
-                                                </TableHead>
-                                            );
-                                        })}
+                                        {(() => {
+                                            let cellIndex = 0;
+                                            const cells = [];
+                                            while (cellIndex < row.length) {
+                                                const cell = row[cellIndex];
+                                                if (cell !== null) {
+                                                    const merge = reportData.merges.find(m => m.s.r === rowIndex && m.s.c === cellIndex);
+                                                    const colSpan = merge ? merge.e.c - merge.s.c + 1 : 1;
+                                                    cells.push(
+                                                        <TableHead 
+                                                            key={`header-${rowIndex}-${cellIndex}`} 
+                                                            colSpan={colSpan}
+                                                            className="border text-center font-bold bg-muted/50"
+                                                        >
+                                                            {cell}
+                                                        </TableHead>
+                                                    );
+                                                    cellIndex += colSpan;
+                                                } else {
+                                                    // This handles the null placeholders for merged cells
+                                                    cellIndex++;
+                                                }
+                                            }
+                                            return cells;
+                                        })()}
                                     </TableRow>
                                 ))}
                            </TableHeader>
@@ -277,8 +287,8 @@ export default function ReportsPage() {
                                 {reportData.data.map((row, rowIndex) => (
                                     <TableRow key={`data-${rowIndex}`}>
                                         {row.map((cell, cellIndex) => (
-                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className="border">
-                                                {cellIndex >= 4 && typeof cell === 'number' ? cell.toLocaleString(language) : cell}
+                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className={`border ${cellIndex >= 4 ? 'text-right' : ''}`}>
+                                                {typeof cell === 'number' ? cell.toLocaleString(language) : cell}
                                             </TableCell>
                                         ))}
                                     </TableRow>
