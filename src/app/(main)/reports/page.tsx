@@ -71,7 +71,8 @@ export default function ReportsPage() {
 
         // 2. Get unique projects from filtered consumptions
         const projectIdsInReport = [...new Set(filteredConsumptions.map(c => c.projectId))];
-        const projectsInReport = projects.filter(p => projectIdsInReport.includes(p.id));
+        const projectsInReport = projects.filter(p => projectIdsInReport.includes(p.id)).sort((a, b) => a.id.localeCompare(b.id));
+
 
         // 3. Get unique items from filtered consumptions
         const itemIdsInReport = [...new Set(filteredConsumptions.flatMap(c => c.items.map(i => i.itemId)))];
@@ -109,21 +110,35 @@ export default function ReportsPage() {
         sheetData.push([]); // Spacer row
 
         // Header Rows
-        const headerRow1: (string | number)[] = ["Descripción", "Elemento Protección Personal", "", "Cód. AX", "Precio ($)"];
-        const headerRow2: (string | number)[] = ["", "", "Talla", "", "($)"];
+        const headerRow1: (string | number)[] = ["", "Elemento Protección Personal"];
+        const headerRow2: (string | number)[] = [""];
+        const headerRow3: (string | number)[] = ["Descripción", "", "Talla", "Cód. AX", "Precio ($)"];
 
+        for (let i = 0; i < projectsInReport.length; i++) {
+            headerRow1.push("", ""); // Spacers for project name merge
+            headerRow2.push(projectsInReport[i].id, ""); // Project ID
+            headerRow3.push("CANT", "VALOR");
+        }
+        
+        // Add project names to the first header row, starting at the correct column
         projectsInReport.forEach(proj => {
-            headerRow1.push(proj.name, ""); // Project Name spans 2 cols
-            headerRow2.push("CANT", "VALOR");
+            headerRow1.push(proj.name);
         });
 
-        sheetData.push(headerRow1, headerRow2);
+        // This is a bit of a hack to get the project names in the right place
+        // because aoa_to_sheet doesn't handle sparse arrays well for this case.
+        // We'll move the names from the end to the correct starting position.
+        const projectNames = headerRow1.splice(2 + projectsInReport.length * 2);
+        headerRow1.splice(5, 0, ...projectNames);
+
+
+        sheetData.push(headerRow1, headerRow2, headerRow3);
 
         // Product Rows
         itemsInReport.forEach(item => {
             const row = [
                 item.description, // Descripción
-                "", // Elemento Protección Personal (merged cell placeholder)
+                "", // Placeholder for merge
                 item.size, // Talla
                 item.code, // Cód. AX
                 item.cost, // Precio
@@ -136,23 +151,20 @@ export default function ReportsPage() {
             });
             sheetData.push(row);
         });
-
+        
         // 6. Create and download workbook
         const ws = XLSX.utils.aoa_to_sheet(sheetData);
 
-        // Merging cells for title and headers
+        // Merging cells
         const merges = [
             { s: { r: 0, c: 0 }, e: { r: 0, c: 4 + projectsInReport.length * 2 - 1 } }, // Title
-            { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } }, // Descripción merge
-            { s: { r: 2, c: 1 }, e: { r: 2, c: 2 } }, // Elemento... merge
-            { s: { r: 2, c: 3 }, e: { r: 3, c: 3 } }, // Cód. AX merge
-            { s: { r: 2, c: 4 }, e: { r: 3, c: 4 } }, // Precio ($) merge
+            { s: { r: 2, c: 1 }, e: { r: 2, c: 4 } }, // "Elemento..."
         ];
 
         projectsInReport.forEach((_, index) => {
             const col = 5 + index * 2;
             merges.push({ s: { r: 2, c: col }, e: { r: 2, c: col + 1 } }); // Project Name merge
-            // No merge for CANT and VALOR on row 4, they are separate.
+            merges.push({ s: { r: 3, c: col }, e: { r: 3, c: col + 1 } }); // Project ID merge
         });
         
         ws['!merges'] = merges;
