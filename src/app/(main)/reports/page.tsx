@@ -126,7 +126,7 @@ export default function ReportsPage() {
             headerRow3.push(proj.name, null);
         });
         headers.push(headerRow3);
-        merges.push({ s: { r: 2, c: 0 }, e: { r: 2, c: 3 } });
+        merges.push({ s: { r: 2, c: 0 }, e: { r: 3, c: 3 } }); // Span A3:D4
         projectsInReport.forEach((_, index) => {
             merges.push({ s: { r: 2, c: 4 + index * 2 }, e: { r: 2, c: 5 + index * 2 } });
         });
@@ -140,6 +140,7 @@ export default function ReportsPage() {
         projectsInReport.forEach((_, index) => {
             merges.push({ s: { r: 3, c: 4 + index * 2 }, e: { r: 3, c: 5 + index * 2 } });
         });
+        
 
         // Row 5: Column details
         const headerRow5 = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
@@ -258,24 +259,32 @@ export default function ReportsPage() {
                     <CardContent className="overflow-x-auto">
                         <Table className="border">
                            <TableHeader>
-                                {reportData.headers.map((row, rowIndex) => (
-                                    <TableRow key={`header-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => {
-                                            if(cell === null) return null; // Skip rendering for null placeholders used in merges
-                                            const merge = reportData.merges.find(m => m.s.r === rowIndex && m.s.c === cellIndex);
-                                            const colSpan = merge ? merge.e.c - merge.s.c + 1 : 1;
-                                            return (
-                                                <TableHead 
-                                                    key={`header-${rowIndex}-${cellIndex}`} 
-                                                    colSpan={colSpan}
-                                                    className="border text-center font-bold bg-muted/50"
-                                                >
-                                                    {cell}
-                                                </TableHead>
-                                            );
-                                        })}
-                                    </TableRow>
-                                ))}
+                                {reportData.headers.map((row, rowIndex) => {
+                                    // Skip rows 0 and 1 for UI preview
+                                    if (rowIndex < 2) return null;
+                                    
+                                    return (
+                                        <TableRow key={`header-${rowIndex}`}>
+                                            {row.map((cell, cellIndex) => {
+                                                if(cell === null) return null; // Skip rendering for null placeholders used in merges
+                                                const merge = reportData.merges.find(m => m.s.r === rowIndex && m.s.c === cellIndex);
+                                                const colSpan = merge ? merge.e.c - merge.s.c + 1 : 1;
+                                                const rowSpan = merge ? merge.e.r - merge.s.r + 1 : 1;
+                                                
+                                                return (
+                                                    <TableHead 
+                                                        key={`header-${rowIndex}-${cellIndex}`} 
+                                                        colSpan={colSpan}
+                                                        rowSpan={rowSpan}
+                                                        className="border text-center font-bold bg-muted/50"
+                                                    >
+                                                        {cell}
+                                                    </TableHead>
+                                                );
+                                            })}
+                                        </TableRow>
+                                    );
+                                })}
                            </TableHeader>
                            <TableBody>
                                 {reportData.data.map((row, rowIndex) => (
