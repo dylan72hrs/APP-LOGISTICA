@@ -265,5 +265,9 @@
     "save_key": "Save Key",
     "api_key_saved": "API Key Saved",
     "api_key_updated_successfully": "The API Key has been updated successfully.",
-    "reports_must_have_country": "Reports role must have an assigned country."
+    "reports_must_have_country": "Reports role must have an assigned country.",
+    "consumptions_this_month": "Consumptions (This Month)",
+    "items_consumed": "Items consumed",
+    "consumptions_this_year": "Consumptions (This Year)",
+    "quantity_of_items_consumed_per_day_last_7_days": "Quantity of items consumed per day in the last 7 days."
 }

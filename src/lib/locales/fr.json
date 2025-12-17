@@ -265,5 +265,9 @@
     "save_key": "Enregistrer la Clé",
     "api_key_saved": "Clé API Enregistrée",
     "api_key_updated_successfully": "La clé API a été mise à jour avec succès.",
-    "reports_must_have_country": "Le rôle Rapports doit avoir un pays assigné."
+    "reports_must_have_country": "Le rôle Rapports doit avoir un pays assigné.",
+    "consumptions_this_month": "Consommations (Ce Mois)",
+    "items_consumed": "Articles consommés",
+    "consumptions_this_year": "Consommations (Cette Année)",
+    "quantity_of_items_consumed_per_day_last_7_days": "Quantité d'articles consommés par jour au cours des 7 derniers jours."
 }

@@ -266,5 +266,9 @@
     "save_key": "Guardar Clave",
     "api_key_saved": "Clave de API Guardada",
     "api_key_updated_successfully": "La clave de API ha sido actualizada correctamente.",
-    "reports_must_have_country": "El rol de Informes debe tener un país asignado."
+    "reports_must_have_country": "El rol de Informes debe tener un país asignado.",
+    "consumptions_this_month": "Consumos (Este Mes)",
+    "items_consumed": "Items consumidos",
+    "consumptions_this_year": "Consumos (Este Año)",
+    "quantity_of_items_consumed_per_day_last_7_days": "Cantidad de items consumidos por día en los últimos 7 días."
 }
