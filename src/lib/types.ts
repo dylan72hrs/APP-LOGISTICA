@@ -27,7 +27,7 @@ export interface InventoryItem {
 
 export interface Project {
   id: string;
-  financialDimension: string;
+  financialDimension?: string;
   name: string;
   manager: string;
   approver: string;
