@@ -230,6 +230,9 @@
     "total_items_consumed": "Total Items Consumed",
     "consumption_sheet": "Consumption Record",
     "generate_and_download_xlsx": "Generate and Download XLSX",
+    "download_xlsx": "Download XLSX",
+    "report_preview": "Report Preview",
     "select_dates_and_generate": "Select a date range and generate your report.",
-    "report_will_be_downloaded_automatically": "The .xlsx file will be downloaded automatically."
+    "report_will_be_downloaded_automatically": "The .xlsx file will be downloaded automatically.",
+    "report_will_be_displayed_here": "The report will be displayed here once generated."
 }

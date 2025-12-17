@@ -12,6 +12,7 @@ import { useLanguage } from '@/lib/hooks/use-language';
 import { es as esLocale, enUS as enLocale, fr as frLocale } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import type { ConsumptionRecord, InventoryItem, Project } from '@/lib/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
 type FilterType = 'week' | 'month' | 'year' | 'range';
@@ -22,6 +23,13 @@ const dateLocales = {
   fr: frLocale,
 };
 
+interface ReportData {
+  headers: (string | null)[][];
+  merges: XLSX.Range[];
+  data: (string | number)[][];
+  projectsInReport: Project[];
+}
+
 export default function ReportsPage() {
     const { consumptionRecords, inventory, projects } = useData();
     const { t, language } = useLanguage();
@@ -29,6 +37,9 @@ export default function ReportsPage() {
     const [startDate, setStartDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
     const [filterType, setFilterType] = useState<FilterType>('month');
+
+    const [reportData, setReportData] = useState<ReportData | null>(null);
+    const [isGenerating, setIsGenerating] = useState(false);
 
     const handleFilterTypeChange = (type: FilterType) => {
         setFilterType(type);
@@ -54,98 +65,85 @@ export default function ReportsPage() {
         }
         setStartDate(start);
         setEndDate(end);
+        setReportData(null); // Reset preview on date change
     };
 
     useEffect(() => {
         handleFilterTypeChange('month');
     }, []);
 
-    const handleGenerateReport = () => {
-        if (!startDate || !endDate) return;
+    const processReportData = (): ReportData | null => {
+         if (!startDate || !endDate) return null;
 
-        // 1. Filter consumptions by date
         const filteredConsumptions = consumptionRecords.filter(record => {
             const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
             return recordDate >= startDate && recordDate <= endDate;
         });
 
-        // 2. Get unique projects from filtered consumptions
         const projectIdsInReport = [...new Set(filteredConsumptions.map(c => c.projectId))];
         const projectsInReport = projects.filter(p => projectIdsInReport.includes(p.id)).sort((a, b) => a.id.localeCompare(b.id));
 
-
-        // 3. Get unique items from filtered consumptions
         const itemIdsInReport = [...new Set(filteredConsumptions.flatMap(c => c.items.map(i => i.itemId)))];
         const itemsInReport = inventory
             .filter(item => itemIdsInReport.includes(item.id))
-            // Get unique items by code, description, size
             .filter((item, index, self) => 
-                index === self.findIndex(t => (
-                    t.code === item.code && t.description === item.description && t.size === item.size
-                ))
+                index === self.findIndex(t => t.code === item.code)
             )
             .sort((a, b) => a.description.localeCompare(b.description));
 
-
-        // 4. Create the data matrix
-        const dataMatrix: Record<string, Record<string, number>> = {}; // { itemId: { projectId: quantity, ... }, ... }
+        const dataMatrix: Record<string, Record<string, number>> = {}; 
 
         for (const consumption of filteredConsumptions) {
             for (const consumedItem of consumption.items) {
-                if (!dataMatrix[consumedItem.itemId]) {
-                    dataMatrix[consumedItem.itemId] = {};
+                const itemCode = inventory.find(i => i.id === consumedItem.itemId)?.code;
+                if (!itemCode) continue;
+
+                if (!dataMatrix[itemCode]) {
+                    dataMatrix[itemCode] = {};
                 }
-                const currentQuantity = dataMatrix[consumedItem.itemId][consumption.projectId] || 0;
-                dataMatrix[consumedItem.itemId][consumption.projectId] = currentQuantity + consumedItem.quantity;
+                const currentQuantity = dataMatrix[itemCode][consumption.projectId] || 0;
+                dataMatrix[itemCode][consumption.projectId] = currentQuantity + consumedItem.quantity;
             }
         }
         
-        // 5. Build the Excel sheet data
-        const sheetData: (string | number)[][] = [];
-        const merges = [];
-
-        // --- HEADER ---
-
-        // Row 1: Title
+        const headers: (string | null)[][] = [];
+        const merges: XLSX.Range[] = [];
+        
         const formattedStartDate = format(startDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         const formattedEndDate = format(endDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
-        sheetData.push([`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`]);
+        
+        const titleRow = [`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`];
+        headers.push(titleRow);
         merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } });
         
-        // Row 2: Spacer
-        sheetData.push([]); 
+        headers.push([]);
 
-        // Row 3: "Elemento Protección Personal" and Project Names
-        const headerRow3: (string | null)[] = ["Elemento Protección Personal", null, null, null];
+        const headerRow3 = ["Elemento Protección Personal", null, null, null];
         projectsInReport.forEach(proj => {
             headerRow3.push(proj.name, null);
         });
-        sheetData.push(headerRow3);
-        merges.push({ s: { r: 2, c: 0 }, e: { r: 2, c: 3 } }); // Merge "Elemento..."
+        headers.push(headerRow3);
+        merges.push({ s: { r: 2, c: 0 }, e: { r: 2, c: 3 } });
         projectsInReport.forEach((_, index) => {
-            const col = 4 + index * 2;
-            merges.push({ s: { r: 2, c: col }, e: { r: 2, c: col + 1 } });
+            merges.push({ s: { r: 2, c: 4 + index * 2 }, e: { r: 2, c: 5 + index * 2 } });
         });
 
-        // Row 4: Project IDs
-        const headerRow4: (string | null)[] = [null, null, null, null];
+        const headerRow4 = [null, null, null, null];
         projectsInReport.forEach(proj => {
             headerRow4.push(proj.id, null);
         });
-        sheetData.push(headerRow4);
+        headers.push(headerRow4);
         projectsInReport.forEach((_, index) => {
-            const col = 4 + index * 2;
-            merges.push({ s: { r: 3, c: col }, e: { r: 3, c: col + 1 } });
+            merges.push({ s: { r: 3, c: 4 + index * 2 }, e: { r: 3, c: 5 + index * 2 } });
         });
-        
-        // Row 5: Column Headers ("Descripción", "CANT", "VALOR", etc.)
-        const headerRow5: (string | number)[] = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
-        projectsInReport.forEach(proj => {
+
+        const headerRow5 = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
+        projectsInReport.forEach(() => {
             headerRow5.push("CANT", "VALOR");
         });
-        sheetData.push(headerRow5);
+        headers.push(headerRow5);
 
-        // --- DATA ROWS ---
+        const data: (string | number)[][] = [];
         itemsInReport.forEach(item => {
             const row: (string | number)[] = [
                 item.description,
@@ -153,20 +151,30 @@ export default function ReportsPage() {
                 item.code,
                 item.cost,
             ];
-
             projectsInReport.forEach(proj => {
-                const quantity = dataMatrix[item.id]?.[proj.id] || 0;
+                const quantity = dataMatrix[item.code]?.[proj.id] || 0;
                 const value = quantity * item.cost;
                 row.push(quantity, value);
             });
-            sheetData.push(row);
+            data.push(row);
         });
+
+        return { headers, merges, data, projectsInReport };
+    }
+
+    const handleGenerateReport = () => {
+        setIsGenerating(true);
+        const processedData = processReportData();
+        setReportData(processedData);
+        setIsGenerating(false);
+    }
+    
+    const handleDownloadReport = () => {
+        if (!reportData) return;
         
-        // 6. Create and download workbook
+        const sheetData = [...reportData.headers, ...reportData.data];
         const ws = XLSX.utils.aoa_to_sheet(sheetData, {cellDates: true});
-        
-        ws['!merges'] = merges;
-        
+        ws['!merges'] = reportData.merges;
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Consumo_Proyectos');
         XLSX.writeFile(wb, `Consumo_EPP_por_Proyecto_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
@@ -216,7 +224,7 @@ export default function ReportsPage() {
                                             mode="range"
                                             defaultMonth={startDate}
                                             selected={{ from: startDate, to: endDate }}
-                                            onSelect={(range) => { setStartDate(range?.from); setEndDate(range?.to); }}
+                                            onSelect={(range) => { setStartDate(range?.from); setEndDate(range?.to); setReportData(null); }}
                                             numberOfMonths={2}
                                             locale={dateLocales[language]}
                                         />
@@ -225,22 +233,71 @@ export default function ReportsPage() {
                             )}
                         </div>
                     </div>
-                     <Button onClick={handleGenerateReport} disabled={!startDate || !endDate}>
-                        <Download className="mr-2" />
-                        {t('generate_and_download_xlsx')}
-                    </Button>
+                     <div className="flex gap-2">
+                        <Button onClick={handleGenerateReport} disabled={!startDate || !endDate || isGenerating}>
+                            {t('generate_report')}
+                        </Button>
+                        <Button onClick={handleDownloadReport} disabled={!reportData}>
+                            <Download className="mr-2" />
+                            {t('download_xlsx')}
+                        </Button>
+                     </div>
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardContent className="pt-6">
-                    <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
-                        <FileText className="h-16 w-16 text-muted-foreground/50" />
-                        <p className="mt-4 text-lg font-semibold text-muted-foreground">{t('select_dates_and_generate')}</p>
-                        <p className="mt-2 text-sm text-muted-foreground/80">{t('report_will_be_downloaded_automatically')}</p>
-                    </div>
-                </CardContent>
-            </Card>
+            {reportData ? (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{t('report_preview')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="overflow-x-auto">
+                        <Table className="border">
+                           <TableHeader>
+                                {/* We render headers manually to handle colspan */}
+                                {reportData.headers.map((row, rowIndex) => (
+                                    <TableRow key={`header-${rowIndex}`}>
+                                        {row.map((cell, cellIndex) => {
+                                            if (cell === null) return null;
+                                            const merge = reportData.merges.find(m => m.s.r === rowIndex && m.s.c === cellIndex);
+                                            const colSpan = merge ? merge.e.c - merge.s.c + 1 : 1;
+                                            return (
+                                                <TableHead 
+                                                    key={`header-${rowIndex}-${cellIndex}`} 
+                                                    colSpan={colSpan}
+                                                    className="border text-center font-bold bg-muted/50"
+                                                >
+                                                    {cell}
+                                                </TableHead>
+                                            );
+                                        })}
+                                    </TableRow>
+                                ))}
+                           </TableHeader>
+                           <TableBody>
+                                {reportData.data.map((row, rowIndex) => (
+                                    <TableRow key={`data-${rowIndex}`}>
+                                        {row.map((cell, cellIndex) => (
+                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className="border">
+                                                {cellIndex >= 4 && typeof cell === 'number' ? cell.toLocaleString(language) : cell}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                           </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
+                            <FileText className="h-16 w-16 text-muted-foreground/50" />
+                            <p className="mt-4 text-lg font-semibold text-muted-foreground">{t('select_dates_and_generate')}</p>
+                            <p className="mt-2 text-sm text-muted-foreground/80">{t('report_will_be_displayed_here')}</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }

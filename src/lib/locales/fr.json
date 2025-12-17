@@ -230,6 +230,9 @@
     "total_items_consumed": "Total des Articles Consommés",
     "consumption_sheet": "Fiche de Consommation",
     "generate_and_download_xlsx": "Générer et Télécharger XLSX",
+    "download_xlsx": "Télécharger XLSX",
+    "report_preview": "Aperçu du Rapport",
     "select_dates_and_generate": "Sélectionnez une plage de dates et générez votre rapport.",
-    "report_will_be_downloaded_automatically": "Le fichier .xlsx sera téléchargé automatiquement."
+    "report_will_be_downloaded_automatically": "Le fichier .xlsx sera téléchargé automatiquement.",
+    "report_will_be_displayed_here": "Le rapport s'affichera ici une fois généré."
 }
