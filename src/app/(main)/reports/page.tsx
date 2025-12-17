@@ -103,45 +103,32 @@ export default function ReportsPage() {
         // 5. Build the Excel sheet data
         const sheetData: (string | number)[][] = [];
 
-        // Title Row
+        // Title Row (Row 1)
         const formattedStartDate = format(startDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         const formattedEndDate = format(endDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         sheetData.push([`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`]);
-        sheetData.push([]); // Spacer row
+        sheetData.push([]); // Spacer row (Row 2)
 
-        // Header Rows
-        const headerRow1: (string | number)[] = ["", "Elemento Protección Personal"];
-        const headerRow2: (string | number)[] = [""];
-        const headerRow3: (string | number)[] = ["Descripción", "", "Talla", "Cód. AX", "Precio ($)"];
+        // Header Rows (Row 3, 4, 5)
+        const headerRow3: (string | null)[] = [null, "Elemento Protección Personal"];
+        const headerRow4: (string | null)[] = [null];
+        const headerRow5: (string | number)[] = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
 
-        for (let i = 0; i < projectsInReport.length; i++) {
-            headerRow1.push("", ""); // Spacers for project name merge
-            headerRow2.push(projectsInReport[i].id, ""); // Project ID
-            headerRow3.push("CANT", "VALOR");
-        }
-        
-        // Add project names to the first header row, starting at the correct column
         projectsInReport.forEach(proj => {
-            headerRow1.push(proj.name);
+            headerRow3.push(proj.name, null); // Project Name
+            headerRow4.push(proj.id, null);    // Project ID
+            headerRow5.push("CANT", "VALOR");
         });
-
-        // This is a bit of a hack to get the project names in the right place
-        // because aoa_to_sheet doesn't handle sparse arrays well for this case.
-        // We'll move the names from the end to the correct starting position.
-        const projectNames = headerRow1.splice(2 + projectsInReport.length * 2);
-        headerRow1.splice(5, 0, ...projectNames);
-
-
-        sheetData.push(headerRow1, headerRow2, headerRow3);
+        
+        sheetData.push(headerRow3, headerRow4, headerRow5);
 
         // Product Rows
         itemsInReport.forEach(item => {
-            const row = [
-                item.description, // Descripción
-                "", // Placeholder for merge
-                item.size, // Talla
-                item.code, // Cód. AX
-                item.cost, // Precio
+            const row: (string | number)[] = [
+                item.description,
+                item.size,
+                item.code,
+                item.cost,
             ];
 
             projectsInReport.forEach(proj => {
@@ -153,16 +140,18 @@ export default function ReportsPage() {
         });
         
         // 6. Create and download workbook
-        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        const ws = XLSX.utils.aoa_to_sheet(sheetData, {cellDates: true});
 
         // Merging cells
         const merges = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 4 + projectsInReport.length * 2 - 1 } }, // Title
-            { s: { r: 2, c: 1 }, e: { r: 2, c: 4 } }, // "Elemento..."
+            // Title
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } }, 
+            // "Elemento..."
+            { s: { r: 2, c: 1 }, e: { r: 2, c: 3 } }, 
         ];
 
         projectsInReport.forEach((_, index) => {
-            const col = 5 + index * 2;
+            const col = 4 + index * 2;
             merges.push({ s: { r: 2, c: col }, e: { r: 2, c: col + 1 } }); // Project Name merge
             merges.push({ s: { r: 3, c: col }, e: { r: 3, c: col + 1 } }); // Project ID merge
         });
