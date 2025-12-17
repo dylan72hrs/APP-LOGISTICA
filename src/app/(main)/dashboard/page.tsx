@@ -6,22 +6,36 @@ import { useLanguage } from "@/lib/hooks/use-language";
 import { useMemo } from "react";
 import { useWarehouse } from "@/lib/hooks/use-warehouse";
 import { useData } from "@/lib/hooks/use-data";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 export default function DashboardPage() {
     const { t, language } = useLanguage();
-    const { selectedWarehouseId } = useWarehouse();
+    const { user } = useAuth();
+    const { selectedWarehouseId, availableWarehouses } = useWarehouse();
     const { inventory, consumptionRecords, workers } = useData();
 
 
     const filteredInventory = useMemo(() => {
-        if (!selectedWarehouseId || selectedWarehouseId === 'all') return inventory;
+        if (selectedWarehouseId === 'all') {
+            if (user?.role === 'reports') {
+                const countryWarehouseIds = availableWarehouses.map(w => w.id);
+                return inventory.filter(item => countryWarehouseIds.includes(item.warehouseId));
+            }
+            return inventory;
+        }
         return inventory.filter(item => item.warehouseId === selectedWarehouseId);
-    }, [selectedWarehouseId, inventory]);
+    }, [selectedWarehouseId, inventory, user, availableWarehouses]);
 
     const filteredConsumptions = useMemo(() => {
-        if (!selectedWarehouseId || selectedWarehouseId === 'all') return consumptionRecords;
+        if (selectedWarehouseId === 'all') {
+             if (user?.role === 'reports') {
+                const countryWarehouseIds = availableWarehouses.map(w => w.id);
+                return consumptionRecords.filter(record => countryWarehouseIds.includes(record.warehouseId));
+            }
+            return consumptionRecords;
+        }
         return consumptionRecords.filter(record => record.warehouseId === selectedWarehouseId);
-    }, [selectedWarehouseId, consumptionRecords]);
+    }, [selectedWarehouseId, consumptionRecords, user, availableWarehouses]);
 
     const totalItems = filteredInventory.reduce((acc, item) => acc + item.quantity, 0);
     const lowStockItems = filteredInventory.filter(item => item.quantity < 20).length;
@@ -124,5 +138,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    

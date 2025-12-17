@@ -32,7 +32,7 @@
     "create_and_manage_users": "Create new users and manage their roles and permissions.",
     "name": "Name",
     "role": "Role",
-    "assigned_warehouse": "Assigned Warehouse",
+    "assigned_warehouse": "Assigned Warehouse/Country",
     "actions": "Actions",
     "edit": "Edit",
     "delete": "Delete",
@@ -265,5 +265,6 @@
     "gemini_api_key": "Gemini API Key",
     "save_key": "Save Key",
     "api_key_saved": "API Key Saved",
-    "api_key_updated_successfully": "The API Key has been updated successfully."
+    "api_key_updated_successfully": "The API Key has been updated successfully.",
+    "reports_must_have_country": "Reports role must have an assigned country."
 }

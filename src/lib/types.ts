@@ -6,6 +6,7 @@ export interface UserProfile {
   name: string;
   role: UserRole;
   warehouseId?: string; // For operators
+  country?: string; // For reports role
 }
 
 export interface Warehouse {

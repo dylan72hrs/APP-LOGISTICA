@@ -37,6 +37,7 @@ export default function AdminUsersPage() {
             email: formData.get('email') as string,
             role: formData.get('role') as UserRole,
             warehouseId: formData.get('role') === 'operator' ? formData.get('warehouseId') as string : undefined,
+            country: formData.get('role') === 'reports' ? formData.get('country') as string : undefined,
         };
 
         if (!user.name || !user.email || !user.role) {
@@ -53,6 +54,14 @@ export default function AdminUsersPage() {
                 variant: 'destructive',
                 title: t('error'),
                 description: t('operators_must_have_warehouse')
+            });
+            return;
+        }
+        if (user.role === 'reports' && !user.country) {
+            toast({
+                variant: 'destructive',
+                title: t('error'),
+                description: t('reports_must_have_country')
             });
             return;
         }
@@ -115,12 +124,15 @@ export default function AdminUsersPage() {
                         <TableBody>
                             {users.map((user) => {
                                 const assignedWarehouse = warehouses.find(w => w.id === user.warehouseId);
+                                const assignedLocation = user.role === 'operator' 
+                                    ? (assignedWarehouse ? `${assignedWarehouse.name} (${assignedWarehouse.country})` : 'N/A')
+                                    : user.role === 'reports' ? user.country || 'N/A' : 'N/A';
                                 return (
                                     <TableRow key={user.uid}>
                                         <TableCell className="font-medium">{user.name}</TableCell>
                                         <TableCell>{user.email}</TableCell>
                                         <TableCell>{roleNames[user.role]}</TableCell>
-                                        <TableCell>{assignedWarehouse ? `${assignedWarehouse.name} (${assignedWarehouse.country})` : 'N/A'}</TableCell>
+                                        <TableCell>{assignedLocation}</TableCell>
                                         <TableCell>123456</TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
@@ -167,7 +179,7 @@ export default function AdminUsersPage() {
 function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, warehouses: Warehouse[], onSave: (data: FormData) => void }) {
     const { t } = useLanguage();
     const [selectedRole, setSelectedRole] = useState<UserRole | undefined>(user?.role);
-    const initialCountry = user?.warehouseId ? warehouses.find(w => w.id === user.warehouseId)?.country : undefined;
+    const initialCountry = user?.warehouseId ? warehouses.find(w => w.id === user.warehouseId)?.country : user?.country;
     const [selectedCountry, setSelectedCountry] = useState<string | undefined>(initialCountry);
     const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | undefined>(user?.warehouseId);
     const [showPassword, setShowPassword] = useState(false);
@@ -185,8 +197,10 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
         const newRole = role as UserRole;
         setSelectedRole(newRole);
         if (newRole !== 'operator') {
-            setSelectedCountry(undefined);
             setSelectedWarehouseId(undefined);
+        }
+        if (newRole !== 'reports' && newRole !== 'operator'){
+            setSelectedCountry(undefined);
         }
     }
 
@@ -227,38 +241,36 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
                 </Select>
             </div>
 
-            {selectedRole === 'operator' && (
-                <>
-                    <div className="space-y-2">
-                        <Label htmlFor="country">{t('country')}</Label>
-                        <Select onValueChange={handleCountryChange} value={selectedCountry}>
-                            <SelectTrigger id="country">
-                                <SelectValue placeholder={t('select_a_country')} />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {countries.map(country => (
-                                    <SelectItem key={country} value={country}>{country}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+            {(selectedRole === 'operator' || selectedRole === 'reports') && (
+                <div className="space-y-2">
+                    <Label htmlFor="country">{t('country')}</Label>
+                    <Select name="country" onValueChange={handleCountryChange} value={selectedCountry}>
+                        <SelectTrigger id="country">
+                            <SelectValue placeholder={t('select_a_country')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {countries.map(country => (
+                                <SelectItem key={country} value={country}>{country}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
 
-                    {selectedCountry && (
-                         <div className="space-y-2">
-                            <Label htmlFor="warehouseId">{t('assigned_warehouse')}</Label>
-                            <Select name="warehouseId" key={selectedWarehouseId} value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
-                                <SelectTrigger id="warehouseId">
-                                    <SelectValue placeholder={t('select_a_warehouse')} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {filteredWarehouses.map(w => (
-                                        <SelectItem key={w.id} value={w.id}>{`${w.name} (${w.city})`}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    )}
-                </>
+            {selectedRole === 'operator' && selectedCountry && (
+                 <div className="space-y-2">
+                    <Label htmlFor="warehouseId">{t('assigned_warehouse')}</Label>
+                    <Select name="warehouseId" key={selectedWarehouseId} value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+                        <SelectTrigger id="warehouseId">
+                            <SelectValue placeholder={t('select_a_warehouse')} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {filteredWarehouses.map(w => (
+                                <SelectItem key={w.id} value={w.id}>{`${w.name} (${w.city})`}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
             )}
             
             <DialogFooter>

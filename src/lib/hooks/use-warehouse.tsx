@@ -2,46 +2,50 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './use-auth';
+import { useData } from './use-data';
 
 interface WarehouseContextType {
   selectedWarehouseId: string | null;
   setSelectedWarehouseId: (warehouseId: string) => void;
+  availableWarehouses: { id: string; name: string }[];
 }
 
 const WarehouseContext = createContext<WarehouseContextType | undefined>(undefined);
 
 export function WarehouseProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { warehouses } = useData();
   
-  const getInitialWarehouse = () => {
-    if (user?.role === 'operator' && user.warehouseId) {
-      return user.warehouseId;
-    }
-    // Admin and other roles can start with 'all'
-    return 'all';
-  };
-  
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>(getInitialWarehouse());
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('all');
+  const [availableWarehouses, setAvailableWarehouses] = useState(warehouses);
 
   useEffect(() => {
-    // This effect ensures that when the user logs in or changes,
-    // the warehouse selection is correctly initialized.
-    setSelectedWarehouseId(getInitialWarehouse());
-  }, [user]);
+    if (user?.role === 'operator' && user.warehouseId) {
+      setSelectedWarehouseId(user.warehouseId);
+      setAvailableWarehouses(warehouses.filter(w => w.id === user.warehouseId));
+    } else if (user?.role === 'reports' && user.country) {
+      const countryWarehouses = warehouses.filter(w => w.country === user.country);
+      setAvailableWarehouses(countryWarehouses);
+      // Default to 'all' (which means all for their country)
+      setSelectedWarehouseId('all'); 
+    } else if (user?.role === 'admin') {
+      setAvailableWarehouses(warehouses);
+      setSelectedWarehouseId('all');
+    }
+  }, [user, warehouses]);
+  
 
-  // This ensures the setter function respects the operator's role
   const setWarehouseId = (id: string) => {
     if (user?.role === 'operator') {
-      // Operator cannot change their warehouse. It's fixed.
-      setSelectedWarehouseId(user.warehouseId || null);
-    } else {
-      setSelectedWarehouseId(id);
+      return;
     }
+    setSelectedWarehouseId(id);
   };
 
   const value = { 
-    selectedWarehouseId: user?.role === 'operator' ? user.warehouseId || null : selectedWarehouseId,
+    selectedWarehouseId,
     setSelectedWarehouseId: setWarehouseId,
+    availableWarehouses,
   };
 
   return <WarehouseContext.Provider value={value}>{children}</WarehouseContext.Provider>;

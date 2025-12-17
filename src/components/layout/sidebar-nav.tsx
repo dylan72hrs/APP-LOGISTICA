@@ -47,7 +47,13 @@ export function SidebarNav() {
   const { t } = useLanguage();
   const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
 
-  const filteredNavItems = navItems.filter(item => user && item.roles.includes(user.role));
+  const filteredNavItems = navItems.filter(item => {
+    if (!user) return false;
+    if (user.role === 'reports') {
+        return item.labelKey === 'dashboard' || item.labelKey === 'reports';
+    }
+    return item.roles.includes(user.role);
+  });
 
   return (
     <>

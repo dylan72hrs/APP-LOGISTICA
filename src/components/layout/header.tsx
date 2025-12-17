@@ -46,18 +46,17 @@ export function LanguageSwitcher() {
 
 export function WarehouseSwitcher() {
     const { t } = useLanguage();
-    const { selectedWarehouseId, setSelectedWarehouseId } = useWarehouse();
-    const { warehouses } = useData();
-
+    const { selectedWarehouseId, setSelectedWarehouseId, availableWarehouses } = useWarehouse();
+    
     return (
-        <Select value={selectedWarehouseId} onValueChange={setSelectedWarehouseId}>
+        <Select value={selectedWarehouseId || 'all'} onValueChange={setSelectedWarehouseId}>
             <SelectTrigger className="w-full sm:w-[200px] hidden md:flex">
                 <Warehouse className="mr-2" />
                 <SelectValue placeholder={t('select_warehouse')} />
             </SelectTrigger>
             <SelectContent>
                 <SelectItem value="all">{t('all_warehouses')}</SelectItem>
-                {warehouses.map(w => (
+                {availableWarehouses.map(w => (
                     <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
                 ))}
             </SelectContent>
@@ -73,12 +72,14 @@ export function Header() {
     const assignedWarehouse = user?.role === 'operator' 
         ? warehouses.find(w => w.id === user.warehouseId) 
         : null;
+        
+    const canSwitchWarehouses = user?.role === 'admin' || user?.role === 'reports';
 
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:h-16 sm:px-6">
       <SidebarTrigger className="md:hidden" />
       <div className="flex-1">
-        {user?.role === 'admin' ? (
+        {canSwitchWarehouses ? (
             <WarehouseSwitcher />
         ) : assignedWarehouse && (
             <div className="hidden items-center gap-2 text-sm text-muted-foreground md:flex">
@@ -94,5 +95,3 @@ export function Header() {
     </header>
   );
 }
-
-    

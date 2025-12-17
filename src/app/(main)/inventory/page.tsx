@@ -22,7 +22,7 @@ export default function InventoryPage() {
     const { toast } = useToast();
     const { user } = useAuth();
     const { t, language } = useLanguage();
-    const { selectedWarehouseId } = useWarehouse();
+    const { selectedWarehouseId, availableWarehouses } = useWarehouse();
     const { inventory, addInventoryItem, updateInventoryItem, deleteInventoryItem } = useData();
     
     const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -32,17 +32,17 @@ export default function InventoryPage() {
     const visibleInventory = useMemo(() => {
         if (!user) return [];
 
-        const warehouseIdToFilter = user.role === 'admin' ? selectedWarehouseId : user.warehouseId;
-
-        if (warehouseIdToFilter === 'all') {
+        if (selectedWarehouseId === 'all') {
+            if (user.role === 'reports') {
+                 const countryWarehouseIds = availableWarehouses.map(w => w.id);
+                 return inventory.filter(item => countryWarehouseIds.includes(item.warehouseId));
+            }
             return inventory;
         }
-        if (warehouseIdToFilter) {
-            return inventory.filter(item => item.warehouseId === warehouseIdToFilter);
-        }
-        return [];
 
-    }, [user, inventory, selectedWarehouseId]);
+        return inventory.filter(item => item.warehouseId === selectedWarehouseId);
+
+    }, [user, inventory, selectedWarehouseId, availableWarehouses]);
 
     const handleSaveItem = (formData: FormData) => {
         const item: Omit<InventoryItem, 'id' | 'warehouseId'> & { id?: string, warehouseId?: string } = {
@@ -67,8 +67,16 @@ export default function InventoryPage() {
             if (user?.role === 'operator') {
                 warehouseId = user.warehouseId!;
             } else if (user?.role === 'admin') {
-                // If admin is adding and has a warehouse selected, use it. Otherwise, default.
-                warehouseId = selectedWarehouseId !== 'all' ? selectedWarehouseId : 'stgo-1';
+                if (selectedWarehouseId && selectedWarehouseId !== 'all') {
+                    warehouseId = selectedWarehouseId;
+                } else {
+                     toast({
+                        variant: 'destructive',
+                        title: t('no_warehouse_selected'),
+                        description: t('admin_select_warehouse_for_product')
+                    });
+                    return;
+                }
             }
         }
 
@@ -284,7 +292,7 @@ export default function InventoryPage() {
                                 <TableHead className="text-right">{t('quantity')}</TableHead>
                                 <TableHead className="text-right">{t('unit_cost')}</TableHead>
                                 <TableHead>{t('status')}</TableHead>
-                                {user?.role === 'admin' && <TableHead>{t('warehouse')}</TableHead>}
+                                {user?.role === 'admin' && selectedWarehouseId === 'all' && <TableHead>{t('warehouse')}</TableHead>}
                                 <TableHead className="text-right">{t('actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -301,7 +309,7 @@ export default function InventoryPage() {
                                         <TableCell>
                                             <Badge variant={stockStatus.variant}>{stockStatus.text}</Badge>
                                         </TableCell>
-                                        {user?.role === 'admin' && <TableCell>{item.warehouseId}</TableCell>}
+                                        {user?.role === 'admin' && selectedWarehouseId === 'all' && <TableCell>{item.warehouseId}</TableCell>}
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -385,5 +393,3 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
         </form>
     );
 }
-
-    
