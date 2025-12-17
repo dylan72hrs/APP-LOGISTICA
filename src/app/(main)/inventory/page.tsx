@@ -45,7 +45,7 @@ export default function InventoryPage() {
     }, [user, inventory, selectedWarehouseId, availableWarehouses]);
 
     const handleSaveItem = (formData: FormData) => {
-        const item: Omit<InventoryItem, 'id' | 'warehouseId'> & { id?: string, warehouseId?: string } = {
+        const newItemData = {
             code: formData.get('code') as string,
             description: formData.get('description') as string,
             size: formData.get('size') as string,
@@ -53,7 +53,7 @@ export default function InventoryPage() {
             cost: parseFloat(formData.get('cost') as string),
         };
 
-        if (!item.code || !item.description || !item.size || isNaN(item.quantity) || isNaN(item.cost)) {
+        if (!newItemData.code || !newItemData.description || !newItemData.size || isNaN(newItemData.quantity) || isNaN(newItemData.cost)) {
             toast({
                 variant: 'destructive',
                 title: t('error'),
@@ -79,29 +79,39 @@ export default function InventoryPage() {
                 }
             }
         }
-
-
-        const finalItem: InventoryItem = {
-            ...item,
-            id: editingItem?.id || item.code,
-            warehouseId: warehouseId!,
-        };
+        if (!warehouseId) return; // Should not happen with the checks above
 
         if (editingItem) {
-            updateInventoryItem(finalItem);
+            const updatedItem: InventoryItem = {
+                ...editingItem,
+                ...newItemData,
+            };
+            updateInventoryItem(updatedItem);
             toast({ title: t('product_updated'), description: t('inventory_item_updated') });
         } else {
-             // Check if item code already exists in the same warehouse
-            if (inventory.some(i => i.code.toLowerCase() === finalItem.code.toLowerCase() && i.warehouseId === finalItem.warehouseId)) {
-                toast({
-                    variant: 'destructive',
-                    title: t('code_error'),
-                    description: t('product_code_exists_in_warehouse', {code: finalItem.code})
-                });
-                return;
+            const existingItem = inventory.find(i => i.code.toLowerCase() === newItemData.code.toLowerCase() && i.warehouseId === warehouseId);
+            if (existingItem) {
+                // If item exists, update its quantity and cost
+                const updatedItem: InventoryItem = {
+                    ...existingItem,
+                    quantity: existingItem.quantity + newItemData.quantity,
+                    cost: newItemData.cost, // Update cost to the latest price
+                    description: newItemData.description,
+                    size: newItemData.size,
+                };
+                updateInventoryItem(updatedItem);
+                toast({ title: t('product_updated'), description: `Se agregaron ${newItemData.quantity} unidades al stock.` });
+
+            } else {
+                // If item does not exist, create it
+                const finalItem: InventoryItem = {
+                    ...newItemData,
+                    id: newItemData.code,
+                    warehouseId: warehouseId!,
+                };
+                addInventoryItem(finalItem);
+                toast({ title: t('product_created'), description: t('new_item_added_to_inventory') });
             }
-            addInventoryItem(finalItem);
-            toast({ title: t('product_created'), description: t('new_item_added_to_inventory') });
         }
         
         setIsDialogOpen(false);
@@ -203,7 +213,8 @@ export default function InventoryPage() {
                 }
 
                 const newItems: InventoryItem[] = [];
-                const existingCodes = new Set(inventory.filter(i => i.warehouseId === warehouseIdForUpload).map(i => i.code.toLowerCase()));
+                let itemsAdded = 0;
+                let itemsUpdated = 0;
                 
                 for (const row of json) {
                     const code = row[t('code')];
@@ -213,30 +224,38 @@ export default function InventoryPage() {
                     const cost = parseFloat(row[t('unit_cost')]);
                     
                     if (!code || !description || !size || isNaN(quantity) || isNaN(cost)) {
-                        throw new Error(t('invalid_row_data_in_excel'));
+                        console.warn('Skipping invalid row:', row);
+                        continue;
                     }
 
-                    if (existingCodes.has(String(code).toLowerCase())) {
-                       console.warn(`Skipping existing code: ${code}`);
-                       continue;
-                    }
+                    const existingItem = inventory.find(i => i.code.toLowerCase() === String(code).toLowerCase() && i.warehouseId === warehouseIdForUpload);
 
-                    const newItem: InventoryItem = {
-                        id: String(code),
-                        code: String(code),
-                        description: String(description),
-                        size: String(size),
-                        quantity,
-                        cost,
-                        warehouseId: warehouseIdForUpload!,
-                    };
-                    addInventoryItem(newItem);
-                    existingCodes.add(newItem.code.toLowerCase());
+                    if (existingItem) {
+                        const updatedItem: InventoryItem = {
+                            ...existingItem,
+                            quantity: existingItem.quantity + quantity,
+                            cost: cost,
+                        };
+                        updateInventoryItem(updatedItem);
+                        itemsUpdated++;
+                    } else {
+                        const newItem: InventoryItem = {
+                            id: String(code),
+                            code: String(code),
+                            description: String(description),
+                            size: String(size),
+                            quantity,
+                            cost,
+                            warehouseId: warehouseIdForUpload!,
+                        };
+                        addInventoryItem(newItem);
+                        itemsAdded++;
+                    }
                 }
 
                 toast({
                     title: t('import_successful'),
-                    description: t('new_items_imported_successfully', { count: json.length.toString() })
+                    description: `${itemsAdded} items created, ${itemsUpdated} items updated.`
                 });
 
             } catch (error) {
@@ -309,7 +328,7 @@ export default function InventoryPage() {
                                         <TableCell>
                                             <Badge variant={stockStatus.variant}>{stockStatus.text}</Badge>
                                         </TableCell>
-                                        {user?.role === 'admin' && selectedWarehouseId === 'all' && <TableCell>{item.warehouseId}</TableCell>}
+                                        {user?.role === 'admin' && selectedWarehouseId === 'all' && <TableCell>{availableWarehouses.find(w => w.id === item.warehouseId)?.name}</TableCell>}
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -369,11 +388,11 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
             </div>
              <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label htmlFor="size">{t('size_unit')}</Label>
-                <Input id="size" name="size" defaultValue={item?.size} required />
+                <Input id="size" name="size" defaultValue={item?.size} required disabled={!!item && inventory.some(i => i.code === item.code)} />
             </div>
             <div className="space-y-2 col-span-2">
                 <Label htmlFor="description">{t('description')}</Label>
-                <Input id="description" name="description" defaultValue={item?.description} required />
+                <Input id="description" name="description" defaultValue={item?.description} required disabled={!!item && inventory.some(i => i.code === item.code)} />
             </div>
             <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label htmlFor="quantity">{t('entry_quantity')}</Label>
