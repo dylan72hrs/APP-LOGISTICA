@@ -94,7 +94,8 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
                                 <TableHead className="text-black font-bold border-r border-black">Fecha</TableHead>
                                 <TableHead className="text-black font-bold border-r border-black">Código</TableHead>
                                 <TableHead className="text-black font-bold border-r border-black">Descripción</TableHead>
-                                <TableHead className="text-black font-bold text-right">Cantidad</TableHead>
+                                <TableHead className="text-black font-bold border-r border-black text-right">Cantidad</TableHead>
+                                <TableHead className="text-black font-bold text-center">Recibido</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -103,7 +104,8 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
                                     <TableCell className="border-r border-black">{item.date.toLocaleDateString(language)}</TableCell>
                                     <TableCell className="border-r border-black">{item.code}</TableCell>
                                     <TableCell className="border-r border-black">{item.description}</TableCell>
-                                    <TableCell className="text-right font-medium">{item.quantity}</TableCell>
+                                    <TableCell className="border-r border-black text-right font-medium">{item.quantity}</TableCell>
+                                    <TableCell className="text-center"></TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
