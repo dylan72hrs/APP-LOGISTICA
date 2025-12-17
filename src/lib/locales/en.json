@@ -228,5 +228,8 @@
     "showing_results_for": "Showing results for",
     "no_consumptions_in_period": "No consumptions recorded in this period.",
     "total_items_consumed": "Total Items Consumed",
-    "consumption_sheet": "Consumption Record"
+    "consumption_sheet": "Consumption Record",
+    "generate_and_download_xlsx": "Generate and Download XLSX",
+    "select_dates_and_generate": "Select a date range and generate your report.",
+    "report_will_be_downloaded_automatically": "The .xlsx file will be downloaded automatically."
 }
