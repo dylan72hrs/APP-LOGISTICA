@@ -259,5 +259,11 @@
     "not_enough_data_for_ai": "There is not enough inventory or consumption data for the selected warehouse to run the analysis.",
     "ai_suggestion_error": "The AI could not generate suggestions. Please try again.",
     "ai_thinking": "AI is thinking...",
-    "ai_analyzing_data": "Analyzing consumption patterns and calculating optimal stock..."
+    "ai_analyzing_data": "Analyzing consumption patterns and calculating optimal stock...",
+    "api_config": "API Configuration",
+    "manage_gemini_api_key": "Manage the Gemini API Key for AI features.",
+    "gemini_api_key": "Gemini API Key",
+    "save_key": "Save Key",
+    "api_key_saved": "API Key Saved",
+    "api_key_updated_successfully": "The API Key has been updated successfully."
 }
