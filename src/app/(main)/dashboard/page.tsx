@@ -7,7 +7,7 @@ import { useMemo } from "react";
 import { useWarehouse } from "@/lib/hooks/use-warehouse";
 import { useData } from "@/lib/hooks/use-data";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { isThisMonth, isThisYear, isWithinInterval, subDays } from "date-fns";
+import { isThisMonth, isThisYear, isWithinInterval, subDays, getWeekOfMonth, getMonth } from "date-fns";
 
 export default function DashboardPage() {
     const { t, language } = useLanguage();
@@ -47,22 +47,7 @@ export default function DashboardPage() {
     const weeklyConsumedItems = filteredConsumptions
         .filter(r => isWithinInterval(r.date, last7DaysInterval))
         .reduce((sum, r) => sum + r.items.reduce((itemSum, i) => itemSum + i.quantity, 0), 0);
-
-    const monthlyConsumedItems = filteredConsumptions
-        .filter(r => isThisMonth(r.date))
-        .reduce((sum, r) => sum + r.items.reduce((itemSum, i) => itemSum + i.quantity, 0), 0);
         
-    const yearlyConsumedItems = filteredConsumptions
-        .filter(r => isThisYear(r.date))
-        .reduce((sum, r) => sum + r.items.reduce((itemSum, i) => itemSum + i.quantity, 0), 0);
-
-
-    const totalActiveWorkers = useMemo(() => {
-        const consumedWorkerIds = new Set(filteredConsumptions.map(c => c.workerId));
-        return workers.filter(w => consumedWorkerIds.has(w.id)).length;
-    }, [workers, filteredConsumptions]);
-
-
     const consumptionByDay = useMemo(() => {
         const acc: Record<string, number> = {};
         const weeklyConsumptions = filteredConsumptions.filter(r => isWithinInterval(r.date, last7DaysInterval));
@@ -73,10 +58,10 @@ export default function DashboardPage() {
             acc[capitalizedDay] = (acc[capitalizedDay] || 0) + record.items.reduce((sum, item) => sum + item.quantity, 0);
         }
         return acc;
-    }, [language, filteredConsumptions]);
+    }, [language, filteredConsumptions, last7DaysInterval]);
 
 
-    const chartData = useMemo(() => {
+    const weeklyChartData = useMemo(() => {
         const dayNames = {
             'es': ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
             'en': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
@@ -89,12 +74,60 @@ export default function DashboardPage() {
         }));
     }, [consumptionByDay, language]);
 
+     const consumptionByWeekOfMonth = useMemo(() => {
+        const acc: Record<string, number> = {};
+        const monthlyConsumptions = filteredConsumptions.filter(r => isThisMonth(r.date));
+        
+        for (const record of monthlyConsumptions) {
+            const weekOfMonth = getWeekOfMonth(record.date, { weekStartsOn: 1 });
+            const weekKey = `${t('week')} ${weekOfMonth}`;
+            acc[weekKey] = (acc[weekKey] || 0) + record.items.reduce((sum, item) => sum + item.quantity, 0);
+        }
+        return acc;
+    }, [filteredConsumptions, t]);
+
+    const monthlyChartData = useMemo(() => {
+        const weeks = [1, 2, 3, 4, 5];
+        return weeks.map(week => {
+            const weekKey = `${t('week')} ${week}`;
+            return {
+                name: weekKey,
+                total: consumptionByWeekOfMonth[weekKey] || 0,
+            }
+        });
+    }, [consumptionByWeekOfMonth, t]);
+
+    const consumptionByMonthOfYear = useMemo(() => {
+        const acc: Record<string, number> = {};
+        const yearlyConsumptions = filteredConsumptions.filter(r => isThisYear(r.date));
+        
+        for (const record of yearlyConsumptions) {
+            const month = record.date.toLocaleDateString(language, { month: 'short' }).replace('.', '');
+            const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1);
+            acc[capitalizedMonth] = (acc[capitalizedMonth] || 0) + record.items.reduce((sum, item) => sum + item.quantity, 0);
+        }
+        return acc;
+    }, [language, filteredConsumptions]);
+
+    const yearlyChartData = useMemo(() => {
+        const monthNames = {
+            'es': ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+            'en': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+            'fr': ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc']
+        };
+        const currentMonthNames = monthNames[language as keyof typeof monthNames] || monthNames['en'];
+        return currentMonthNames.map(month => ({
+            name: month,
+            total: consumptionByMonthOfYear[month] || 0
+        }));
+    }, [consumptionByMonthOfYear, language]);
+
 
     return (
         <div className="flex flex-col gap-4">
             <h1 className="text-2xl font-bold tracking-tight">{t('dashboard')}</h1>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-                <Card className="col-span-1 lg:col-span-1 xl:col-span-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">{t('items_in_inventory')}</CardTitle>
                         <Boxes className="h-4 w-4 text-muted-foreground" />
@@ -116,26 +149,6 @@ export default function DashboardPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t('consumptions_this_month')}</CardTitle>
-                        <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">+{monthlyConsumedItems.toLocaleString(language)}</div>
-                        <p className="text-xs text-muted-foreground">{t('items_consumed')}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t('consumptions_this_year')}</CardTitle>
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">+{yearlyConsumedItems.toLocaleString(language)}</div>
-                        <p className="text-xs text-muted-foreground">{t('items_consumed')}</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">{t('stock_alerts')}</CardTitle>
                         <AlertCircle className="h-4 w-4 text-destructive" />
                     </CardHeader>
@@ -144,15 +157,16 @@ export default function DashboardPage() {
                         <p className="text-xs text-muted-foreground">{t('items_less_than_20_units')}</p>
                     </CardContent>
                 </Card>
-                
-                <Card className="col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-full">
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                <Card className="col-span-1 md:col-span-2 lg:col-span-7">
                     <CardHeader>
                         <CardTitle>{t('weekly_consumption_summary')}</CardTitle>
                         <CardDescription>{t('quantity_of_items_consumed_per_day_last_7_days')}</CardDescription>
                     </CardHeader>
                     <CardContent className="pl-2">
-                        <ResponsiveContainer width="100%" height={350}>
-                            <BarChart data={chartData}>
+                        <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={weeklyChartData}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                 <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
                                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
@@ -165,6 +179,56 @@ export default function DashboardPage() {
                                     }}
                                 />
                                 <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+            </div>
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                <Card className="col-span-1 md:col-span-2 lg:col-span-7">
+                    <CardHeader>
+                        <CardTitle>{t('consumptions_this_month')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                        <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={monthlyChartData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
+                                <Tooltip
+                                    cursor={{fill: 'hsl(var(--background))'}}
+                                    contentStyle={{
+                                        backgroundColor: 'hsl(var(--popover))',
+                                        borderColor: 'hsl(var(--border))',
+                                        borderRadius: 'var(--radius)'
+                                    }}
+                                />
+                                <Bar dataKey="total" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                 <Card className="col-span-1 md:col-span-2 lg:col-span-7">
+                    <CardHeader>
+                        <CardTitle>{t('consumptions_this_year')}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pl-2">
+                        <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={yearlyChartData}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
+                                <Tooltip
+                                    cursor={{fill: 'hsl(var(--background))'}}
+                                    contentStyle={{
+                                        backgroundColor: 'hsl(var(--popover))',
+                                        borderColor: 'hsl(var(--border))',
+                                        borderRadius: 'var(--radius)'
+                                    }}
+                                />
+                                <Bar dataKey="total" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
