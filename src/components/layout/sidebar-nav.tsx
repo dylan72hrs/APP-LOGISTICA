@@ -34,8 +34,8 @@ const navItems = [
   { href: '/workers', labelKey: 'workers', icon: HardHat, roles: ['admin', 'operator'] },
   { href: '/projects', labelKey: 'projects', icon: Building, roles: ['admin', 'operator'] },
   { href: '/consumptions', labelKey: 'consumptions', icon: Truck, roles: ['admin', 'operator'] },
-  { href: '/consumption-sheet', labelKey: 'consumption_sheet', icon: FileSignature, roles: ['admin', 'reports'] },
-  { href: '/reports', labelKey: 'reports', icon: FileText, roles: ['admin', 'reports'] },
+  { href: '/consumption-sheet', labelKey: 'consumption_sheet', icon: FileSignature, roles: ['admin', 'reports', 'operator'] },
+  { href: '/reports', labelKey: 'reports', icon: FileText, roles: ['admin', 'reports', 'operator'] },
   { href: '/restock', labelKey: 'ai_restock', icon: BrainCircuit, roles: ['admin'] },
   { href: '/warehouses', labelKey: 'warehouses', icon: Warehouse, roles: ['admin'] },
   { href: '/admin/users', labelKey: 'admin', icon: Users, roles: ['admin'] },
@@ -49,8 +49,9 @@ export function SidebarNav() {
 
   const filteredNavItems = navItems.filter(item => {
     if (!user) return false;
+    // Special rule for reports user
     if (user.role === 'reports') {
-        return item.labelKey === 'dashboard' || item.labelKey === 'reports';
+        return item.labelKey === 'dashboard' || item.labelKey === 'reports' || item.labelKey === 'consumption_sheet';
     }
     return item.roles.includes(user.role);
   });

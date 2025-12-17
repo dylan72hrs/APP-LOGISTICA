@@ -78,7 +78,7 @@
     "status": "Estado",
     "in_stock": "En Stock",
     "low_stock": "Stock Bajo",
-    "sin_stock": "Sin Stock",
+    "out_of_stock": "Sin Stock",
     "edit_product": "Editar Producto",
     "enter_new_product": "Ingresar Nuevo Producto",
     "entry_quantity": "Cantidad de Ingreso",
