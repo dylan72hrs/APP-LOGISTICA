@@ -61,10 +61,10 @@ You must analyze the provided data to calculate the optimal quantity to reorder 
 **Your analysis must follow these steps:**
 1.  **Calculate Average Daily Consumption:** For each item, analyze the \`consumptionData\` to determine the average number of units consumed per day.
 2.  **Calculate Standard Deviation of Demand:** For each item, calculate the standard deviation of its daily consumption to measure demand variability.
-3.  **Calculate Safety Stock:** Use the lead time and demand variability to calculate the necessary safety stock. The formula is: Safety Stock = Z-score * Standard Deviation of Lead Time Demand. Assume a Z-score of 1.65 (for a 95% service level). The standard deviation of lead time demand is `Std Dev of Daily Demand * sqrt(Lead Time in Days)`.
+3.  **Calculate Safety Stock:** Use the lead time and demand variability to calculate the necessary safety stock. The formula is: Safety Stock = Z-score * Standard Deviation of Lead Time Demand. Assume a Z-score of 1.65 (for a 95% service level). The standard deviation of lead time demand is \`Std Dev of Daily Demand * sqrt(Lead Time in Days)\`.
 4.  **Calculate Reorder Point:** Determine the reorder point for each item. The formula is: Reorder Point = (Average Daily Consumption * Lead Time in Days) + Safety Stock.
 5.  **Identify Items to Restock:** Compare the current \`quantity\` from \`inventoryData\` with the calculated Reorder Point. If the current quantity is at or below the reorder point, the item needs to be restocked.
-6.  **Calculate Economic Order Quantity (EOQ):** To determine the `suggestedQuantity` to order, you should aim to reach a desired maximum stock level. The formula is: Order Quantity = (Average Daily Consumption * Desired Stock Level in Days) + Safety Stock - Current Quantity. This dynamically adjusts the order to replenish stock up to a healthy level. If the calculation results in a quantity less than or equal to zero, do not include the item in the suggestions.
+6.  **Calculate Economic Order Quantity (EOQ):** To determine the \`suggestedQuantity\` to order, you should aim to reach a desired maximum stock level. The formula is: Order Quantity = (Average Daily Consumption * Desired Stock Level in Days) + Safety Stock - Current Quantity. This dynamically adjusts the order to replenish stock up to a healthy level. If the calculation results in a quantity less than or equal to zero, do not include the item in the suggestions.
 
 **Input Data:**
 *   **Current Inventory:** {{{inventoryData}}}
