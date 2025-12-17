@@ -42,7 +42,6 @@
     "select_a_role": "Selecciona un rol",
     "administrator": "Administrador",
     "operator": "Operador",
-    "reports": "Reportes",
     "unassigned": "Sin Asignar",
     "select_a_country": "Selecciona un país",
     "select_a_warehouse": "Selecciona una bodega",
@@ -229,5 +228,6 @@
     "print_report": "Imprimir Ficha",
     "showing_results_for": "Mostrando resultados para",
     "no_consumptions_in_period": "No se encontraron consumos en este período.",
-    "total_items_consumed": "Total de Ítems Consumidos"
+    "total_items_consumed": "Total de Ítems Consumidos",
+    "consumption_sheet": "Ficha de Consumos"
 }
