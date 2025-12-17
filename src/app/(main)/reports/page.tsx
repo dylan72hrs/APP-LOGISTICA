@@ -18,7 +18,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 
 type FilterType = 'week' | 'month' | 'year' | 'range';
-type ReportType = 'byProject' | 'totalByWarehouse';
+type ReportType = 'byProject' | 'totalByWarehouse' | 'byWorker';
 
 const dateLocales = {
   es: esLocale,
@@ -40,7 +40,13 @@ interface WarehouseReportData {
     data: (string | number)[][];
 }
 
-type ReportData = ProjectReportData | WarehouseReportData | null;
+interface WorkerReportData {
+    type: 'byWorker';
+    headers: (string | null)[][];
+    data: (string | number)[][];
+}
+
+type ReportData = ProjectReportData | WarehouseReportData | WorkerReportData | null;
 
 
 export default function ReportsPage() {
@@ -130,24 +136,46 @@ export default function ReportsPage() {
         merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } });
         headers.push([]);
 
-        const projectNamesRow: (string|null)[] = [t('epp_item_description'), null, null, null];
-        projectsInReport.forEach(proj => projectNamesRow.push(proj.name, null));
-        headers.push(projectNamesRow);
+        const projectNamesRow: (string|null)[] = [t('epp_item_description'), null, null, null, ...projectsInReport.map(p => p.name)];
+        const projectIdsRow: (string|null)[] = [null, null, null, null, ...projectsInReport.map(p => p.id)];
+        const subHeaderRow = [t('description'), t('size_unit'), t('code'), t('price_unit_cost')];
         
-        const projectIdsRow: (string|null)[] = [null, null, null, null];
-        projectsInReport.forEach(proj => projectIdsRow.push(proj.id, null));
-        headers.push(projectIdsRow);
-        
-        const subHeaderRow = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
-        projectsInReport.forEach(() => subHeaderRow.push("CANT", "VALOR"));
-        headers.push(subHeaderRow);
-
-        merges.push({ s: { r: 2, c: 0 }, e: { r: 3, c: 3 } });
-
+        const projectNameMerges: XLSX.Range[] = [];
         projectsInReport.forEach((_, index) => {
             const startCol = 4 + index * 2;
-            merges.push({ s: { r: 2, c: startCol }, e: { r: 2, c: startCol + 1 } }); // Project Name
-            merges.push({ s: { r: 3, c: startCol }, e: { r: 3, c: startCol + 1 } }); // Project ID
+            projectNameMerges.push({ s: { r: 2, c: startCol }, e: { r: 2, c: startCol + 1 } });
+            projectNameMerges.push({ s: { r: 3, c: startCol }, e: { r: 3, c: startCol + 1 } });
+            subHeaderRow.push("CANT", "VALOR");
+        });
+        
+        const topRow: (string|null)[] = [t('epp_item_description'), null, null];
+        const secondRow: (string|null)[] = [null, null, null];
+        projectsInReport.forEach(proj => {
+            topRow.push(proj.name, null);
+            secondRow.push(proj.id, null);
+        });
+
+        headers.push(
+            [t('epp_item_description'), null, ...projectsInReport.map(p => p.name)],
+            [null, null, ...projectsInReport.map(p => p.id)],
+            [t('description'), t('size_unit'), t('code'), t('price_unit_cost'), ...Array(projectsInReport.length * 2).fill(null).map((_, i) => i % 2 === 0 ? 'CANT' : 'VALOR')]
+        );
+        headers[2] = [t('epp_item_description'), null, null];
+        projectsInReport.forEach(p => headers[2].push(p.name, null));
+
+        const finalHeaders: (string | null)[][] = [
+            [`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`],
+            [],
+            [t('epp_item_description'), null, null, ...projectsInReport.flatMap(p => [p.name, null])],
+            [null, null, null, ...projectsInReport.flatMap(p => [p.id, null])],
+            [t('description'), t('size_unit'), t('code'), t('price_unit_cost'), ...Array(projectsInReport.length * 2).fill(null).map((_, i) => i % 2 === 0 ? 'CANT' : 'VALOR')]
+        ];
+
+        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 2 + projectsInReport.length * 2 } });
+        merges.push({ s: { r: 2, c: 0 }, e: { r: 4, c: 2 } });
+        projectsInReport.forEach((p, i) => {
+            merges.push({ s: { r: 2, c: 3 + i * 2 }, e: { r: 2, c: 4 + i * 2 } });
+            merges.push({ s: { r: 3, c: 3 + i * 2 }, e: { r: 3, c: 4 + i * 2 } });
         });
 
 
@@ -167,7 +195,7 @@ export default function ReportsPage() {
             data.push(row);
         });
 
-        return { type: 'byProject', headers, merges, data, projectsInReport };
+        return { type: 'byProject', headers: finalHeaders, merges, data, projectsInReport };
     }
 
     const processWarehouseReportData = (): WarehouseReportData | null => {
@@ -209,13 +237,56 @@ export default function ReportsPage() {
         return { type: 'totalByWarehouse', headers, data };
     };
 
+    const processWorkerReportData = (): WorkerReportData | null => {
+        if (!startDate || !endDate) return null;
+
+        const filteredConsumptions = consumptionRecords.filter(record => {
+            const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
+            return recordDate >= startDate && recordDate <= endDate;
+        });
+
+        const headers = [[t('month'), t('country'), t('warehouse'), t('project_id'), t('project_name'), t('worker_rut'), t('worker_name'), t('worker_position'), t('code'), t('description'), t('quantity')]];
+        const data: (string | number)[][] = [];
+
+        for (const record of filteredConsumptions) {
+            const warehouse = warehouses.find(w => w.id === record.warehouseId);
+            const project = projects.find(p => p.id === record.projectId);
+            const worker = workers.find(w => w.id === record.workerId);
+            const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
+
+            for (const consumedItem of record.items) {
+                const item = inventory.find(i => i.id === consumedItem.itemId);
+
+                data.push([
+                    format(recordDate, 'MMMM', { locale: dateLocales[language] }),
+                    warehouse?.country || 'N/A',
+                    warehouse?.name || 'N/A',
+                    project?.id || 'N/A',
+                    project?.name || 'N/A',
+                    worker?.rut || 'N/A',
+                    worker?.name || 'N/A',
+                    worker?.position || 'N/A',
+                    item?.code || 'N/A',
+                    item?.description || 'N/A',
+                    consumedItem.quantity,
+                ]);
+            }
+        }
+
+        data.sort((a, b) => String(a[5]).localeCompare(String(b[5]))); // Sort by worker RUT
+
+        return { type: 'byWorker', headers, data };
+    };
+
     const handleGenerateReport = () => {
         setIsGenerating(true);
         let processedData;
         if (reportType === 'byProject') {
             processedData = processProjectReportData();
-        } else {
+        } else if (reportType === 'totalByWarehouse') {
             processedData = processWarehouseReportData();
+        } else if (reportType === 'byWorker') {
+            processedData = processWorkerReportData();
         }
         setReportData(processedData);
         setIsGenerating(false);
@@ -228,7 +299,10 @@ export default function ReportsPage() {
         const wb = XLSX.utils.book_new();
         const fileName = reportType === 'byProject' 
             ? `Consumo_EPP_por_Proyecto_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
-            : `Consumo_Total_por_Bodega_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+            : reportType === 'totalByWarehouse'
+            ? `Consumo_Total_por_Bodega_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
+            : `Consumo_por_Trabajador_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+
 
         if (reportData.type === 'byProject') {
              sheetData = [
@@ -239,10 +313,10 @@ export default function ReportsPage() {
             ws['!merges'] = reportData.merges;
             XLSX.utils.book_append_sheet(wb, ws, 'Reporte Proyecto');
 
-        } else { // warehouse report
+        } else { // warehouse or worker report
             sheetData = [...reportData.headers, ...reportData.data];
             const ws = XLSX.utils.aoa_to_sheet(sheetData);
-            XLSX.utils.book_append_sheet(wb, ws, 'Reporte Bodega');
+            XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
         }
 
         XLSX.writeFile(wb, fileName);
@@ -304,7 +378,7 @@ export default function ReportsPage() {
                         </div>
                         <div className="space-y-2">
                             <Label>{t('report_type')}</Label>
-                            <RadioGroup value={reportType} onValueChange={(val: any) => { setReportType(val); setReportData(null); }} className="flex gap-4">
+                            <RadioGroup value={reportType} onValueChange={(val: any) => { setReportType(val); setReportData(null); }} className="flex flex-col sm:flex-row gap-4">
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="byProject" id="byProject" />
                                     <Label htmlFor="byProject">{t('consumption_by_project')}</Label>
@@ -312,6 +386,10 @@ export default function ReportsPage() {
                                 <div className="flex items-center space-x-2">
                                     <RadioGroupItem value="totalByWarehouse" id="totalByWarehouse" />
                                     <Label htmlFor="totalByWarehouse">{t('total_consumption_by_warehouse')}</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="byWorker" id="byWorker" />
+                                    <Label htmlFor="byWorker">{t('consumption_by_worker')}</Label>
                                 </div>
                             </RadioGroup>
                         </div>
@@ -374,7 +452,7 @@ export default function ReportsPage() {
                         </Table>
                     </CardContent>
                 </Card>
-            ) : reportData?.type === 'totalByWarehouse' ? (
+            ) : reportData?.type === 'totalByWarehouse' || reportData?.type === 'byWorker' ? (
                  <Card>
                     <CardHeader>
                         <CardTitle>{t('report_preview')}</CardTitle>

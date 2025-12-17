@@ -237,7 +237,9 @@
     "report_will_be_displayed_here": "Le rapport s'affichera ici une fois généré.",
     "consumption_by_project": "Consommation par Projet",
     "total_consumption_by_warehouse": "Consommation Détaillée par Entrepôt",
+    "consumption_by_worker": "Consommation par Travailleur",
+    "worker_name": "Nom du travailleur",
+    "worker_position": "Poste du travailleur",
     "total_consumed_quantity": "Quantité Totale Consommée",
-    "epp_item_description": "Description de l'Équipement de Protection Individuelle",
-    "project_name": "Projet"
+    "epp_item_description": "Description de l'Équipement de Protection Individuelle"
 }

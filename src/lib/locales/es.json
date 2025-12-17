@@ -237,7 +237,9 @@
     "report_will_be_displayed_here": "El informe se mostrará aquí una vez que se genere.",
     "consumption_by_project": "Consumo por Proyecto",
     "total_consumption_by_warehouse": "Consumo Detallado por Bodega",
+    "consumption_by_worker": "Consumo por Trabajador",
+    "worker_name": "Nombre Trabajador",
+    "worker_position": "Cargo Trabajador",
     "total_consumed_quantity": "Cantidad Total Consumida",
-    "epp_item_description": "Descripción del Elemento de Protección Personal",
-    "project_name": "Proyecto"
+    "epp_item_description": "Descripción del Elemento de Protección Personal"
 }
