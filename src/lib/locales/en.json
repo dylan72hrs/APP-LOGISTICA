@@ -4,7 +4,6 @@
     "workers": "Workers",
     "projects": "Projects",
     "consumptions": "Consumptions",
-    "reports": "Reports",
     "ai_suggestions": "AI Suggestions",
     "warehouses": "Warehouses",
     "admin": "Admin",
@@ -100,7 +99,7 @@
     "contact_admin_to_activate": "Please contact an administrator to activate your profile.",
     "project_management": "Project Management",
     "manage_projects_associated_with_consumptions": "Manage projects that can be associated with consumptions.",
-    "reports_and_analytics": "Reports and Analytics",
+    "reports": "Reports",
     "generate_view_export_reports": "Generate, view, and export consumption and stock reports.",
     "restock_suggestions": "Restock Suggestions",
     "use_ai_for_restock_recommendations": "Use AI to get smart recommendations on what and how much to restock.",
@@ -225,9 +224,9 @@
     "month": "Month",
     "year": "Year",
     "range": "Range",
-    "print_report": "Print Report",
+    "print_report": "Print Record",
     "showing_results_for": "Showing results for",
     "no_consumptions_in_period": "No consumptions recorded in this period.",
     "total_items_consumed": "Total Items Consumed",
-    "consumption_sheet": "Consumption Sheet"
+    "consumption_sheet": "Consumption Record"
 }
