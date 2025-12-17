@@ -130,15 +130,15 @@ export default function ReportsPage() {
         merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } });
         headers.push([]);
 
-        const projectNamesRow = ["Elemento Protección Personal", null, null, null];
+        const projectNamesRow: (string|null)[] = [t('epp_item_description'), null, null, null];
         projectsInReport.forEach(proj => projectNamesRow.push(proj.name, null));
         headers.push(projectNamesRow);
 
-        const projectIdsRow = [null, null, null, null];
+        const projectIdsRow: (string|null)[] = [null, null, null, null];
         projectsInReport.forEach(proj => projectIdsRow.push(proj.id, null));
         headers.push(projectIdsRow);
 
-        const subHeaderRow = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
+        const subHeaderRow = [t('description'), t('size_unit'), t('code'), t('price_unit_cost')];
         projectsInReport.forEach(() => subHeaderRow.push("CANT", "VALOR"));
         headers.push(subHeaderRow);
 
@@ -234,17 +234,16 @@ export default function ReportsPage() {
 
         if (reportData.type === 'byProject') {
              sheetData = [
-                reportData.headers[0],
-                reportData.headers[1],
-                ...reportData.headers.slice(2)
+                ...reportData.headers,
+                ...reportData.data
             ];
-            const ws = XLSX.utils.aoa_to_sheet(sheetData, {cellDates: true});
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
             ws['!merges'] = reportData.merges;
             XLSX.utils.book_append_sheet(wb, ws, 'Reporte Proyecto');
 
         } else { // warehouse report
             sheetData = [...reportData.headers, ...reportData.data];
-            const ws = XLSX.utils.aoa_to_sheet(sheetData, {cellDates: true});
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
             XLSX.utils.book_append_sheet(wb, ws, 'Reporte Bodega');
         }
 
@@ -397,8 +396,8 @@ export default function ReportsPage() {
                                 {reportData.data.map((row, rowIndex) => (
                                     <TableRow key={`data-${rowIndex}`}>
                                         {row.map((cell, cellIndex) => (
-                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className={`border p-2 ${cellIndex > 1 ? 'text-right' : ''}`}>
-                                                {typeof cell === 'number' ? cell.toLocaleString(language) : cell}
+                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className={`border p-2 ${cellIndex > 7 ? 'text-right' : ''}`}>
+                                                {typeof cell === 'number' ? cell.toLocaleString(language) : String(cell)}
                                             </TableCell>
                                         ))}
                                     </TableRow>
