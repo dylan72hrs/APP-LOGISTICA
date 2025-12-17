@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -126,38 +127,39 @@ export default function ReportsPage() {
         const formattedEndDate = format(endDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         
         headers.push([`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`]);
-        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } });
+        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 4 + projectsInReport.length * 2 } });
         headers.push([]);
 
         const headerRow3 = ["Elemento Protección Personal", null, null, null];
-        const headerRow4 = [null, null, null, null];
+        const projectNamesRow = [null, null, null, null];
         projectsInReport.forEach(proj => {
-            headerRow3.push(proj.name, null);
-            headerRow4.push(proj.id, null);
+            headerRow3.push(null, null); // placeholder for merges
+            projectNamesRow.push(proj.name, null)
         });
-        headers.push(headerRow3, headerRow4);
+        headers.push(headerRow3);
+        
+        const projectIdsRow = [null, null, null, null];
+        projectsInReport.forEach(proj => {
+            projectIdsRow.push(proj.id, null);
+        });
+        headers.push(projectIdsRow);
 
-        merges.push({ s: { r: 2, c: 0 }, e: { r: 4, c: 0 } });
-
+        merges.push({ s: { r: 2, c: 0 }, e: { r: 4, c: 3 } }); // Merge for "Elemento..."
+        
         projectsInReport.forEach((_, index) => {
-            merges.push({ s: { r: 2, c: 4 + index * 2 }, e: { r: 2, c: 5 + index * 2 } });
-            merges.push({ s: { r: 3, c: 4 + index * 2 }, e: { r: 3, c: 5 + index * 2 } });
+            merges.push({ s: { r: 2, c: 4 + index * 2 }, e: { r: 2, c: 5 + index * 2 } }); // Project Name
+            merges.push({ s: { r: 3, c: 4 + index * 2 }, e: { r: 3, c: 5 + index * 2 } }); // Project ID
         });
         
-        const headerRow5 = [null, "Descripción", "Talla", "Cód. AX", "Precio ($)"];
+        const headerRow5 = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
         projectsInReport.forEach(() => {
             headerRow5.push("CANT", "VALOR");
         });
         headers.push(headerRow5);
 
-        merges.push({ s: { r: 2, c: 1 }, e: { r: 4, c: 1 } });
-        merges.push({ s: { r: 2, c: 2 }, e: { r: 4, c: 2 } });
-        merges.push({ s: { r: 2, c: 3 }, e: { r: 4, c: 3 } });
-
         const data: (string | number)[][] = [];
         itemsInReport.forEach(item => {
             const row: (string | number)[] = [
-                "", 
                 item.description,
                 item.size,
                 item.code,
@@ -235,18 +237,30 @@ export default function ReportsPage() {
     const handleDownloadReport = () => {
         if (!reportData) return;
         
-        const sheetData = [...reportData.headers, ...reportData.data];
-        const ws = XLSX.utils.aoa_to_sheet(sheetData, {cellDates: true});
-        
-        if (reportData.type === 'byProject') {
-             ws['!merges'] = reportData.merges;
-        }
-
+        let sheetData: (string|number|null)[][];
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
         const fileName = reportType === 'byProject' 
             ? `Consumo_EPP_por_Proyecto_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
             : `Consumo_Total_por_Bodega_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+
+        if (reportData.type === 'byProject') {
+             sheetData = [
+                reportData.headers[0],
+                reportData.headers[1],
+                [reportData.headers[2][0], null, null, null, ...reportData.projectsInReport.flatMap(p => [p.name, null])],
+                [null, null, null, null, ...reportData.projectsInReport.flatMap(p => [p.id, null])],
+                [null, ...reportData.headers[4]],
+                ...reportData.data.map(row => ["",...row])
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(sheetData, {cellDates: true});
+            ws['!merges'] = reportData.merges;
+            XLSX.utils.book_append_sheet(wb, ws, 'Reporte Proyecto');
+
+        } else { // warehouse report
+            sheetData = [...reportData.headers, ...reportData.data];
+            const ws = XLSX.utils.aoa_to_sheet(sheetData, {cellDates: true});
+            XLSX.utils.book_append_sheet(wb, ws, 'Reporte Bodega');
+        }
 
         XLSX.writeFile(wb, fileName);
     };
@@ -340,17 +354,21 @@ export default function ReportsPage() {
                         <Table className="border">
                            <TableHeader>
                                 <TableRow>
-                                    <TableHead className="border text-center font-bold bg-muted/50 p-2" colSpan={4} rowSpan={3}>{reportData.headers[2][0]}</TableHead>
+                                    <TableHead className="border text-center font-bold bg-muted/50 p-2" colSpan={4} rowSpan={2}>{reportData.headers[2][0]}</TableHead>
                                     {reportData.projectsInReport.map((proj, index) => (
                                         <TableHead key={`proj-h-${index}`} className="border text-center font-bold bg-muted/50 p-2" colSpan={2}>{proj.name}</TableHead>
                                     ))}
                                 </TableRow>
                                 <TableRow>
-                                    {reportData.projectsInReport.map((proj, index) => (
+                                     {reportData.projectsInReport.map((proj, index) => (
                                         <TableHead key={`proj-id-h-${index}`} className="border text-center font-bold bg-muted/50 p-2" colSpan={2}>{proj.id}</TableHead>
                                     ))}
                                 </TableRow>
                                  <TableRow>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][0]}</TableHead>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][1]}</TableHead>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][2]}</TableHead>
+                                    <TableHead className="border font-bold bg-muted/50 p-2">{reportData.headers[4][3]}</TableHead>
                                     {reportData.projectsInReport.map((_, index) => (
                                         <React.Fragment key={`sub-h-${index}`}>
                                             <TableHead className="border text-center font-bold bg-muted/50 p-2">CANT</TableHead>
@@ -358,18 +376,12 @@ export default function ReportsPage() {
                                         </React.Fragment>
                                     ))}
                                 </TableRow>
-                                <TableRow>
-                                    <TableHead className="border text-center font-bold bg-muted/50 p-2">{reportData.headers[4][1]}</TableHead>
-                                    <TableHead className="border text-center font-bold bg-muted/50 p-2">{reportData.headers[4][2]}</TableHead>
-                                    <TableHead className="border text-center font-bold bg-muted/50 p-2">{reportData.headers[4][3]}</TableHead>
-                                    <TableHead className="border text-center font-bold bg-muted/50 p-2">{reportData.headers[4][4]}</TableHead>
-                                </TableRow>
                            </TableHeader>
                            <TableBody>
                                 {reportData.data.map((row, rowIndex) => (
                                     <TableRow key={`data-${rowIndex}`}>
-                                        {row.slice(1).map((cell, cellIndex) => (
-                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className={`border p-2 ${cellIndex >= 4 ? 'text-right' : ''}`}>
+                                        {row.map((cell, cellIndex) => (
+                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className={`border p-2 ${cellIndex >= 3 ? 'text-right' : ''}`}>
                                                 {typeof cell === 'number' ? cell.toLocaleString(language) : cell}
                                             </TableCell>
                                         ))}
