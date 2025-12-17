@@ -15,58 +15,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useData } from '@/lib/hooks/use-data';
 
-function ApiKeyManager() {
-    const { t } = useLanguage();
-    const { toast } = useToast();
-    const [apiKey, setApiKey] = useState('********************');
-    const [showApiKey, setShowApiKey] = useState(false);
-
-    const handleSaveApiKey = () => {
-        // In a real app, this would securely save to a backend service/environment variable
-        toast({
-            title: t('api_key_saved'),
-            description: t('api_key_updated_successfully'),
-        });
-    };
-    
-    return (
-        <Card className="mb-4">
-            <CardHeader>
-                <CardTitle>{t('api_config')}</CardTitle>
-                <CardDescription>{t('manage_gemini_api_key')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div className="flex flex-col sm:flex-row items-end gap-2">
-                    <div className="space-y-2 flex-grow w-full">
-                        <Label htmlFor="api-key">{t('gemini_api_key')}</Label>
-                        <div className="relative">
-                            <Input 
-                                id="api-key" 
-                                type={showApiKey ? 'text' : 'password'}
-                                value={apiKey}
-                                onChange={(e) => setApiKey(e.target.value)}
-                            />
-                            <Button 
-                                type="button"
-                                variant="ghost" 
-                                size="icon" 
-                                className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7"
-                                onClick={() => setShowApiKey(prev => !prev)}
-                            >
-                                {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </Button>
-                        </div>
-                    </div>
-                    <Button onClick={handleSaveApiKey} className="w-full sm:w-auto">
-                        <KeyRound className="mr-2" />
-                        {t('save_key')}
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-    )
-}
-
 
 export default function AdminUsersPage() {
     const { toast } = useToast();
@@ -142,7 +90,6 @@ export default function AdminUsersPage() {
 
     return (
         <div className="flex flex-col gap-4">
-            <ApiKeyManager />
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">{t('user_administration')}</h1>
                 <Button onClick={handleAddNewClick}>
@@ -161,6 +108,7 @@ export default function AdminUsersPage() {
                                 <TableHead>{t('email')}</TableHead>
                                 <TableHead>{t('role')}</TableHead>
                                 <TableHead>{t('assigned_warehouse')}</TableHead>
+                                <TableHead>{t('password')}</TableHead>
                                 <TableHead className="text-right">{t('actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -173,6 +121,7 @@ export default function AdminUsersPage() {
                                         <TableCell>{user.email}</TableCell>
                                         <TableCell>{roleNames[user.role]}</TableCell>
                                         <TableCell>{assignedWarehouse ? `${assignedWarehouse.name} (${assignedWarehouse.country})` : 'N/A'}</TableCell>
+                                        <TableCell>123456</TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
