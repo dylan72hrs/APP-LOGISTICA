@@ -49,7 +49,7 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
                     )}
                 </div>
                 <div className="text-center">
-                    <h1 className="text-xl font-bold">INFORME DE CONSUMO POR TRABAJADOR</h1>
+                    <h1 className="text-xl font-bold">REGISTRO DE ENTREGA DE ELEMENTOS DE PROTECCIÓN PERSONAL</h1>
                     <p className='text-sm font-semibold'>EPP Tracker 3.0</p>
                 </div>
                 <div className='text-xs'>
@@ -59,18 +59,34 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
                 </div>
             </header>
 
-            <section className="mt-6 p-4 border border-black rounded-md">
-                <h2 className="text-lg font-bold mb-2 underline">Datos del Trabajador</h2>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-                    <p><strong>{t('full_name')}:</strong> {data.worker.name}</p>
-                    <p><strong>{t('rut')}:</strong> {data.worker.rut}</p>
-                    <p><strong>{t('position')}:</strong> {data.worker.position}</p>
-                    <p><strong>{t('department')}:</strong> {data.worker.department}</p>
-                </div>
+            <section className="mt-6 p-2 border border-black rounded-md text-center bg-neutral-200">
+                <p className="text-xs italic">De acuerdo con lo estipulado en la Ley 16.744, Art. 68 inciso tres "Las empresas deberán proporcionar a sus trabajadores, los equipos e implementos de protección necesarios, no pudiendo en caso alguno cobrarles su valor".</p>
+            </section>
+            
+            <section className="mt-4 border border-black rounded-md">
+                <Table className="text-sm">
+                    <TableBody>
+                        <TableRow>
+                            <TableCell className="font-bold bg-neutral-200 border-r border-black w-1/4">NOMBRE</TableCell>
+                            <TableCell>{data.worker.name}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell className="font-bold bg-neutral-200 border-r border-black">CARGO</TableCell>
+                            <TableCell>{data.worker.position}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                            <TableCell className="font-bold bg-neutral-200 border-r border-black">RUT</TableCell>
+                            <TableCell>{data.worker.rut}</TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </section>
+
+             <section className="mt-4 p-2 border border-black rounded-md text-center bg-neutral-200">
+                <p className="text-xs italic">El trabajador se compromete a mantener los Elementos de Protección Personal (EPP) en buen estado, usarlos y declara haberlos recibido en forma gratuita.</p>
             </section>
 
             <section className="mt-6">
-                <h2 className="text-lg font-bold mb-2 underline">Detalle de Consumos</h2>
                 <div className='border-black border'>
                     <Table>
                         <TableHeader>
