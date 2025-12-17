@@ -67,7 +67,7 @@ export default function RestockPage() {
         leadTimeDays: parseInt(leadTime, 10),
         desiredStockLevelDays: parseInt(desiredStockDays, 10),
       });
-      const parsedSuggestions = JSON.parse(result.restockSuggestions);
+      const parsedSuggestions = JSON.parse(result.sugerencias_de_reposicion);
       setSuggestions(parsedSuggestions);
     } catch (error) {
       console.error('Error generating suggestions:', error);
@@ -144,7 +144,7 @@ export default function RestockPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('restock_suggestions')}</CardTitle>
+          <CardTitle>{t('sugerencias_de_reposicion')}</CardTitle>
         </CardHeader>
         <CardContent>
             {isLoading ? (

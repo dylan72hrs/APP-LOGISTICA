@@ -36,7 +36,7 @@ const RestockSuggestionsInputSchema = z.object({
 export type RestockSuggestionsInput = z.infer<typeof RestockSuggestionsInputSchema>;
 
 const RestockSuggestionsOutputSchema = z.object({
-  restockSuggestions: z
+  sugerencias_de_reposicion: z
     .string()
     .describe(
       'A JSON string containing the restock suggestions for each EPP item that needs reordering. It should include the item code, description, size, and the suggested quantity to order. Example: `[{"code": "EPP001", "description": "Helmet", "size": "M", "suggestedQuantity": 15}]`'
@@ -73,7 +73,7 @@ You must analyze the provided data to calculate the optimal quantity to reorder 
 *   **Desired Stock Level (Days of Coverage):** {{{desiredStockLevelDays}}}
 
 **Output Format:**
-Return **only** a JSON array string in the \`restockSuggestions\` field, containing objects for **only the items that need to be reordered**. Each object must have \`code\`, \`description\`, \`size\`, and \`suggestedQuantity\`. Do not include items that do not need restocking.
+Return **only** a JSON array string in the \`sugerencias_de_reposicion\` field, containing objects for **only the items that need to be reordered**. Each object must have \`code\`, \`description\`, \`size\`, and \`suggestedQuantity\`. Do not include items that do not need restocking.
 `,
 });
 

@@ -251,6 +251,7 @@
     "min_stock": "Min Stock",
     "max_stock": "Max Stock",
     "suggested_quantity_to_order": "Suggested Quantity to Order",
+    "sugerencias_de_reposicion": "Restock Suggestions",
     "generate_suggestions_to_see_results": "Generate suggestions to see the results here.",
     "ai_will_calculate_eoq": "The AI will analyze consumption, calculate the reorder point, EOQ, and safety stock.",
     "admin_select_warehouse_for_ai": "As an administrator, you must select a specific warehouse to run the AI analysis.",

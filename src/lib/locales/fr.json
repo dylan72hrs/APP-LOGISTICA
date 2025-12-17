@@ -251,6 +251,7 @@
     "min_stock": "Stock Min",
     "max_stock": "Stock Max",
     "suggested_quantity_to_order": "Quantité suggérée à commander",
+    "sugerencias_de_reposicion": "Suggestions de réapprovisionnement",
     "generate_suggestions_to_see_results": "Générez des suggestions pour voir les résultats ici.",
     "ai_will_calculate_eoq": "L'IA analysera la consommation, calculera le point de commande, l'EOQ et le stock de sécurité.",
     "admin_select_warehouse_for_ai": "En tant qu'administrateur, vous devez sélectionner un entrepôt spécifique pour exécuter l'analyse IA.",
