@@ -9,13 +9,10 @@ import type { Worker, Project, InventoryItem, ConsumptionRecord } from '@/lib/ty
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Hourglass, CheckCircle, Search, UserSearch, PackageSearch, Trash2, ChevronsUpDown, Check } from 'lucide-react';
+import { Eye, Hourglass, CheckCircle, Search, UserSearch, PackageSearch, Trash2 } from 'lucide-react';
 import { ValeConsumo } from '@/components/vale-consumo';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useData } from '@/lib/hooks/use-data';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandInput, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
 
 
 interface SelectedItem extends InventoryItem {
@@ -48,7 +45,7 @@ export default function ConsumptionsPage() {
     warehouses
   } = useData();
 
-  const [openWorkerCombobox, setOpenWorkerCombobox] = useState(false);
+  const [workerRutInput, setWorkerRutInput] = useState('');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   
   const [projectIdInput, setProjectIdInput] = useState('');
@@ -73,6 +70,16 @@ export default function ConsumptionsPage() {
     if (!warehouseIdToFilter || warehouseIdToFilter === 'all') return [];
     return inventory.filter(item => item.warehouseId === warehouseIdToFilter && item.quantity > 0);
   }, [inventory, warehouseIdToFilter]);
+
+  const handleWorkerSearch = () => {
+    const foundWorker = workers.find(w => w.rut.replace(/[.-]/g, '') === workerRutInput.replace(/[.-]/g, ''));
+    if (foundWorker) {
+      setSelectedWorker(foundWorker);
+    } else {
+      setSelectedWorker(null);
+      toast({ variant: 'destructive', title: t('error'), description: t('worker_not_found') });
+    }
+  };
   
   const handleProjectSearch = () => {
     const foundProject = projects.find(p => p.id.toLowerCase() === projectIdInput.toLowerCase());
@@ -155,6 +162,7 @@ export default function ConsumptionsPage() {
   }), [reviewingVoucher, selectedWorker, selectedProject, selectedItems, totalCost, warehouseIdToFilter, user?.name, warehouses]);
 
   const resetForm = () => {
+    setWorkerRutInput('');
     setSelectedWorker(null);
     setProjectIdInput('');
     setSelectedProject(null);
@@ -277,54 +285,23 @@ export default function ConsumptionsPage() {
             <CardTitle>{t('delivery_details')}</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-                <Label>{t('worker')}</Label>
-                <Popover open={openWorkerCombobox} onOpenChange={setOpenWorkerCombobox}>
-                    <PopoverTrigger asChild>
-                        <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openWorkerCombobox}
-                        className="w-full justify-between"
-                        >
-                        {selectedWorker
-                            ? workers.find(worker => worker.id === selectedWorker.id)?.name
-                            : t('select_a_worker')}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                        <Command>
-                            <CommandInput placeholder={t('search_worker')} />
-                            <CommandList>
-                                <CommandEmpty>{t('no_results_found')}</CommandEmpty>
-                                <CommandGroup>
-                                    {workers.map(worker => (
-                                    <CommandItem
-                                        key={worker.id}
-                                        value={`${worker.name} ${worker.rut}`}
-                                        onSelect={() => {
-                                            setSelectedWorker(worker);
-                                            setOpenWorkerCombobox(false);
-                                        }}
-                                    >
-                                        <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            selectedWorker?.id === worker.id ? "opacity-100" : "opacity-0"
-                                        )}
-                                        />
-                                        {worker.name}
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                            </CommandList>
-                        </Command>
-                    </PopoverContent>
-                </Popover>
-
+             <div className="space-y-2">
+                <Label htmlFor='worker-rut-input'>{t('worker_rut')}</Label>
+                <div className='flex gap-2'>
+                    <Input
+                        id="worker-rut-input"
+                        value={workerRutInput}
+                        onChange={e => setWorkerRutInput(e.target.value)}
+                        placeholder={t('enter_rut_and_search')}
+                        onKeyDown={(e) => e.key === 'Enter' && handleWorkerSearch()}
+                    />
+                    <Button onClick={handleWorkerSearch} variant="outline" size="icon">
+                        <UserSearch />
+                    </Button>
+                </div>
                 {selectedWorker && (
                     <div className='mt-2 text-sm text-muted-foreground p-3 bg-muted rounded-md space-y-1'>
+                        <p><strong>{t('name')}:</strong> {selectedWorker.name}</p>
                         <p><strong>{t('rut')}:</strong> {selectedWorker.rut}</p>
                         <p><strong>{t('position')}:</strong> {selectedWorker.position}</p>
                         <p><strong>{t('department')}:</strong> {selectedWorker.department}</p>
