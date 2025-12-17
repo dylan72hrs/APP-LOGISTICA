@@ -106,29 +106,24 @@ export default function ReportsPage() {
         const formattedStartDate = format(startDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         const formattedEndDate = format(endDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         sheetData.push([`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`]);
-
         sheetData.push([]); // Spacer row
 
         // Header Rows
-        const headerRow1 = ["", "", "", "", ""]; // Spacers for item info columns
-        const headerRow2 = ["", "", "", "", ""];
-        const headerRow3 = ["Descripción", "Elemento Protección Personal", "", "Cód. AX", "Precio ($)"];
-        const headerRow4 = ["", "","Talla", "", "($)"];
+        const headerRow1: (string | number)[] = ["Descripción", "Elemento Protección Personal", "", "Cód. AX", "Precio ($)"];
+        const headerRow2: (string | number)[] = ["", "", "Talla", "", "($)"];
 
         projectsInReport.forEach(proj => {
             headerRow1.push(proj.name, ""); // Project Name spans 2 cols
-            headerRow2.push(proj.id, "");     // Project ID spans 2 cols
-            headerRow3.push("CANT", "VALOR");
-            headerRow4.push("", "");
+            headerRow2.push("CANT", "VALOR");
         });
 
-        sheetData.push(headerRow1, headerRow2, headerRow3, headerRow4);
+        sheetData.push(headerRow1, headerRow2);
 
         // Product Rows
         itemsInReport.forEach(item => {
             const row = [
                 item.description, // Descripción
-                "", // Elemento Protección Personal (merged cell in UI)
+                "", // Elemento Protección Personal (merged cell placeholder)
                 item.size, // Talla
                 item.code, // Cód. AX
                 item.cost, // Precio
@@ -148,13 +143,16 @@ export default function ReportsPage() {
         // Merging cells for title and headers
         const merges = [
             { s: { r: 0, c: 0 }, e: { r: 0, c: 4 + projectsInReport.length * 2 - 1 } }, // Title
-            { s: { r: 2, c: 0 }, e: { r: 3, c: 1 } }, // Descripción
+            { s: { r: 2, c: 0 }, e: { r: 3, c: 0 } }, // Descripción merge
+            { s: { r: 2, c: 1 }, e: { r: 2, c: 2 } }, // Elemento... merge
+            { s: { r: 2, c: 3 }, e: { r: 3, c: 3 } }, // Cód. AX merge
+            { s: { r: 2, c: 4 }, e: { r: 3, c: 4 } }, // Precio ($) merge
         ];
 
         projectsInReport.forEach((_, index) => {
             const col = 5 + index * 2;
-            merges.push({ s: { r: 4, c: col }, e: { r: 4, c: col + 1 } }); // Project Name
-            merges.push({ s: { r: 5, c: col }, e: { r: 5, c: col + 1 } }); // Project ID
+            merges.push({ s: { r: 2, c: col }, e: { r: 2, c: col + 1 } }); // Project Name merge
+            // No merge for CANT and VALOR on row 4, they are separate.
         });
         
         ws['!merges'] = merges;
