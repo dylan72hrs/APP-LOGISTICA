@@ -170,6 +170,7 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
     const initialCountry = user?.warehouseId ? warehouses.find(w => w.id === user.warehouseId)?.country : undefined;
     const [selectedCountry, setSelectedCountry] = useState<string | undefined>(initialCountry);
     const [selectedWarehouseId, setSelectedWarehouseId] = useState<string | undefined>(user?.warehouseId);
+    const [showPassword, setShowPassword] = useState(false);
 
 
     const countries = [...new Set(warehouses.map(w => w.country))];
@@ -204,6 +205,13 @@ function UserForm({ user, warehouses, onSave }: { user: UserProfile | null, ware
             <div className="space-y-2">
                 <Label htmlFor="email">{t('email')}</Label>
                 <Input id="email" name="email" type="email" defaultValue={user?.email} required />
+            </div>
+             <div className="relative space-y-2">
+                <Label htmlFor="password">{t('password')}</Label>
+                <Input id="password" name="password" type={showPassword ? 'text' : 'password'} defaultValue="123456" required />
+                <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-6 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
             </div>
             <div className="space-y-2">
                 <Label htmlFor="role">{t('role')}</Label>
