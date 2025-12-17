@@ -35,7 +35,7 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
     const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
 
     return (
-        <div ref={ref} className="bg-white text-black p-8 print:shadow-none print:border-none print:p-0 font-sans" id="printable-content">
+        <div ref={ref} className="bg-white text-black p-8 print:shadow-none print:border-none print:p-0 font-sans flex flex-col min-h-[90vh]" id="printable-content">
             <header className="flex justify-between items-start pb-4 border-b-2 border-black">
                 <div className='flex items-center gap-4'>
                     {companyLogo && (
@@ -86,7 +86,7 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
                 <p className="text-xs italic">El trabajador se compromete a mantener los Elementos de Protección Personal (EPP) en buen estado, usarlos y declara haberlos recibido en forma gratuita.</p>
             </section>
 
-            <section className="mt-6">
+            <section className="mt-6 flex-grow">
                 <div className='border-black border'>
                     <Table>
                         <TableHeader>
@@ -105,7 +105,7 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
                                     <TableCell className="border-r border-black">{item.code}</TableCell>
                                     <TableCell className="border-r border-black">{item.description}</TableCell>
                                     <TableCell className="border-r border-black text-right font-medium">{item.quantity}</TableCell>
-                                    <TableCell className="text-center"></TableCell>
+                                    <TableCell className="text-center border-l border-black"></TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -119,7 +119,7 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
                 </div>
             </section>
 
-            <footer className="mt-32 grid grid-cols-2 gap-8 text-center">
+            <footer className="mt-auto pt-16 grid grid-cols-2 gap-8 text-center">
                 <div>
                     <div className="border-t border-black w-3/4 mx-auto pt-2">
                         <p className="font-bold">{data.worker.name}</p>
