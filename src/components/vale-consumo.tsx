@@ -107,19 +107,18 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
             <footer className="mt-24 grid grid-cols-3 gap-8 text-center">
                 <div>
                     <div className="border-t border-black w-full mx-auto pt-2">
-                        <p>{t('signature_worker')}</p>
-                        <p className='font-bold'>{data.worker?.name}</p>
+                         <p>{t('signature_supervisor')}</p>
                     </div>
                 </div>
                  <div>
                     <div className="border-t border-black w-full mx-auto pt-2">
                          <p>{t('signature_delivered_by')}</p>
-                         <p className='font-bold'>{data.deliveredBy}</p>
                     </div>
                 </div>
                 <div>
                     <div className="border-t border-black w-full mx-auto pt-2">
-                         <p>{t('signature_supervisor')}</p>
+                        <p>{t('signature_worker')}</p>
+                        <p className='font-bold'>{data.worker?.name}</p>
                     </div>
                 </div>
             </footer>
