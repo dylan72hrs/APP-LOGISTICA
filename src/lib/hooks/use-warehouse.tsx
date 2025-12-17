@@ -3,11 +3,12 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './use-auth';
 import { useData } from './use-data';
+import type { Warehouse } from '../types';
 
 interface WarehouseContextType {
   selectedWarehouseId: string | null;
   setSelectedWarehouseId: (warehouseId: string) => void;
-  availableWarehouses: { id: string; name: string }[];
+  availableWarehouses: Warehouse[];
 }
 
 const WarehouseContext = createContext<WarehouseContextType | undefined>(undefined);
@@ -17,18 +18,19 @@ export function WarehouseProvider({ children }: { children: ReactNode }) {
   const { warehouses } = useData();
   
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>('all');
-  const [availableWarehouses, setAvailableWarehouses] = useState(warehouses);
+  const [availableWarehouses, setAvailableWarehouses] = useState<Warehouse[]>(warehouses);
 
   useEffect(() => {
-    if (user?.role === 'operator' && user.warehouseId) {
+    if (!user) return;
+
+    if (user.role === 'operator' && user.warehouseId) {
       setSelectedWarehouseId(user.warehouseId);
       setAvailableWarehouses(warehouses.filter(w => w.id === user.warehouseId));
-    } else if (user?.role === 'reports' && user.country) {
+    } else if (user.role === 'reports' && user.country) {
       const countryWarehouses = warehouses.filter(w => w.country === user.country);
       setAvailableWarehouses(countryWarehouses);
-      // Default to 'all' (which means all for their country)
       setSelectedWarehouseId('all'); 
-    } else if (user?.role === 'admin') {
+    } else if (user.role === 'admin') {
       setAvailableWarehouses(warehouses);
       setSelectedWarehouseId('all');
     }
@@ -37,7 +39,7 @@ export function WarehouseProvider({ children }: { children: ReactNode }) {
 
   const setWarehouseId = (id: string) => {
     if (user?.role === 'operator') {
-      return;
+      return; // Operators cannot change their assigned warehouse
     }
     setSelectedWarehouseId(id);
   };
