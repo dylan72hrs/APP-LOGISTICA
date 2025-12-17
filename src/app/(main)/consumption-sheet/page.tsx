@@ -234,6 +234,7 @@ export default function ConsumptionSheetPage() {
                       selected={{ from: startDate, to: endDate }}
                       onSelect={(range) => { setStartDate(range?.from); setEndDate(range?.to); }}
                       numberOfMonths={2}
+                      locale={dateLocales[language]}
                     />
                   </PopoverContent>
                 </Popover>
