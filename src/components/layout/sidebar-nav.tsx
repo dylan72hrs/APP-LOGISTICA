@@ -36,7 +36,7 @@ const navItems = [
   { href: '/consumptions', labelKey: 'consumptions', icon: Truck, roles: ['admin', 'operator'] },
   { href: '/consumption-sheet', labelKey: 'consumption_sheet', icon: FileSignature, roles: ['admin', 'reports', 'operator'] },
   { href: '/reports', labelKey: 'reports', icon: FileText, roles: ['admin', 'reports', 'operator'] },
-  { href: '/restock', labelKey: 'ai_restock', icon: BrainCircuit, roles: ['admin'] },
+  { href: '/restock', labelKey: 'ai_restock', icon: BrainCircuit, roles: ['admin', 'operator'] },
   { href: '/warehouses', labelKey: 'warehouses', icon: Warehouse, roles: ['admin'] },
   { href: '/admin/users', labelKey: 'admin', icon: Users, roles: ['admin'] },
 ];
