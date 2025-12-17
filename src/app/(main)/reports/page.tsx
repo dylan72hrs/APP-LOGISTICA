@@ -102,27 +102,50 @@ export default function ReportsPage() {
         
         // 5. Build the Excel sheet data
         const sheetData: (string | number)[][] = [];
+        const merges = [];
 
-        // Title Row (Row 1)
+        // --- HEADER ---
+
+        // Row 1: Title
         const formattedStartDate = format(startDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         const formattedEndDate = format(endDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         sheetData.push([`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`]);
-        sheetData.push([]); // Spacer row (Row 2)
+        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } });
+        
+        // Row 2: Spacer
+        sheetData.push([]); 
 
-        // Header Rows (Row 3, 4, 5)
-        const headerRow3: (string | null)[] = [null, "Elemento Protección Personal"];
-        const headerRow4: (string | null)[] = [null];
-        const headerRow5: (string | number)[] = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
-
+        // Row 3: "Elemento Protección Personal" and Project Names
+        const headerRow3: (string | null)[] = ["Elemento Protección Personal", null, null, null];
         projectsInReport.forEach(proj => {
-            headerRow3.push(proj.name, null); // Project Name
-            headerRow4.push(proj.id, null);    // Project ID
-            headerRow5.push("CANT", "VALOR");
+            headerRow3.push(proj.name, null);
+        });
+        sheetData.push(headerRow3);
+        merges.push({ s: { r: 2, c: 0 }, e: { r: 2, c: 3 } }); // Merge "Elemento..."
+        projectsInReport.forEach((_, index) => {
+            const col = 4 + index * 2;
+            merges.push({ s: { r: 2, c: col }, e: { r: 2, c: col + 1 } });
+        });
+
+        // Row 4: Project IDs
+        const headerRow4: (string | null)[] = [null, null, null, null];
+        projectsInReport.forEach(proj => {
+            headerRow4.push(proj.id, null);
+        });
+        sheetData.push(headerRow4);
+        projectsInReport.forEach((_, index) => {
+            const col = 4 + index * 2;
+            merges.push({ s: { r: 3, c: col }, e: { r: 3, c: col + 1 } });
         });
         
-        sheetData.push(headerRow3, headerRow4, headerRow5);
+        // Row 5: Column Headers ("Descripción", "CANT", "VALOR", etc.)
+        const headerRow5: (string | number)[] = ["Descripción", "Talla", "Cód. AX", "Precio ($)"];
+        projectsInReport.forEach(proj => {
+            headerRow5.push("CANT", "VALOR");
+        });
+        sheetData.push(headerRow5);
 
-        // Product Rows
+        // --- DATA ROWS ---
         itemsInReport.forEach(item => {
             const row: (string | number)[] = [
                 item.description,
@@ -141,20 +164,6 @@ export default function ReportsPage() {
         
         // 6. Create and download workbook
         const ws = XLSX.utils.aoa_to_sheet(sheetData, {cellDates: true});
-
-        // Merging cells
-        const merges = [
-            // Title
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } }, 
-            // "Elemento..."
-            { s: { r: 2, c: 1 }, e: { r: 2, c: 3 } }, 
-        ];
-
-        projectsInReport.forEach((_, index) => {
-            const col = 4 + index * 2;
-            merges.push({ s: { r: 2, c: col }, e: { r: 2, c: col + 1 } }); // Project Name merge
-            merges.push({ s: { r: 3, c: col }, e: { r: 3, c: col + 1 } }); // Project ID merge
-        });
         
         ws['!merges'] = merges;
         
