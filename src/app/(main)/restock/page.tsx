@@ -11,6 +11,8 @@ import { useData } from '@/lib/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 import { generateRestockSuggestions } from '@/ai/flows/intelligent-restock-suggestions';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
+import * as XLSX from 'xlsx';
+
 
 interface Suggestion {
   code: string;
@@ -79,6 +81,14 @@ export default function RestockPage() {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = [t('code'), t('min_stock'), t('max_stock')];
+    const ws = XLSX.utils.aoa_to_sheet([headers]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'MinMax_Plantilla');
+    XLSX.writeFile(wb, 'plantilla_min_max_stock.xlsx');
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold tracking-tight">{t('ai_restock')}</h1>
@@ -121,7 +131,7 @@ export default function RestockPage() {
           </div>
         </CardContent>
          <CardContent className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" disabled>
+            <Button variant="outline" onClick={handleDownloadTemplate}>
                 <Download className="mr-2"/>
                 {t('download_format')}
             </Button>
