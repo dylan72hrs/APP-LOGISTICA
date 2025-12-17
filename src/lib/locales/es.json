@@ -219,5 +219,15 @@
     "pending_vouchers_queue": "Cola de Vales en Espera",
     "vouchers_awaiting_approval": "Vales que esperan la autorización del supervisor para registrar el consumo.",
     "no_pending_vouchers": "No hay vales en espera.",
-    "generate_report_to_see_results": "Genera un reporte para ver los resultados aquí."
+    "generate_report_to_see_results": "Genera un reporte para ver los resultados aquí.",
+    "ficha_consumo_trabajador": "Ficha de Consumo por Trabajador",
+    "search_worker_by_rut": "Busca un trabajador por su RUT para ver su historial de consumo.",
+    "week": "Semana",
+    "month": "Mes",
+    "year": "Año",
+    "range": "Rango",
+    "print_report": "Imprimir Ficha",
+    "showing_results_for": "Mostrando resultados para",
+    "no_consumptions_in_period": "No se encontraron consumos en este período.",
+    "total_items_consumed": "Total de Ítems Consumidos"
 }

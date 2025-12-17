@@ -219,5 +219,15 @@
     "pending_vouchers_queue": "File d'attente des bons en attente",
     "vouchers_awaiting_approval": "Bons en attente de l'autorisation du superviseur pour enregistrer la consommation.",
     "no_pending_vouchers": "Aucun bon en attente.",
-    "generate_report_to_see_results": "Générez un rapport pour voir les résultats ici."
+    "generate_report_to_see_results": "Générez un rapport pour voir les résultats ici.",
+    "ficha_consumo_trabajador": "Fiche de Consommation du Travailleur",
+    "search_worker_by_rut": "Recherchez un travailleur par son ID pour voir son historique de consommation.",
+    "week": "Semaine",
+    "month": "Mois",
+    "year": "Année",
+    "range": "Plage",
+    "print_report": "Imprimer la Fiche",
+    "showing_results_for": "Affichage des résultats pour",
+    "no_consumptions_in_period": "Aucune consommation enregistrée pour cette période.",
+    "total_items_consumed": "Total des Articles Consommés"
 }

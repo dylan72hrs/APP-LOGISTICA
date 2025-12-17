@@ -219,5 +219,15 @@
     "pending_vouchers_queue": "Pending Vouchers Queue",
     "vouchers_awaiting_approval": "Vouchers awaiting supervisor authorization to register consumption.",
     "no_pending_vouchers": "No pending vouchers.",
-    "generate_report_to_see_results": "Generate a report to see the results here."
+    "generate_report_to_see_results": "Generate a report to see the results here.",
+    "ficha_consumo_trabajador": "Worker Consumption Record",
+    "search_worker_by_rut": "Search for a worker by their ID to see their consumption history.",
+    "week": "Week",
+    "month": "Month",
+    "year": "Year",
+    "range": "Range",
+    "print_report": "Print Report",
+    "showing_results_for": "Showing results for",
+    "no_consumptions_in_period": "No consumptions recorded in this period.",
+    "total_items_consumed": "Total Items Consumed"
 }
