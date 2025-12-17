@@ -3,17 +3,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Boxes, Truck, AlertCircle, Users, CalendarDays, Calendar } from "lucide-react";
 import { useLanguage } from "@/lib/hooks/use-language";
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useWarehouse } from "@/lib/hooks/use-warehouse";
 import { useData } from "@/lib/hooks/use-data";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { isThisMonth, isThisYear, isWithinInterval, subDays, getWeekOfMonth, getMonth } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default function DashboardPage() {
     const { t, language } = useLanguage();
     const { user } = useAuth();
     const { selectedWarehouseId, availableWarehouses } = useWarehouse();
     const { inventory, consumptionRecords, workers } = useData();
+
+    const [isLowStockDialogOpen, setIsLowStockDialogOpen] = useState(false);
 
 
     const filteredInventory = useMemo(() => {
@@ -39,7 +45,7 @@ export default function DashboardPage() {
     }, [selectedWarehouseId, consumptionRecords, user, availableWarehouses]);
 
     const totalItems = filteredInventory.reduce((acc, item) => acc + item.quantity, 0);
-    const lowStockItems = filteredInventory.filter(item => item.quantity < 20).length;
+    const lowStockItems = useMemo(() => filteredInventory.filter(item => item.quantity < 20), [filteredInventory]);
     
     const now = new Date();
     const last7DaysInterval = { start: subDays(now, 7), end: now };
@@ -126,7 +132,7 @@ export default function DashboardPage() {
     return (
         <div className="flex flex-col gap-4">
             <h1 className="text-2xl font-bold tracking-tight">{t('dashboard')}</h1>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">{t('items_in_inventory')}</CardTitle>
@@ -147,16 +153,52 @@ export default function DashboardPage() {
                         <p className="text-xs text-muted-foreground">{t('items_consumed')}</p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">{t('stock_alerts')}</CardTitle>
-                        <AlertCircle className="h-4 w-4 text-destructive" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{lowStockItems}</div>
-                        <p className="text-xs text-muted-foreground">{t('items_less_than_20_units')}</p>
-                    </CardContent>
-                </Card>
+                <Dialog open={isLowStockDialogOpen} onOpenChange={setIsLowStockDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Card className="cursor-pointer hover:bg-muted/50">
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium">{t('stock_alerts')}</CardTitle>
+                                <AlertCircle className="h-4 w-4 text-destructive" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{lowStockItems.length}</div>
+                                <p className="text-xs text-muted-foreground">{t('items_less_than_20_units')}</p>
+                            </CardContent>
+                        </Card>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl">
+                        <DialogHeader>
+                            <DialogTitle>{t('stock_alerts')}</DialogTitle>
+                            <CardDescription>{t('items_less_than_20_units')}</CardDescription>
+                        </DialogHeader>
+                        <div className="max-h-[60vh] overflow-y-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>{t('code')}</TableHead>
+                                        <TableHead>{t('description')}</TableHead>
+                                        <TableHead>{t('warehouse')}</TableHead>
+                                        <TableHead className="text-right">{t('quantity')}</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {lowStockItems.map(item => (
+                                        <TableRow key={`${item.id}-${item.warehouseId}`}>
+                                            <TableCell className="font-medium">{item.code}</TableCell>
+                                            <TableCell>{item.description}</TableCell>
+                                            <TableCell>
+                                                {availableWarehouses.find(w => w.id === item.warehouseId)?.name || item.warehouseId}
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <Badge variant="destructive">{item.quantity}</Badge>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-1 md:col-span-2 lg:col-span-7">
@@ -236,4 +278,5 @@ export default function DashboardPage() {
             </div>
         </div>
     );
-}
+
+    
