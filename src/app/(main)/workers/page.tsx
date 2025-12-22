@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,25 +15,52 @@ import { useLanguage } from '@/lib/hooks/use-language';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useData } from '@/lib/hooks/use-data';
+import { useWarehouse } from '@/lib/hooks/use-warehouse';
 
 export default function WorkersPage() {
     const { toast } = useToast();
     const { t } = useLanguage();
     const { user } = useAuth();
     const { workers, addWorker, updateWorker, deleteWorker } = useData();
+    const { selectedWarehouseId } = useWarehouse();
+
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingWorker, setEditingWorker] = useState<Worker | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleSaveWorker = (formData: FormData) => {
-        const worker: Omit<Worker, 'id'> & { id?: string } = {
-            rut: formData.get('rut') as string,
-            name: formData.get('name') as string,
-            position: formData.get('position') as string,
-            department: formData.get('department') as string,
-        };
+    const visibleWorkers = useMemo(() => {
+        if (selectedWarehouseId === 'all') {
+            return workers;
+        }
+        return workers.filter(worker => worker.warehouseId === selectedWarehouseId);
+    }, [workers, selectedWarehouseId]);
 
-        if (!worker.rut || !worker.name || !worker.position || !worker.department) {
+    const handleSaveWorker = (formData: FormData) => {
+        const rut = formData.get('rut') as string;
+        const name = formData.get('name') as string;
+        const position = formData.get('position') as string;
+        const department = formData.get('department') as string;
+        
+        let warehouseId = editingWorker?.warehouseId;
+        if (!warehouseId) {
+             if (user?.role === 'operator') {
+                warehouseId = user.warehouseId!;
+            } else if (user?.role === 'admin') {
+                if (selectedWarehouseId && selectedWarehouseId !== 'all') {
+                    warehouseId = selectedWarehouseId;
+                } else {
+                     toast({
+                        variant: 'destructive',
+                        title: t('no_warehouse_selected'),
+                        description: t('admin_select_warehouse_for_worker')
+                    });
+                    return;
+                }
+            }
+        }
+        if (!warehouseId) return;
+
+        if (!rut || !name || !position || !department) {
             toast({
                 variant: 'destructive',
                 title: t('error'),
@@ -43,8 +70,12 @@ export default function WorkersPage() {
         }
 
         const finalWorker: Worker = {
-            ...worker,
-            id: editingWorker?.id || worker.rut,
+            id: editingWorker?.id || rut,
+            rut,
+            name,
+            position,
+            department,
+            warehouseId
         };
 
         if (editingWorker) {
@@ -73,6 +104,14 @@ export default function WorkersPage() {
     }
     
     const handleAddNewClick = () => {
+         if (user?.role === 'admin' && selectedWarehouseId === 'all') {
+            toast({
+                variant: 'destructive',
+                title: t('no_warehouse_selected'),
+                description: t('admin_select_warehouse_for_worker')
+            });
+            return;
+        }
         setEditingWorker(null);
         setIsDialogOpen(true);
     }
@@ -87,14 +126,22 @@ export default function WorkersPage() {
     }
 
     const handleDownloadTemplate = () => {
-        const headers = [t('rut'), t('full_name'), t('position'), t('department')];
-        const ws = XLSX.utils.aoa_to_sheet([headers]);
+        const headers = [['RUT', 'Nombre Completo', 'Cargo', 'Sección']];
+        const ws = XLSX.utils.aoa_to_sheet(headers);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Plantilla Trabajadores');
         XLSX.writeFile(wb, 'plantilla_trabajadores.xlsx');
     };
 
     const handleImportClick = () => {
+        if (user?.role === 'admin' && selectedWarehouseId === 'all') {
+            toast({
+                variant: 'destructive',
+                title: t('no_warehouse_selected'),
+                description: t('admin_select_warehouse_for_worker_import')
+            });
+            return;
+        }
         fileInputRef.current?.click();
     };
 
@@ -109,18 +156,33 @@ export default function WorkersPage() {
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+                const json: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                let warehouseIdForUpload: string | undefined;
+                if (user?.role === 'operator') {
+                    warehouseIdForUpload = user.warehouseId;
+                } else if (user?.role === 'admin') {
+                    warehouseIdForUpload = selectedWarehouseId;
+                }
+
+                if (!warehouseIdForUpload || warehouseIdForUpload === 'all') {
+                    throw new Error(t('cannot_import_products_without_warehouse'));
+                }
 
                 const existingRUTs = new Set(workers.map(w => w.rut.toLowerCase()));
+                let workersAdded = 0;
                 
-                for (const row of json) {
-                    const rut = row[t('rut')];
-                    const name = row[t('full_name')];
-                    const position = row[t('position')];
-                    const department = row[t('department')];
+                // Skip header row (index 0)
+                for (let i = 1; i < json.length; i++) {
+                    const row = json[i];
+                    const rut = row[0];
+                    const name = row[1];
+                    const position = row[2];
+                    const department = row[3];
                     
                     if (!rut || !name || !position || !department) {
-                        throw new Error(t('invalid_row_data_in_excel'));
+                        console.warn('Skipping invalid row:', row);
+                        continue;
                     }
 
                     if (existingRUTs.has(String(rut).toLowerCase())) {
@@ -134,14 +196,16 @@ export default function WorkersPage() {
                         name: String(name),
                         position: String(position),
                         department: String(department),
+                        warehouseId: warehouseIdForUpload,
                     };
                     addWorker(newWorker);
                     existingRUTs.add(newWorker.rut.toLowerCase());
+                    workersAdded++;
                 }
 
                 toast({
                     title: t('import_successful'),
-                    description: t('new_workers_imported_successfully', { count: json.length.toString() })
+                    description: t('new_workers_imported_successfully', { count: workersAdded.toString() })
                 });
 
             } catch (error) {
@@ -183,6 +247,11 @@ export default function WorkersPage() {
                     </Button>
                 </div>
             </div>
+            {user?.role === 'admin' && selectedWarehouseId === 'all' && (
+                <CardDescription className='text-destructive -mt-2'>
+                    {t('admin_select_warehouse_for_worker_management')}
+                </CardDescription>
+            )}
 
             <Card>
                 <CardContent className="p-0">
@@ -197,7 +266,7 @@ export default function WorkersPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {workers.map((worker) => (
+                            {visibleWorkers.map((worker) => (
                                 <TableRow key={worker.id}>
                                     <TableCell className="font-medium">{worker.rut}</TableCell>
                                     <TableCell>{worker.name}</TableCell>
@@ -279,5 +348,3 @@ function WorkerForm({ worker, onSave }: { worker: Worker | null, onSave: (data: 
         </form>
     );
 }
-
-    

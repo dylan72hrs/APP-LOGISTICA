@@ -88,8 +88,8 @@ export default function ProjectsPage() {
     }
 
     const handleDownloadTemplate = () => {
-        const headers = [t('project_id'), t('financial_dimension'), t('project_name'), t('project_manager'), t('project_approver')];
-        const ws = XLSX.utils.aoa_to_sheet([headers]);
+        const headers = [['ID de Proyecto', 'Dimensión Financiera', 'Nombre de Proyecto', 'Administrador/Encargado', 'Aprobador']];
+        const ws = XLSX.utils.aoa_to_sheet(headers);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Plantilla Proyectos');
         XLSX.writeFile(wb, 'plantilla_proyectos.xlsx');
@@ -110,19 +110,23 @@ export default function ProjectsPage() {
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+                const json: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                 const existingIDs = new Set(projects.map(p => p.id.toLowerCase()));
+                let projectsAdded = 0;
                 
-                for (const row of json) {
-                    const id = row[t('project_id')];
-                    const financialDimension = row[t('financial_dimension')];
-                    const name = row[t('project_name')];
-                    const manager = row[t('project_manager')];
-                    const approver = row[t('project_approver')];
+                // Skip header row (index 0)
+                for (let i = 1; i < json.length; i++) {
+                    const row = json[i];
+                    const id = row[0];
+                    const financialDimension = row[1];
+                    const name = row[2];
+                    const manager = row[3];
+                    const approver = row[4];
                     
                     if (!id || !name || !manager || !approver) {
-                        throw new Error(t('invalid_row_data_in_excel'));
+                        console.warn('Skipping invalid row:', row);
+                        continue;
                     }
 
                     if (existingIDs.has(String(id).toLowerCase())) {
@@ -139,11 +143,12 @@ export default function ProjectsPage() {
                     };
                     addProject(newProject);
                     existingIDs.add(newProject.id.toLowerCase());
+                    projectsAdded++;
                 }
 
                 toast({
                     title: t('import_successful'),
-                    description: t('new_projects_imported_successfully', { count: json.length.toString() })
+                    description: t('new_projects_imported_successfully', { count: projectsAdded.toString() })
                 });
 
             } catch (error) {

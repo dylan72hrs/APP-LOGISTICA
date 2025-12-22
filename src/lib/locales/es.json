@@ -270,5 +270,10 @@
     "consumptions_this_month": "Consumos (Este Mes)",
     "items_consumed": "Items consumidos",
     "consumptions_this_year": "Consumos (Este Año)",
-    "quantity_of_items_consumed_per_day_last_7_days": "Cantidad de items consumidos por día en los últimos 7 días."
+    "quantity_of_items_consumed_per_day_last_7_days": "Cantidad de items consumidos por día en los últimos 7 días.",
+    "admin_select_warehouse_for_worker": "Como administrador, debes seleccionar una bodega para agregar un trabajador.",
+    "admin_select_warehouse_for_worker_import": "Como administrador, debes seleccionar una bodega para importar trabajadores.",
+    "admin_select_warehouse_for_worker_management": "Selecciona una bodega específica para gestionar a sus trabajadores.",
+    "items_created": "items creados",
+    "items_updated": "items actualizados"
 }

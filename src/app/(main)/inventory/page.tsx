@@ -160,8 +160,8 @@ export default function InventoryPage() {
     }
 
     const handleDownloadTemplate = () => {
-        const headers = [t('code'), t('description'), t('size_unit'), t('quantity'), t('unit_cost')];
-        const ws = XLSX.utils.aoa_to_sheet([headers]);
+        const headers = [['Código', 'Descripción', 'Talla / U. Medida', 'Cantidad', 'Costo Unitario']];
+        const ws = XLSX.utils.aoa_to_sheet(headers);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
         XLSX.writeFile(wb, 'plantilla_productos_epp.xlsx');
@@ -193,7 +193,7 @@ export default function InventoryPage() {
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const json: any[] = XLSX.utils.sheet_to_json(worksheet);
+                const json: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                 let warehouseIdForUpload: string | undefined;
 
@@ -212,16 +212,17 @@ export default function InventoryPage() {
                     return;
                 }
 
-                const newItems: InventoryItem[] = [];
                 let itemsAdded = 0;
                 let itemsUpdated = 0;
                 
-                for (const row of json) {
-                    const code = row[t('code')];
-                    const description = row[t('description')];
-                    const size = row[t('size_unit')];
-                    const quantity = parseInt(row[t('quantity')], 10);
-                    const cost = parseFloat(row[t('unit_cost')]);
+                // Skip header row (index 0)
+                for (let i = 1; i < json.length; i++) {
+                    const row = json[i];
+                    const code = row[0];
+                    const description = row[1];
+                    const size = row[2];
+                    const quantity = parseInt(row[3], 10);
+                    const cost = parseFloat(row[4]);
                     
                     if (!code || !description || !size || isNaN(quantity) || isNaN(cost)) {
                         console.warn('Skipping invalid row:', row);
@@ -255,7 +256,7 @@ export default function InventoryPage() {
 
                 toast({
                     title: t('import_successful'),
-                    description: `${itemsAdded} items created, ${itemsUpdated} items updated.`
+                    description: `${itemsAdded} ${t('items_created')}, ${itemsUpdated} ${t('items_updated')}.`
                 });
 
             } catch (error) {
@@ -373,7 +374,8 @@ export default function InventoryPage() {
 
 function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data: FormData) => void }) {
     const { t } = useLanguage();
-    
+    const { inventory } = useData();
+
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
@@ -396,7 +398,7 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
             </div>
             <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label htmlFor="quantity">{t('entry_quantity')}</Label>
-                <Input id="quantity" name="quantity" type="number" defaultValue={item?.quantity} required min="0"/>
+                <Input id="quantity" name="quantity" type="number" defaultValue={item ? undefined : ''} placeholder={item ? item.quantity.toString() : '0'} required min="0"/>
             </div>
              <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label htmlFor="cost">{t('price_unit_cost')}</Label>

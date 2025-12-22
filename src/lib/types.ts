@@ -40,6 +40,7 @@ export interface Worker {
   name: string;
   position: string;
   department: string;
+  warehouseId: string;
 }
 
 export interface ConsumptionRecord {

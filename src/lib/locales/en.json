@@ -269,5 +269,10 @@
     "consumptions_this_month": "Consumptions (This Month)",
     "items_consumed": "Items consumed",
     "consumptions_this_year": "Consumptions (This Year)",
-    "quantity_of_items_consumed_per_day_last_7_days": "Quantity of items consumed per day in the last 7 days."
+    "quantity_of_items_consumed_per_day_last_7_days": "Quantity of items consumed per day in the last 7 days.",
+    "admin_select_warehouse_for_worker": "As an administrator, you must select a warehouse to add a worker.",
+    "admin_select_warehouse_for_worker_import": "As an administrator, you must select a warehouse to import workers.",
+    "admin_select_warehouse_for_worker_management": "Select a specific warehouse to manage its workers.",
+    "items_created": "items created",
+    "items_updated": "items updated"
 }
