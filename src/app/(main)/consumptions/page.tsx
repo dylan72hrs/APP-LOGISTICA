@@ -66,10 +66,26 @@ export default function ConsumptionsPage() {
     return selectedWarehouseId; // For admin
   }, [selectedWarehouseId, user]);
   
-  const availableInventory = useMemo(() => {
+  const physicalInventoryInWarehouse = useMemo(() => {
     if (!warehouseIdToFilter || warehouseIdToFilter === 'all') return [];
-    return inventory.filter(item => item.warehouseId === warehouseIdToFilter && item.quantity > 0);
+    return inventory.filter(item => item.warehouseId === warehouseIdToFilter);
   }, [inventory, warehouseIdToFilter]);
+
+  const virtualInventory = useMemo(() => {
+    const reservedQuantities: Record<string, number> = {};
+    pendingVouchers.forEach(voucher => {
+        if (voucher.warehouseId === warehouseIdToFilter) {
+            voucher.items.forEach(item => {
+                reservedQuantities[item.id] = (reservedQuantities[item.id] || 0) + item.consumeQuantity;
+            });
+        }
+    });
+
+    return physicalInventoryInWarehouse.map(item => ({
+        ...item,
+        quantity: item.quantity - (reservedQuantities[item.id] || 0),
+    }));
+  }, [physicalInventoryInWarehouse, pendingVouchers, warehouseIdToFilter]);
 
   const handleWorkerSearch = () => {
     const foundWorker = workers.find(w => w.rut.replace(/[.-]/g, '') === workerRutInput.replace(/[.-]/g, ''));
@@ -104,19 +120,25 @@ export default function ConsumptionsPage() {
       return;
     }
 
-    const foundItem = availableInventory.find(item => item.code.toLowerCase() === code.toLowerCase());
+    const itemInPhysicalInventory = physicalInventoryInWarehouse.find(item => item.code.toLowerCase() === code.toLowerCase());
 
-    if (!foundItem) {
+    if (!itemInPhysicalInventory) {
       toast({ variant: 'destructive', title: t('error'), description: t('no_product_found') });
       return;
     }
     
-    if (selectedItems.some(i => i.id === foundItem.id)) {
+    if (selectedItems.some(i => i.id === itemInPhysicalInventory.id)) {
       toast({ variant: 'destructive', title: t('error'), description: t('product_already_added') });
       return;
     }
+    
+    const itemInVirtualInventory = virtualInventory.find(item => item.id === itemInPhysicalInventory.id);
+    if (!itemInVirtualInventory || itemInVirtualInventory.quantity <= 0) {
+      toast({ variant: 'destructive', title: t('error'), description: t('stock_exceeded') });
+      return;
+    }
 
-    setSelectedItems(prev => [...prev, { ...foundItem, consumeQuantity: 1 }]);
+    setSelectedItems(prev => [...prev, { ...itemInVirtualInventory, consumeQuantity: 1 }]);
     if (productCodeInputRef.current) {
         productCodeInputRef.current.value = '';
         setProductCodeInput(''); // Also clear the state
@@ -125,26 +147,25 @@ export default function ConsumptionsPage() {
   };
   
   const handleQuantityChange = (itemId: string, newQuantityValue: number) => {
-    if (isNaN(newQuantityValue)) {
-        return; // Ignore if the input is not a valid number
-    }
+    const newQuantity = isNaN(newQuantityValue) ? 1 : newQuantityValue;
     
-    let newQuantity = newQuantityValue;
+    const itemInVirtualStock = virtualInventory.find(i => i.id === itemId);
+    const availableStock = itemInVirtualStock?.quantity || 0;
+    
+    let finalQuantity = Math.max(1, newQuantity);
 
-    const itemInStock = availableInventory.find(i => i.id === itemId);
-    if (newQuantity < 1) newQuantity = 1;
-
-    if (itemInStock && newQuantity > itemInStock.quantity) {
-      newQuantity = itemInStock.quantity;
+    if (finalQuantity > availableStock) {
+      finalQuantity = availableStock;
       toast({
         variant: 'destructive',
         title: t('stock_exceeded'),
-        description: t('cannot_consume_more_than_available_stock', { stock: itemInStock.quantity.toString() })
+        description: t('cannot_consume_more_than_available_stock', { stock: availableStock.toString() })
       });
     }
+
     setSelectedItems(prev =>
       prev.map(item =>
-        item.id === itemId ? { ...item, consumeQuantity: newQuantity } : item
+        item.id === itemId ? { ...item, consumeQuantity: finalQuantity } : item
       )
     );
   };
@@ -475,5 +496,3 @@ export default function ConsumptionsPage() {
     </>
   );
 }
-
-    
