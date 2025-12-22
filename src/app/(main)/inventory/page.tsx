@@ -211,6 +211,10 @@ export default function InventoryPage() {
                     });
                     return;
                 }
+                
+                // Use a local snapshot and a map for efficient lookups and updates within the loop
+                let inventorySnapshot = [...inventory];
+                const updatedItems: { [code: string]: InventoryItem } = {};
 
                 let itemsAdded = 0;
                 let itemsUpdated = 0;
@@ -231,7 +235,10 @@ export default function InventoryPage() {
                         continue;
                     }
 
-                    const existingItem = inventory.find(i => i.code.toLowerCase() === String(code).toLowerCase() && i.warehouseId === warehouseIdForUpload);
+                    const itemCodeStr = String(code).toLowerCase();
+                    
+                    // Check our temporary map first, then the initial snapshot
+                    let existingItem = updatedItems[itemCodeStr] || inventorySnapshot.find(i => i.code.toLowerCase() === itemCodeStr && i.warehouseId === warehouseIdForUpload);
 
                     if (existingItem) {
                         const updatedItem: InventoryItem = {
@@ -241,8 +248,9 @@ export default function InventoryPage() {
                             description,
                             size,
                         };
-                        updateInventoryItem(updatedItem);
-                        itemsUpdated++;
+                        updatedItems[itemCodeStr] = updatedItem;
+                        if (!updatedItems[itemCodeStr]) itemsUpdated++;
+
                     } else {
                         const newItem: InventoryItem = {
                             id: String(code),
@@ -253,10 +261,20 @@ export default function InventoryPage() {
                             cost,
                             warehouseId: warehouseIdForUpload!,
                         };
-                        addInventoryItem(newItem);
+                        updatedItems[itemCodeStr] = newItem;
                         itemsAdded++;
                     }
                 }
+                
+                // Batch update the state
+                Object.values(updatedItems).forEach(item => {
+                    const alreadyExistsInOriginal = inventory.some(i => i.code.toLowerCase() === item.code.toLowerCase() && i.warehouseId === item.warehouseId);
+                    if (alreadyExistsInOriginal) {
+                        updateInventoryItem(item);
+                    } else {
+                        addInventoryItem(item);
+                    }
+                });
 
                 toast({
                     title: t('import_successful'),
@@ -405,7 +423,7 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
                 <Input id="quantity" name="quantity" type="number" defaultValue={item ? undefined : ''} placeholder={item ? item.quantity.toString() : '0'} required min="0"/>
             </div>
              <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label htmlFor="cost">{t('price_unit_cost')}</Label>
+                <Label htmlFor="price_unit_cost">{t('price_unit_cost')}</Label>
                 <Input id="cost" name="cost" type="number" step="0.01" defaultValue={item?.cost} required min="0"/>
             </div>
             
@@ -418,3 +436,5 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
         </form>
     );
 }
+
+    
