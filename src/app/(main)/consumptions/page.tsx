@@ -124,9 +124,16 @@ export default function ConsumptionsPage() {
     productCodeInputRef.current?.focus();
   };
   
-  const handleQuantityChange = (itemId: string, newQuantity: number) => {
+  const handleQuantityChange = (itemId: string, newQuantityValue: number) => {
+    if (isNaN(newQuantityValue)) {
+        return; // Ignore if the input is not a valid number
+    }
+    
+    let newQuantity = newQuantityValue;
+
     const itemInStock = availableInventory.find(i => i.id === itemId);
     if (newQuantity < 1) newQuantity = 1;
+
     if (itemInStock && newQuantity > itemInStock.quantity) {
       newQuantity = itemInStock.quantity;
       toast({
@@ -276,7 +283,7 @@ export default function ConsumptionsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-              <h1 className="text-2xl font-bold tracking-tight">{t('consumption_record')}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">${t('consumption_record')}</h1>
               <CardDescription>{t('record_epp_delivery')}</CardDescription>
           </div>
       </div>
@@ -468,3 +475,5 @@ export default function ConsumptionsPage() {
     </>
   );
 }
+
+    
