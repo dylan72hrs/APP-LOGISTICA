@@ -212,21 +212,21 @@ export default function InventoryPage() {
                     return;
                 }
                 
-                // Use a local snapshot and a map for efficient lookups and updates within the loop
-                let inventorySnapshot = [...inventory];
+                const inventorySnapshot = [...inventory];
                 const updatedItems: { [code: string]: InventoryItem } = {};
 
-                let itemsAdded = 0;
-                let itemsUpdated = 0;
-                
+                let processedRowCount = 0;
+
                 // Skip header row (index 0)
                 for (let i = 1; i < json.length; i++) {
                     const row = json[i];
-                    if (row.length === 0) continue; // Skip empty rows
+                    if (row.length === 0 || !row[0]) continue; // Skip empty rows or rows without a code
 
-                    const code = row[0];
-                    const description = row[1];
-                    const size = row[2];
+                    processedRowCount++;
+
+                    const code = String(row[0]);
+                    const description = String(row[1]);
+                    const size = String(row[2]);
                     const quantity = parseInt(row[3], 10);
                     const cost = parseFloat(row[4]);
                     
@@ -235,46 +235,57 @@ export default function InventoryPage() {
                         continue;
                     }
 
-                    const itemCodeStr = String(code).toLowerCase();
+                    const itemCodeStr = code.toLowerCase();
                     
-                    // Check our temporary map first, then the initial snapshot
-                    let existingItem = updatedItems[itemCodeStr] || inventorySnapshot.find(i => i.code.toLowerCase() === itemCodeStr && i.warehouseId === warehouseIdForUpload);
+                    let existingItem = updatedItems[itemCodeStr] || inventorySnapshot.find(invItem => invItem.code.toLowerCase() === itemCodeStr && invItem.warehouseId === warehouseIdForUpload);
 
                     if (existingItem) {
-                        const updatedItem: InventoryItem = {
-                            ...existingItem,
-                            quantity: existingItem.quantity + quantity,
-                            cost: cost, // cost is updated to latest
-                            description,
-                            size,
-                        };
-                        updatedItems[itemCodeStr] = updatedItem;
-                        if (!updatedItems[itemCodeStr]) itemsUpdated++;
-
+                        // It's an update. Sum the quantity.
+                        existingItem.quantity += quantity;
+                        existingItem.cost = cost; // Update cost to the latest one
+                        existingItem.description = description;
+                        existingItem.size = size;
+                        updatedItems[itemCodeStr] = existingItem;
                     } else {
+                        // It's a new item for this import batch.
                         const newItem: InventoryItem = {
-                            id: String(code),
-                            code: String(code),
-                            description: String(description),
-                            size: String(size),
+                            id: code,
+                            code: code,
+                            description: description,
+                            size: size,
                             quantity,
                             cost,
                             warehouseId: warehouseIdForUpload!,
                         };
                         updatedItems[itemCodeStr] = newItem;
-                        itemsAdded++;
                     }
                 }
                 
+                // Final calculation of added and updated items
+                let itemsAdded = 0;
+                let itemsUpdated = 0;
+
+                const originalInventoryMap = new Map(inventorySnapshot.filter(i => i.warehouseId === warehouseIdForUpload).map(i => [i.code.toLowerCase(), i]));
+
+                for (const code in updatedItems) {
+                    if (originalInventoryMap.has(code)) {
+                        itemsUpdated++;
+                    } else {
+                        itemsAdded++;
+                    }
+                }
+
                 // Batch update the state
                 Object.values(updatedItems).forEach(item => {
-                    const alreadyExistsInOriginal = inventory.some(i => i.code.toLowerCase() === item.code.toLowerCase() && i.warehouseId === item.warehouseId);
+                    const alreadyExistsInOriginal = originalInventoryMap.has(item.code.toLowerCase());
                     if (alreadyExistsInOriginal) {
                         updateInventoryItem(item);
                     } else {
                         addInventoryItem(item);
                     }
                 });
+
+                console.log(`Import finished. Processed rows: ${processedRowCount}. Unique items in file: ${Object.keys(updatedItems).length}. Items added: ${itemsAdded}. Items updated: ${itemsUpdated}.`);
 
                 toast({
                     title: t('import_successful'),
@@ -438,3 +449,4 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
 }
 
     
+
