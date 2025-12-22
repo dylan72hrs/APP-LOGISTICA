@@ -218,6 +218,8 @@ export default function InventoryPage() {
                 // Skip header row (index 0)
                 for (let i = 1; i < json.length; i++) {
                     const row = json[i];
+                    if (row.length === 0) continue; // Skip empty rows
+
                     const code = row[0];
                     const description = row[1];
                     const size = row[2];
@@ -235,7 +237,9 @@ export default function InventoryPage() {
                         const updatedItem: InventoryItem = {
                             ...existingItem,
                             quantity: existingItem.quantity + quantity,
-                            cost: cost,
+                            cost: cost, // cost is updated to latest
+                            description,
+                            size,
                         };
                         updateInventoryItem(updatedItem);
                         itemsUpdated++;
