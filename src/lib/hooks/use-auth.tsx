@@ -21,29 +21,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { users } = useData();
 
   useEffect(() => {
-    // In a real app, you'd have a listener to Firebase Auth state changes.
-    // For this mockup, we check localStorage.
+    // This is the key fix. We must wait until the user data is loaded
+    // before trying to find the user. Otherwise, we get a race condition
+    // where we check for a user against an empty list.
+    if (users.length === 0) {
+      // If there are no users, and we are not on a public page, we keep loading.
+      // If we are already on a public page, we can stop loading.
+      if (!pathname.startsWith('/login') && !pathname.startsWith('/register')) {
+        setLoading(true);
+      } else {
+        setLoading(false);
+      }
+      return;
+    }
+
     const userEmail = localStorage.getItem('user_email');
     
     if (userEmail) {
-      // Find user from mock data. In real app, fetch from Firestore.
-      const foundUser = users.find(u => u.email.toLowerCase() === userEmail.toLowerCase()) || {
-        uid: 'mock-uid',
-        email: userEmail,
-        name: userEmail.split('@')[0],
-        role: 'unassigned',
-      };
-      setUser(foundUser);
+      const foundUser = users.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
+      
+      if (foundUser) {
+        setUser(foundUser);
+      } else {
+        // Handle case where email is in localStorage but user is not in our data
+        // This could be a new, unassigned user.
+        setUser({
+          uid: `temp-${Date.now()}`,
+          email: userEmail,
+          name: userEmail.split('@')[0],
+          role: 'unassigned',
+        });
+      }
     } else {
-        if (!pathname.startsWith('/login') && !pathname.startsWith('/register')) {
-            router.push('/login');
-        }
+      if (!pathname.startsWith('/login') && !pathname.startsWith('/register')) {
+        router.push('/login');
+      }
     }
     setLoading(false);
   }, [router, pathname, users]);
 
   const logout = () => {
-    // In a real app, this would sign out from Firebase.
     localStorage.removeItem('user_role');
     localStorage.removeItem('user_email');
     setUser(null);
@@ -62,5 +79,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
