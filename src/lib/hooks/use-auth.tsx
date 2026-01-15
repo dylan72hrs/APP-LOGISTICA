@@ -22,15 +22,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     // This is the key fix. We must wait until the user data is loaded
-    // before trying to find the user. Otherwise, we get a race condition
-    // where we check for a user against an empty list.
+    // from useData() before trying to find and validate the user.
+    // Otherwise, we get a race condition where we check for a user against an empty list.
     if (users.length === 0) {
-      // If there are no users, and we are not on a public page, we keep loading.
-      // If we are already on a public page, we can stop loading.
-      if (!pathname.startsWith('/login') && !pathname.startsWith('/register')) {
-        setLoading(true);
-      } else {
+      // If we are on a public page, we can stop loading.
+      // Otherwise, keep loading until user data is available.
+      if (pathname.startsWith('/login') || pathname.startsWith('/register')) {
         setLoading(false);
+      } else {
+        setLoading(true);
       }
       return;
     }
@@ -57,7 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push('/login');
       }
     }
+    
+    // Only stop loading after all checks are done and we have user data.
     setLoading(false);
+
   }, [router, pathname, users]);
 
   const logout = () => {
