@@ -1,13 +1,14 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { UserProfile } from '@/lib/types';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import type { UserProfile, UserRole } from '@/lib/types';
 import { usePathname, useRouter } from 'next/navigation';
 import { useData } from './use-data';
 
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
+  login: (email: string) => void;
   logout: () => void;
 }
 
@@ -20,13 +21,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { users } = useData();
 
+  const validateUser = useCallback((email: string) => {
+    const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    if (foundUser) {
+      setUser(foundUser);
+      return foundUser;
+    } else {
+      const tempUser: UserProfile = {
+        uid: `temp-${Date.now()}`,
+        email: email,
+        name: email.split('@')[0],
+        role: 'unassigned',
+      };
+      setUser(tempUser);
+      return tempUser;
+    }
+  }, [users]);
+
   useEffect(() => {
-    // This is the key fix. We must wait until the user data is loaded
-    // from useData() before trying to find and validate the user.
-    // Otherwise, we get a race condition where we check for a user against an empty list.
+    // Esperar a que los datos de usuarios estén cargados
     if (users.length === 0) {
-      // If we are on a public page, we can stop loading.
-      // Otherwise, keep loading until user data is available.
       if (pathname.startsWith('/login') || pathname.startsWith('/register')) {
         setLoading(false);
       } else {
@@ -38,30 +52,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userEmail = localStorage.getItem('user_email');
     
     if (userEmail) {
-      const foundUser = users.find(u => u.email.toLowerCase() === userEmail.toLowerCase());
-      
-      if (foundUser) {
-        setUser(foundUser);
-      } else {
-        // Handle case where email is in localStorage but user is not in our data
-        // This could be a new, unassigned user.
-        setUser({
-          uid: `temp-${Date.now()}`,
-          email: userEmail,
-          name: userEmail.split('@')[0],
-          role: 'unassigned',
-        });
-      }
+      validateUser(userEmail);
     } else {
       if (!pathname.startsWith('/login') && !pathname.startsWith('/register')) {
         router.push('/login');
       }
     }
     
-    // Only stop loading after all checks are done and we have user data.
     setLoading(false);
+  }, [pathname, users, validateUser, router]);
 
-  }, [router, pathname, users]);
+  const login = (email: string) => {
+    localStorage.setItem('user_email', email);
+    // Determinamos el rol para el simulacro de login
+    let userRole: UserRole = 'operator';
+    if (email.toLowerCase().includes('admin')) userRole = 'admin';
+    else if (email.toLowerCase().includes('mzarate')) userRole = 'reports';
+    else if (email.toLowerCase().includes('imaulen')) userRole = 'admin';
+    
+    localStorage.setItem('user_role', userRole);
+    
+    // Actualizamos el estado inmediatamente para evitar la redirección
+    const loggedUser = validateUser(email);
+    setLoading(false);
+    
+    router.push('/dashboard');
+  };
 
   const logout = () => {
     localStorage.removeItem('user_role');
@@ -70,7 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push('/login');
   };
 
-  const value = { user, loading, logout };
+  const value = { user, loading, login, logout };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

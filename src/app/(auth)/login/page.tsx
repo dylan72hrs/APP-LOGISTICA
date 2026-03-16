@@ -10,30 +10,13 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useLanguage } from '@/lib/hooks/use-language';
-
-// In a real app, this would use an Auth Context or hook
-// For this mockup, we'll simulate login by storing in localStorage
-const fakeLogin = (email: string) => {
-  if (typeof window !== 'undefined') {
-    let userRole = 'operator';
-    if (email.toLowerCase().includes('admin')) {
-      userRole = 'admin';
-    } else if (email.toLowerCase().includes('mzarate')) {
-      userRole = 'reports';
-    } else if (email.toLowerCase().includes('imaulen')) {
-      userRole = 'admin';
-    } else if (email.toLowerCase().includes('jcornejo')) {
-        userRole = 'operator';
-    }
-    localStorage.setItem('user_role', userRole);
-    localStorage.setItem('user_email', email);
-  }
-};
+import { useAuth } from '@/lib/hooks/use-auth';
 
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const { login } = useAuth();
   const [email, setEmail] = useState('Imaulen@masterdrilling.com');
   const [password, setPassword] = useState('123456');
   const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
@@ -41,9 +24,7 @@ export default function LoginPage() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (email && password) {
-      fakeLogin(email);
-      router.push('/dashboard');
-      router.refresh(); // Forces a refresh to re-evaluate auth state
+      login(email);
     } else {
       toast({
         variant: "destructive",
