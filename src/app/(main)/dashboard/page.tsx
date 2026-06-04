@@ -46,7 +46,7 @@ export default function DashboardPage() {
 
     const totalItems = filteredInventory.reduce((acc, item) => acc + item.quantity, 0);
     const lowStockItems = useMemo(() => filteredInventory.filter(item => item.quantity < 20), [filteredInventory]);
-    
+
     const now = new Date();
     const last7DaysInterval = { start: subDays(now, 7), end: now };
 
@@ -279,4 +279,4 @@ export default function DashboardPage() {
         </div>
     );
 
-    
+}

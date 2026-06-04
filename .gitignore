@@ -44,3 +44,10 @@ next-env.d.ts
 firebase-debug.log
 firestore-debug.log*.tar.gz
 *.zip
+node_modules/
+.env.*
+!.env.example
+*.log
+tsconfig.tsbuildinfo
+.vercel/
+dist/

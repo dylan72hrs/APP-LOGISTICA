@@ -193,6 +193,7 @@
     "worker_rut": "ID du travailleur",
     "enter_rut_and_search": "Entrez l'ID et recherchez",
     "worker_not_found": "Travailleur non trouvé avec l'ID fourni.",
+    "worker_found": "Travailleur trouve",
     "enter_project_id_and_search": "Entrez l'ID du projet et recherchez",
     "project_not_found": "Projet non trouvé avec l'ID fourni.",
     "search_product_by_code": "Entrez le code du produit...",

@@ -280,7 +280,7 @@ export default function ReportsPage() {
 
     const handleGenerateReport = () => {
         setIsGenerating(true);
-        let processedData;
+        let processedData: ReportData = null;
         if (reportType === 'byProject') {
             processedData = processProjectReportData();
         } else if (reportType === 'totalByWarehouse') {

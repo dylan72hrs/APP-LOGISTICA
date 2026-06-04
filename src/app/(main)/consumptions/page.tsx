@@ -304,7 +304,7 @@ export default function ConsumptionsPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-              <h1 className="text-2xl font-bold tracking-tight">${t('consumption_record')}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{t('consumption_record')}</h1>
               <CardDescription>{t('record_epp_delivery')}</CardDescription>
           </div>
       </div>

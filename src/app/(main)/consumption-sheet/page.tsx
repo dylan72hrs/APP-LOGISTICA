@@ -175,18 +175,18 @@ export default function ConsumptionSheetPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">${t('consumption_sheet')}</h1>
-          <CardDescription>${t('search_worker_by_rut')}</CardDescription>
+          <h1 className="text-2xl font-bold tracking-tight">{t('consumption_sheet')}</h1>
+          <CardDescription>{t('search_worker_by_rut')}</CardDescription>
         </div>
       </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>${t('filters')}</CardTitle>
+          <CardTitle>{t('filters')}</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <Label htmlFor='worker-rut-input'>${t('worker_rut')}</Label>
+            <Label htmlFor='worker-rut-input'>{t('worker_rut')}</Label>
             <div className='flex gap-2'>
               <Input
                 id="worker-rut-input"
@@ -201,7 +201,7 @@ export default function ConsumptionSheetPage() {
             </div>
           </div>
           <div className="space-y-2 lg:col-span-2">
-            <Label>${t('date_range')}</Label>
+            <Label>{t('date_range')}</Label>
             <div className="flex flex-wrap items-center gap-2">
               <Button variant={filterType === 'week' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('week')}>{t('week')}</Button>
               <Button variant={filterType === 'month' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('month')}>{t('month')}</Button>
@@ -248,12 +248,12 @@ export default function ConsumptionSheetPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-                <CardTitle>${t('report_results')}</CardTitle>
-                <CardDescription>${`${t('showing_results_for')} ${selectedWorker.name}`}</CardDescription>
+                <CardTitle>{t('report_results')}</CardTitle>
+                <CardDescription>{`${t('showing_results_for')} ${selectedWorker.name}`}</CardDescription>
             </div>
             <Button onClick={handlePrint}>
                 <Printer className="mr-2 h-4 w-4"/>
-                ${t('print_report')}
+                {t('print_report')}
             </Button>
           </CardHeader>
           <CardContent>
@@ -264,10 +264,10 @@ export default function ConsumptionSheetPage() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>${t('date')}</TableHead>
-                            <TableHead>${t('code')}</TableHead>
-                            <TableHead>${t('description')}</TableHead>
-                            <TableHead className='text-right'>${t('quantity')}</TableHead>
+                            <TableHead>{t('date')}</TableHead>
+                            <TableHead>{t('code')}</TableHead>
+                            <TableHead>{t('description')}</TableHead>
+                            <TableHead className='text-right'>{t('quantity')}</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -283,7 +283,7 @@ export default function ConsumptionSheetPage() {
                 </Table>
              </div>
              <div className="flex justify-end mt-4">
-                <p className="text-lg font-bold">${t('total_items_consumed')}: {reportData.totalItemsConsumed}</p>
+                <p className="text-lg font-bold">{t('total_items_consumed')}: {reportData.totalItemsConsumed}</p>
              </div>
           </CardContent>
         </Card>
@@ -292,8 +292,8 @@ export default function ConsumptionSheetPage() {
             <CardContent className="pt-6">
                  <div className="flex min-h-[200px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
                     <FileSignature className="h-12 w-12 text-muted-foreground/50" />
-                    <p className="mt-4 text-lg font-semibold text-muted-foreground">${t('no_consumptions_in_period')}</p>
-                    <p className="mt-2 text-sm text-muted-foreground/80">${`${t('showing_results_for')} ${selectedWorker.name}`}</p>
+                    <p className="mt-4 text-lg font-semibold text-muted-foreground">{t('no_consumptions_in_period')}</p>
+                    <p className="mt-2 text-sm text-muted-foreground/80">{`${t('showing_results_for')} ${selectedWorker.name}`}</p>
                 </div>
             </CardContent>
          </Card>
@@ -302,7 +302,7 @@ export default function ConsumptionSheetPage() {
           <CardContent className="pt-6">
             <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
                 <FileSignature className="h-16 w-16 text-muted-foreground/50" />
-                <p className="mt-4 text-lg font-semibold text-muted-foreground">${t('generate_report_to_see_results')}</p>
+                <p className="mt-4 text-lg font-semibold text-muted-foreground">{t('generate_report_to_see_results')}</p>
             </div>
           </CardContent>
         </Card>

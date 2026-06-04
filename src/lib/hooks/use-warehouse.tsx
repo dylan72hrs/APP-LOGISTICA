@@ -6,7 +6,7 @@ import { useData } from './use-data';
 import type { Warehouse } from '../types';
 
 interface WarehouseContextType {
-  selectedWarehouseId: string | null;
+  selectedWarehouseId: string;
   setSelectedWarehouseId: (warehouseId: string) => void;
   availableWarehouses: Warehouse[];
 }
