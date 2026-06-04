@@ -51,3 +51,14 @@ node_modules/
 tsconfig.tsbuildinfo
 .vercel/
 dist/
+
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+*.log
+tsconfig.tsbuildinfo
+.vercel/
+out/
+dist/
