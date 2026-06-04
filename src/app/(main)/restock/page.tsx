@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { BrainCircuit, Download, Upload, Loader2, FileText } from 'lucide-react'
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useData } from '@/lib/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
-import { generateRestockSuggestions } from '@/ai/flows/intelligent-restock-suggestions';
+import { generateRestockSuggestions, getRestockAiStatus } from '@/ai/flows/intelligent-restock-suggestions';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import * as XLSX from 'xlsx';
 
@@ -19,6 +19,11 @@ interface Suggestion {
   description: string;
   size: string;
   suggestedQuantity: number;
+}
+
+interface RestockAiStatus {
+  configured: boolean;
+  message: string;
 }
 
 export default function RestockPage() {
@@ -31,8 +36,29 @@ export default function RestockPage() {
   const [desiredStockDays, setDesiredStockDays] = useState('30');
   const [isLoading, setIsLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [aiStatus, setAiStatus] = useState<RestockAiStatus | null>(null);
+
+  useEffect(() => {
+    getRestockAiStatus()
+      .then(setAiStatus)
+      .catch(() => {
+        setAiStatus({
+          configured: false,
+          message: 'IA de reposición no configurada. Falta configurar GEMINI_API_KEY o GOOGLE_API_KEY.',
+        });
+      });
+  }, []);
 
   const handleGenerateSuggestions = async () => {
+    if (aiStatus?.configured === false) {
+      toast({
+        variant: 'destructive',
+        title: t('ai_suggestion_error'),
+        description: aiStatus.message,
+      });
+      return;
+    }
+
     setIsLoading(true);
     setSuggestions([]);
 
@@ -94,6 +120,17 @@ export default function RestockPage() {
       <h1 className="text-2xl font-bold tracking-tight">{t('ai_restock')}</h1>
       <CardDescription>{t('use_ai_for_restock_recommendations')}</CardDescription>
 
+      {aiStatus?.configured === false && (
+        <Card className="border-amber-300 bg-amber-50 text-amber-950">
+          <CardHeader>
+            <CardTitle className="text-base">IA de reposición no configurada</CardTitle>
+            <CardDescription className="text-amber-900">
+              {aiStatus.message}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>{t('calculation_parameters')}</CardTitle>
@@ -120,7 +157,7 @@ export default function RestockPage() {
             />
           </div>
           <div className="flex items-end gap-2">
-            <Button onClick={handleGenerateSuggestions} disabled={isLoading} className="w-full">
+            <Button onClick={handleGenerateSuggestions} disabled={isLoading || aiStatus?.configured === false} className="w-full">
               {isLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

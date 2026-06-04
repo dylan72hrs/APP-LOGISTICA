@@ -78,6 +78,7 @@ export function Header() {
     const { user } = useAuth();
     const { warehouses } = useData();
     const { selectedWarehouseId } = useWarehouse();
+    const showPilotPersistenceNote = process.env.NODE_ENV === 'development';
     
     const assignedWarehouse = user?.role === 'operator' 
         ? warehouses.find(w => w.id === user.warehouseId) 
@@ -96,6 +97,11 @@ export function Header() {
             <>
                 <WarehouseSwitcher />
                 <ActiveWarehouseBadge warehouseName={selectedWarehouseName} />
+                {showPilotPersistenceNote && (
+                    <span className="hidden text-xs text-muted-foreground xl:inline">
+                        Persistencia piloto local por navegador y URL/origen.
+                    </span>
+                )}
             </>
         ) : assignedWarehouse ? (
             <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">

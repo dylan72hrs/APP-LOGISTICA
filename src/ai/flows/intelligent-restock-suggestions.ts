@@ -8,8 +8,11 @@
  * - RestockSuggestionsOutput - The return type for the generateRestockSuggestions function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, isGenkitConfigured} from '@/ai/genkit';
 import {z} from 'genkit';
+
+const RESTOCK_AI_NOT_CONFIGURED_MESSAGE =
+  'IA de reposición no configurada. Falta configurar GEMINI_API_KEY o GOOGLE_API_KEY.';
 
 const RestockSuggestionsInputSchema = z.object({
   inventoryData: z
@@ -44,17 +47,29 @@ const RestockSuggestionsOutputSchema = z.object({
 });
 export type RestockSuggestionsOutput = z.infer<typeof RestockSuggestionsOutputSchema>;
 
+export async function getRestockAiStatus() {
+  return {
+    configured: isGenkitConfigured,
+    message: isGenkitConfigured ? '' : RESTOCK_AI_NOT_CONFIGURED_MESSAGE,
+  };
+}
+
 export async function generateRestockSuggestions(
   input: RestockSuggestionsInput
 ): Promise<RestockSuggestionsOutput> {
+  if (!isGenkitConfigured || !restockSuggestionsFlow) {
+    throw new Error(RESTOCK_AI_NOT_CONFIGURED_MESSAGE);
+  }
+
   return restockSuggestionsFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'restockSuggestionsPrompt',
-  input: {schema: RestockSuggestionsInputSchema},
-  output: {schema: RestockSuggestionsOutputSchema},
-  prompt: `You are an expert logistics and inventory management AI assistant. Your task is to provide intelligent restock recommendations for a warehouse manager's EPP (Personal Protective Equipment) inventory.
+const prompt = ai
+  ? ai.definePrompt({
+      name: 'restockSuggestionsPrompt',
+      input: {schema: RestockSuggestionsInputSchema},
+      output: {schema: RestockSuggestionsOutputSchema},
+      prompt: `You are an expert logistics and inventory management AI assistant. Your task is to provide intelligent restock recommendations for a warehouse manager's EPP (Personal Protective Equipment) inventory.
 
 You must analyze the provided data to calculate the optimal quantity to reorder for each item that is low on stock.
 
@@ -75,16 +90,19 @@ You must analyze the provided data to calculate the optimal quantity to reorder 
 **Output Format:**
 Return **only** a JSON array string in the \`sugerencias_de_reposicion\` field, containing objects for **only the items that need to be reordered**. Each object must have \`code\`, \`description\`, \`size\`, and \`suggestedQuantity\`. Do not include items that do not need restocking.
 `,
-});
+    })
+  : null;
 
-const restockSuggestionsFlow = ai.defineFlow(
-  {
-    name: 'restockSuggestionsFlow',
-    inputSchema: RestockSuggestionsInputSchema,
-    outputSchema: RestockSuggestionsOutputSchema,
-  },
-  async input => {
-    const {output} = await prompt(input);
-    return output!;
-  }
-);
+const restockSuggestionsFlow = ai
+  ? ai.defineFlow(
+      {
+        name: 'restockSuggestionsFlow',
+        inputSchema: RestockSuggestionsInputSchema,
+        outputSchema: RestockSuggestionsOutputSchema,
+      },
+      async input => {
+        const {output} = await prompt!(input);
+        return output!;
+      }
+    )
+  : null;
