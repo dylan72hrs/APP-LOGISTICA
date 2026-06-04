@@ -29,13 +29,16 @@ export function UserNav() {
     if (names.length === 1) return names[0].charAt(0).toUpperCase();
     return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
   };
+  const avatarSrc = user.email.toLowerCase() === 'imaulen@masterdrilling.com'
+    ? '/branding/imaulen.webp'
+    : undefined;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-9 w-9 rounded-full">
           <Avatar className="h-9 w-9">
-            <AvatarImage src={`https://avatar.vercel.sh/${user.email}.png`} alt={user.name} />
+            {avatarSrc && <AvatarImage src={avatarSrc} alt={user.name} />}
             <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
           </Avatar>
         </Button>

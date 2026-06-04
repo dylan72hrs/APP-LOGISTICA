@@ -28,6 +28,7 @@ export default function InventoryPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const selectWarehouseGuidance = 'Debes seleccionar una bodega para continuar. Usa el selector de la esquina superior izquierda.';
 
     const visibleInventory = useMemo(() => {
         if (!user) return [];
@@ -73,7 +74,7 @@ export default function InventoryPage() {
                      toast({
                         variant: 'destructive',
                         title: t('no_warehouse_selected'),
-                        description: t('admin_select_warehouse_for_product')
+                        description: selectWarehouseGuidance
                     });
                     return;
                 }
@@ -128,7 +129,7 @@ export default function InventoryPage() {
             toast({
                 variant: 'destructive',
                 title: t('no_warehouse_selected'),
-                description: t('admin_select_warehouse_for_product')
+                description: selectWarehouseGuidance
             });
             return;
         }
@@ -174,7 +175,7 @@ export default function InventoryPage() {
             toast({
                 variant: 'destructive',
                 title: t('no_warehouse_selected'),
-                description: t('admin_select_warehouse_for_import')
+                description: selectWarehouseGuidance
             });
             return;
         }
@@ -449,4 +450,3 @@ function ItemForm({ item, onSave }: { item: InventoryItem | null, onSave: (data:
 }
 
     
-

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -31,6 +31,40 @@ interface PendingVoucher {
     deliveredBy: string;
 }
 
+const MAX_SUGGESTIONS = 5;
+
+function normalizeSearchValue(value: string) {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[.-]/g, '')
+    .trim();
+}
+
+function getMatchRank(value: string, query: string) {
+  const normalizedValue = normalizeSearchValue(value);
+  const normalizedQuery = normalizeSearchValue(query);
+
+  if (!normalizedQuery) return Number.POSITIVE_INFINITY;
+  if (normalizedValue === normalizedQuery) return 0;
+  if (normalizedValue.startsWith(normalizedQuery)) return 1;
+  if (normalizedValue.includes(normalizedQuery)) return 2;
+  return Number.POSITIVE_INFINITY;
+}
+
+function getRankedMatches<T>(items: T[], query: string, getFields: (item: T) => string[]) {
+  return items
+    .map(item => ({
+      item,
+      rank: Math.min(...getFields(item).map(field => getMatchRank(field, query))),
+    }))
+    .filter(match => Number.isFinite(match.rank))
+    .sort((a, b) => a.rank - b.rank)
+    .slice(0, MAX_SUGGESTIONS)
+    .map(match => match.item);
+}
+
 export default function ConsumptionsPage() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
@@ -46,14 +80,17 @@ export default function ConsumptionsPage() {
   } = useData();
 
   const [workerRutInput, setWorkerRutInput] = useState('');
+  const [debouncedWorkerRutInput, setDebouncedWorkerRutInput] = useState('');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   
   const [projectIdInput, setProjectIdInput] = useState('');
+  const [debouncedProjectIdInput, setDebouncedProjectIdInput] = useState('');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
 
   const [productCodeInput, setProductCodeInput] = useState('');
+  const [debouncedProductCodeInput, setDebouncedProductCodeInput] = useState('');
   const productCodeInputRef = useRef<HTMLInputElement>(null);
   
   const [pendingVouchers, setPendingVouchers] = useState<PendingVoucher[]>([]);
@@ -87,10 +124,50 @@ export default function ConsumptionsPage() {
     }));
   }, [physicalInventoryInWarehouse, pendingVouchers, warehouseIdToFilter]);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedWorkerRutInput(workerRutInput), 180);
+    return () => window.clearTimeout(timeoutId);
+  }, [workerRutInput]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedProjectIdInput(projectIdInput), 180);
+    return () => window.clearTimeout(timeoutId);
+  }, [projectIdInput]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedProductCodeInput(productCodeInput), 180);
+    return () => window.clearTimeout(timeoutId);
+  }, [productCodeInput]);
+
+  const workerSuggestions = useMemo(() => {
+    if (!debouncedWorkerRutInput || selectedWorker) return [];
+    return getRankedMatches(workers, debouncedWorkerRutInput, worker => [worker.rut, worker.name, worker.id]);
+  }, [debouncedWorkerRutInput, selectedWorker, workers]);
+
+  const projectSuggestions = useMemo(() => {
+    if (!debouncedProjectIdInput || selectedProject) return [];
+    return getRankedMatches(projects, debouncedProjectIdInput, project => [project.id, project.name, project.manager]);
+  }, [debouncedProjectIdInput, selectedProject, projects]);
+
+  const productSuggestions = useMemo(() => {
+    if (!debouncedProductCodeInput || !warehouseIdToFilter || warehouseIdToFilter === 'all') return [];
+    return getRankedMatches(physicalInventoryInWarehouse, debouncedProductCodeInput, item => [item.code, item.description, item.size]);
+  }, [debouncedProductCodeInput, physicalInventoryInWarehouse, warehouseIdToFilter]);
+
+  const selectWorker = (worker: Worker) => {
+    setSelectedWorker(worker);
+    setWorkerRutInput(worker.rut);
+  };
+
+  const selectProject = (project: Project) => {
+    setSelectedProject(project);
+    setProjectIdInput(project.id);
+  };
+
   const handleWorkerSearch = () => {
-    const foundWorker = workers.find(w => w.rut.replace(/[.-]/g, '') === workerRutInput.replace(/[.-]/g, ''));
+    const foundWorker = getRankedMatches(workers, workerRutInput, worker => [worker.rut, worker.name, worker.id])[0];
     if (foundWorker) {
-      setSelectedWorker(foundWorker);
+      selectWorker(foundWorker);
     } else {
       setSelectedWorker(null);
       toast({ variant: 'destructive', title: t('error'), description: t('worker_not_found') });
@@ -98,32 +175,22 @@ export default function ConsumptionsPage() {
   };
   
   const handleProjectSearch = () => {
-    const foundProject = projects.find(p => p.id.toLowerCase() === projectIdInput.toLowerCase());
+    const foundProject = getRankedMatches(projects, projectIdInput, project => [project.id, project.name, project.manager])[0];
     if (foundProject) {
-      setSelectedProject(foundProject);
+      selectProject(foundProject);
     } else {
       setSelectedProject(null);
       toast({ variant: "destructive", title: t('error'), description: t('project_not_found') });
     }
   };
 
-  const handleProductSearchByCode = () => {
-    const code = productCodeInputRef.current?.value;
-    if (!code) return;
-
+  const addProductToSelection = (itemInPhysicalInventory: InventoryItem) => {
     if (!warehouseIdToFilter || warehouseIdToFilter === 'all') {
       toast({
         variant: 'destructive',
         title: t('no_warehouse_selected'),
-        description: t('admin_select_warehouse_for_product'),
+        description: 'Debes seleccionar una bodega para continuar. Usa el selector de la esquina superior izquierda.',
       });
-      return;
-    }
-
-    const itemInPhysicalInventory = physicalInventoryInWarehouse.find(item => item.code.toLowerCase() === code.toLowerCase());
-
-    if (!itemInPhysicalInventory) {
-      toast({ variant: 'destructive', title: t('error'), description: t('no_product_found') });
       return;
     }
     
@@ -141,9 +208,23 @@ export default function ConsumptionsPage() {
     setSelectedItems(prev => [...prev, { ...itemInVirtualInventory, consumeQuantity: 1 }]);
     if (productCodeInputRef.current) {
         productCodeInputRef.current.value = '';
-        setProductCodeInput(''); // Also clear the state
     }
+    setProductCodeInput('');
     productCodeInputRef.current?.focus();
+  };
+
+  const handleProductSearchByCode = () => {
+    const code = productCodeInput.trim();
+    if (!code) return;
+
+    const itemInPhysicalInventory = getRankedMatches(physicalInventoryInWarehouse, code, item => [item.code, item.description, item.size])[0];
+
+    if (!itemInPhysicalInventory) {
+      toast({ variant: 'destructive', title: t('error'), description: t('no_product_found') });
+      return;
+    }
+
+    addProductToSelection(itemInPhysicalInventory);
   };
   
   const handleQuantityChange = (itemId: string, newQuantityValue: number) => {
@@ -194,6 +275,7 @@ export default function ConsumptionsPage() {
     setSelectedWorker(null);
     setProjectIdInput('');
     setSelectedProject(null);
+    setProductCodeInput('');
     setSelectedItems([]);
   };
 
@@ -319,7 +401,10 @@ export default function ConsumptionsPage() {
                     <Input
                         id="worker-rut-input"
                         value={workerRutInput}
-                        onChange={e => setWorkerRutInput(e.target.value)}
+                        onChange={e => {
+                            setWorkerRutInput(e.target.value);
+                            setSelectedWorker(null);
+                        }}
                         placeholder={t('enter_rut_and_search')}
                         onKeyDown={(e) => e.key === 'Enter' && handleWorkerSearch()}
                     />
@@ -327,6 +412,21 @@ export default function ConsumptionsPage() {
                         <UserSearch />
                     </Button>
                 </div>
+                {workerSuggestions.length > 0 && (
+                    <div className="rounded-md border bg-background shadow-sm">
+                        {workerSuggestions.map(worker => (
+                            <button
+                                key={worker.id}
+                                type="button"
+                                className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-muted"
+                                onClick={() => selectWorker(worker)}
+                            >
+                                <span className="font-medium">{worker.name}</span>
+                                <span className="text-xs text-muted-foreground">{worker.rut} · {worker.position}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
                 {selectedWorker && (
                     <div className='mt-2 text-sm text-muted-foreground p-3 bg-muted rounded-md space-y-1'>
                         <p><strong>{t('name')}:</strong> {selectedWorker.name}</p>
@@ -342,7 +442,10 @@ export default function ConsumptionsPage() {
                     <Input
                         id="project-id-input"
                         value={projectIdInput}
-                        onChange={e => setProjectIdInput(e.target.value)}
+                        onChange={e => {
+                            setProjectIdInput(e.target.value);
+                            setSelectedProject(null);
+                        }}
                         placeholder={t('enter_project_id_and_search')}
                         onKeyDown={(e) => e.key === 'Enter' && handleProjectSearch()}
                     />
@@ -350,6 +453,21 @@ export default function ConsumptionsPage() {
                         <Search />
                     </Button>
                 </div>
+                {projectSuggestions.length > 0 && (
+                    <div className="rounded-md border bg-background shadow-sm">
+                        {projectSuggestions.map(project => (
+                            <button
+                                key={project.id}
+                                type="button"
+                                className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-muted"
+                                onClick={() => selectProject(project)}
+                            >
+                                <span className="font-medium">{project.id}</span>
+                                <span className="text-xs text-muted-foreground">{project.name}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
                 {selectedProject && (
                     <div className='mt-2 text-sm text-muted-foreground p-3 bg-muted rounded-md space-y-1'>
                         <p><strong>{t('project_name')}:</strong> {selectedProject.name}</p>
@@ -364,22 +482,40 @@ export default function ConsumptionsPage() {
       <Card>
         <CardHeader>
             <CardTitle>{t('products_to_consume')}</CardTitle>
-            <div className="flex w-full max-w-sm items-center space-x-2 mt-2">
-                <Input
-                    id="product-code-input"
-                    ref={productCodeInputRef}
-                    defaultValue={productCodeInput}
-                    placeholder={t('search_product_by_code')}
-                    onKeyDown={(e) => e.key === 'Enter' && handleProductSearchByCode()}
-                    disabled={!warehouseIdToFilter || warehouseIdToFilter === 'all'}
-                />
-                <Button onClick={handleProductSearchByCode} variant="outline" size="icon" disabled={!warehouseIdToFilter || warehouseIdToFilter === 'all'}>
-                    <PackageSearch />
-                </Button>
+            <div className="mt-2 w-full max-w-sm space-y-2">
+                <div className="flex items-center space-x-2">
+                    <Input
+                        id="product-code-input"
+                        ref={productCodeInputRef}
+                        value={productCodeInput}
+                        onChange={e => setProductCodeInput(e.target.value)}
+                        placeholder={t('search_product_by_code')}
+                        onKeyDown={(e) => e.key === 'Enter' && handleProductSearchByCode()}
+                        disabled={!warehouseIdToFilter || warehouseIdToFilter === 'all'}
+                    />
+                    <Button onClick={handleProductSearchByCode} variant="outline" size="icon" disabled={!warehouseIdToFilter || warehouseIdToFilter === 'all'}>
+                        <PackageSearch />
+                    </Button>
+                </div>
+                {productSuggestions.length > 0 && (
+                    <div className="rounded-md border bg-background shadow-sm">
+                        {productSuggestions.map(item => (
+                            <button
+                                key={`${item.id}-${item.warehouseId}`}
+                                type="button"
+                                className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-muted"
+                                onClick={() => addProductToSelection(item)}
+                            >
+                                <span className="font-medium">{item.code} · {item.description}</span>
+                                <span className="text-xs text-muted-foreground">Stock: {item.quantity} · {item.size}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
             {user?.role === 'admin' && (!warehouseIdToFilter || warehouseIdToFilter === 'all') && (
                 <CardDescription className='text-destructive mt-2'>
-                    {t('admin_select_warehouse_for_product')}
+                    Debes seleccionar una bodega para continuar. Usa el selector de la esquina superior izquierda.
                 </CardDescription>
             )}
         </CardHeader>

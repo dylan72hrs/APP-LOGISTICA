@@ -12,6 +12,25 @@ interface WarehouseContextType {
 }
 
 const WarehouseContext = createContext<WarehouseContextType | undefined>(undefined);
+const SELECTED_WAREHOUSE_STORAGE_KEY = 'app-logistica:selected-warehouse:v1';
+
+function loadStoredWarehouseId() {
+  try {
+    if (typeof window === 'undefined') return null;
+    return window.localStorage.getItem(SELECTED_WAREHOUSE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveStoredWarehouseId(warehouseId: string) {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(SELECTED_WAREHOUSE_STORAGE_KEY, warehouseId);
+  } catch {
+    // Visual context persistence should not break warehouse selection.
+  }
+}
 
 export function WarehouseProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -29,10 +48,14 @@ export function WarehouseProvider({ children }: { children: ReactNode }) {
     } else if (user.role === 'reports' && user.country) {
       const countryWarehouses = warehouses.filter(w => w.country === user.country);
       setAvailableWarehouses(countryWarehouses);
-      setSelectedWarehouseId('all'); 
+      const storedWarehouseId = loadStoredWarehouseId();
+      const canUseStoredWarehouse = storedWarehouseId === 'all' || countryWarehouses.some(w => w.id === storedWarehouseId);
+      setSelectedWarehouseId(canUseStoredWarehouse ? storedWarehouseId! : 'all');
     } else if (user.role === 'admin') {
       setAvailableWarehouses(warehouses);
-      setSelectedWarehouseId('all');
+      const storedWarehouseId = loadStoredWarehouseId();
+      const canUseStoredWarehouse = storedWarehouseId === 'all' || warehouses.some(w => w.id === storedWarehouseId);
+      setSelectedWarehouseId(canUseStoredWarehouse ? storedWarehouseId! : 'all');
     }
   }, [user, warehouses]);
   
@@ -42,6 +65,7 @@ export function WarehouseProvider({ children }: { children: ReactNode }) {
       return; // Operators cannot change their assigned warehouse
     }
     setSelectedWarehouseId(id);
+    saveStoredWarehouseId(id);
   };
 
   const value = { 

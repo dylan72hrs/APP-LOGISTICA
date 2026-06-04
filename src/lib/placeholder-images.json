@@ -2,8 +2,8 @@
   "placeholderImages": [
     {
       "id": "company-logo",
-      "description": "Company logo for Master Drilling",
-      "imageUrl": "https://media.licdn.com/dms/image/v2/D560BAQHxjb_XbsOMSg/company-logo_200_200/company-logo_200_200/0/1730974776873/master_drilling_chile_logo?e=1767225600&v=beta&t=SCFvFla3vdJPonMrBefB05mPgyLwckzqR-prCX0Y_Hg",
+      "description": "Logo Master Drilling",
+      "imageUrl": "/branding/master-drilling.webp",
       "imageHint": "company logo"
     }
   ]

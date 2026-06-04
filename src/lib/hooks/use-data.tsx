@@ -1,5 +1,6 @@
 'use client';
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { localStorageRepository } from '@/lib/data/local-storage-repository';
 import { createMockDataSnapshot } from '@/lib/data/mock-repository';
 import type { ConsumptionRecord, InventoryItem, Project, UserProfile, Warehouse, Worker } from '@/lib/types';
 
@@ -44,13 +45,37 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [demoData] = useState(createMockDataSnapshot);
-  const [users, setUsers] = useState<UserProfile[]>(demoData.users);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(demoData.warehouses);
-  const [inventory, setInventory] = useState<InventoryItem[]>(demoData.inventory);
-  const [projects, setProjects] = useState<Project[]>(demoData.projects);
-  const [workers, setWorkers] = useState<Worker[]>(demoData.workers);
-  const [consumptionRecords, setConsumptionRecords] = useState<ConsumptionRecord[]>(demoData.consumptionRecords);
+  const [seedData] = useState(createMockDataSnapshot);
+  const [isPilotStorageReady, setIsPilotStorageReady] = useState(false);
+  const [users, setUsers] = useState<UserProfile[]>(seedData.users);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(seedData.warehouses);
+  const [inventory, setInventory] = useState<InventoryItem[]>(seedData.inventory);
+  const [projects, setProjects] = useState<Project[]>(seedData.projects);
+  const [workers, setWorkers] = useState<Worker[]>(seedData.workers);
+  const [consumptionRecords, setConsumptionRecords] = useState<ConsumptionRecord[]>(seedData.consumptionRecords);
+
+  useEffect(() => {
+    const storedData = localStorageRepository.load(seedData);
+
+    setWarehouses(storedData.warehouses);
+    setInventory(storedData.inventory);
+    setProjects(storedData.projects);
+    setWorkers(storedData.workers);
+    setConsumptionRecords(storedData.consumptionRecords);
+    setIsPilotStorageReady(true);
+  }, [seedData]);
+
+  useEffect(() => {
+    if (!isPilotStorageReady) return;
+
+    localStorageRepository.save({
+      warehouses,
+      inventory,
+      projects,
+      workers,
+      consumptionRecords,
+    });
+  }, [isPilotStorageReady, warehouses, inventory, projects, workers, consumptionRecords]);
 
   const value = {
     users,

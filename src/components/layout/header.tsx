@@ -50,7 +50,7 @@ export function WarehouseSwitcher() {
     
     return (
         <Select value={selectedWarehouseId || 'all'} onValueChange={setSelectedWarehouseId}>
-            <SelectTrigger className="w-full sm:w-[200px] hidden md:flex">
+            <SelectTrigger className="w-[180px] border-primary/40 bg-primary/5 shadow-sm sm:w-[220px]">
                 <Warehouse className="mr-2" />
                 <SelectValue placeholder={t('select_warehouse')} />
             </SelectTrigger>
@@ -64,27 +64,43 @@ export function WarehouseSwitcher() {
     )
 }
 
+function ActiveWarehouseBadge({ warehouseName }: { warehouseName: string }) {
+    return (
+        <div className="hidden items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary lg:flex">
+            <Warehouse className="h-4 w-4" />
+            <span>Bodega activa: {warehouseName}</span>
+        </div>
+    );
+}
+
 
 export function Header() {
     const { user } = useAuth();
     const { warehouses } = useData();
+    const { selectedWarehouseId } = useWarehouse();
     
     const assignedWarehouse = user?.role === 'operator' 
         ? warehouses.find(w => w.id === user.warehouseId) 
         : null;
         
     const canSwitchWarehouses = user?.role === 'admin' || user?.role === 'reports';
+    const selectedWarehouseName = selectedWarehouseId === 'all'
+        ? 'Todas las bodegas'
+        : warehouses.find(w => w.id === selectedWarehouseId)?.name || 'Sin bodega';
 
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 px-4 backdrop-blur-sm sm:h-16 sm:px-6">
       <SidebarTrigger className="md:hidden" />
-      <div className="flex-1">
+      <div className="flex flex-1 items-center gap-3">
         {canSwitchWarehouses ? (
-            <WarehouseSwitcher />
+            <>
+                <WarehouseSwitcher />
+                <ActiveWarehouseBadge warehouseName={selectedWarehouseName} />
+            </>
         ) : assignedWarehouse ? (
-            <div className="hidden items-center gap-2 text-sm text-muted-foreground md:flex">
+            <div className="flex items-center gap-2 rounded-md border border-primary/30 bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary">
                 <Warehouse className="h-4 w-4" />
-                <span>{assignedWarehouse.name}</span>
+                <span>Bodega activa: {assignedWarehouse.name}</span>
             </div>
         ) : null}
       </div>
