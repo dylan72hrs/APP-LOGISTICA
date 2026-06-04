@@ -1,13 +1,6 @@
 'use client';
 import { createContext, useContext, useState, ReactNode } from 'react';
-import {
-  mockConsumptionRecords,
-  mockInventory,
-  mockProjects,
-  mockUsers,
-  mockWarehouses,
-  mockWorkers,
-} from '@/lib/data';
+import { createMockDataSnapshot } from '@/lib/data/mock-repository';
 import type { ConsumptionRecord, InventoryItem, Project, UserProfile, Warehouse, Worker } from '@/lib/types';
 
 interface DataContextType {
@@ -51,12 +44,13 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<UserProfile[]>(mockUsers);
-  const [warehouses, setWarehouses] = useState<Warehouse[]>(mockWarehouses);
-  const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory);
-  const [projects, setProjects] = useState<Project[]>(mockProjects);
-  const [workers, setWorkers] = useState<Worker[]>(mockWorkers);
-  const [consumptionRecords, setConsumptionRecords] = useState<ConsumptionRecord[]>(mockConsumptionRecords);
+  const [demoData] = useState(createMockDataSnapshot);
+  const [users, setUsers] = useState<UserProfile[]>(demoData.users);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>(demoData.warehouses);
+  const [inventory, setInventory] = useState<InventoryItem[]>(demoData.inventory);
+  const [projects, setProjects] = useState<Project[]>(demoData.projects);
+  const [workers, setWorkers] = useState<Worker[]>(demoData.workers);
+  const [consumptionRecords, setConsumptionRecords] = useState<ConsumptionRecord[]>(demoData.consumptionRecords);
 
   const value = {
     users,
