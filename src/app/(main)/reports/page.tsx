@@ -11,7 +11,6 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, 
 import { useData } from '@/lib/hooks/use-data';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { es as esLocale, enUS as enLocale, fr as frLocale } from 'date-fns/locale';
-import * as XLSX from 'xlsx';
 import type { ConsumptionRecord, InventoryItem, Project, Warehouse, Worker } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -19,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 type FilterType = 'week' | 'month' | 'year' | 'range';
 type ReportType = 'byProject' | 'totalByWarehouse' | 'byWorker';
+type XlsxRange = import('xlsx').Range;
 
 const dateLocales = {
   es: esLocale,
@@ -29,7 +29,7 @@ const dateLocales = {
 interface ProjectReportData {
     type: 'byProject';
     headers: (string | null)[][];
-    merges: XLSX.Range[];
+    merges: XlsxRange[];
     data: (string | number)[][];
     projectsInReport: Project[];
 }
@@ -127,7 +127,7 @@ export default function ReportsPage() {
         }
         
         const headers: (string | null)[][] = [];
-        const merges: XLSX.Range[] = [];
+        const merges: XlsxRange[] = [];
         
         const formattedStartDate = format(startDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
         const formattedEndDate = format(endDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
@@ -140,7 +140,7 @@ export default function ReportsPage() {
         const projectIdsRow: (string|null)[] = [null, null, null, null, ...projectsInReport.map(p => p.id)];
         const subHeaderRow = [t('description'), t('size_unit'), t('code'), t('price_unit_cost')];
         
-        const projectNameMerges: XLSX.Range[] = [];
+        const projectNameMerges: XlsxRange[] = [];
         projectsInReport.forEach((_, index) => {
             const startCol = 4 + index * 2;
             projectNameMerges.push({ s: { r: 2, c: startCol }, e: { r: 2, c: startCol + 1 } });
@@ -292,9 +292,10 @@ export default function ReportsPage() {
         setIsGenerating(false);
     }
     
-    const handleDownloadReport = () => {
+    const handleDownloadReport = async () => {
         if (!reportData) return;
         
+        const XLSX = await import('xlsx');
         let sheetData: (string|number|null)[][];
         const wb = XLSX.utils.book_new();
         const fileName = reportType === 'byProject' 

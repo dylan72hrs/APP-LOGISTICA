@@ -14,7 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/lib/hooks/use-language';
-import * as XLSX from 'xlsx';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useData } from '@/lib/hooks/use-data';
 
@@ -160,7 +159,8 @@ export default function InventoryPage() {
         return { text: t('in_stock'), variant: "default" };
     }
 
-    const handleDownloadTemplate = () => {
+    const handleDownloadTemplate = async () => {
+        const XLSX = await import('xlsx');
         const headers = [['Código', 'Descripción', 'Talla / U. Medida', 'Cantidad', 'Costo Unitario']];
         const ws = XLSX.utils.aoa_to_sheet(headers);
         const wb = XLSX.utils.book_new();
@@ -188,8 +188,9 @@ export default function InventoryPage() {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
+                const XLSX = await import('xlsx');
                 const data = new Uint8Array(e.target?.result as ArrayBuffer);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];

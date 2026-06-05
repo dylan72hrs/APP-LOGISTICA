@@ -11,7 +11,6 @@ import { useData } from '@/lib/hooks/use-data';
 import { useToast } from '@/hooks/use-toast';
 import { generateRestockSuggestions, getRestockAiStatus } from '@/ai/flows/intelligent-restock-suggestions';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
-import * as XLSX from 'xlsx';
 
 
 interface Suggestion {
@@ -107,7 +106,8 @@ export default function RestockPage() {
     }
   };
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import('xlsx');
     const headers = [t('code'), t('min_stock'), t('max_stock')];
     const ws = XLSX.utils.aoa_to_sheet([headers]);
     const wb = XLSX.utils.book_new();

@@ -12,7 +12,6 @@ import { PlusCircle, MoreHorizontal, Pencil, Trash2, Upload, Download } from 'lu
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/lib/hooks/use-language';
-import * as XLSX from 'xlsx';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useData } from '@/lib/hooks/use-data';
 
@@ -87,7 +86,8 @@ export default function ProjectsPage() {
       });
     }
 
-    const handleDownloadTemplate = () => {
+    const handleDownloadTemplate = async () => {
+        const XLSX = await import('xlsx');
         const headers = [['ID de Proyecto', 'Dimensión Financiera', 'Nombre de Proyecto', 'Administrador/Encargado', 'Aprobador']];
         const ws = XLSX.utils.aoa_to_sheet(headers);
         const wb = XLSX.utils.book_new();
@@ -104,8 +104,9 @@ export default function ProjectsPage() {
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
+                const XLSX = await import('xlsx');
                 const data = new Uint8Array(e.target?.result as ArrayBuffer);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const sheetName = workbook.SheetNames[0];
