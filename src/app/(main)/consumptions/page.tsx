@@ -17,6 +17,7 @@ import { useData } from '@/lib/hooks/use-data';
 
 interface SelectedItem extends InventoryItem {
   consumeQuantity: number;
+  consumeQuantityInput: string;
 }
 
 interface PendingVoucher {
@@ -32,6 +33,28 @@ interface PendingVoucher {
 }
 
 const MAX_SUGGESTIONS = 5;
+const SELECT_SPECIFIC_WAREHOUSE_MESSAGE = 'Debes seleccionar una bodega específica para registrar consumos.';
+
+interface ValidatedConsumptionItem {
+  currentItem: InventoryItem;
+  quantity: number;
+}
+
+interface ValidationSuccess {
+  valid: true;
+  warehouseId: string;
+  worker: Worker;
+  project: Project;
+  items: ValidatedConsumptionItem[];
+  totalCost: number;
+}
+
+interface ValidationFailure {
+  valid: false;
+  message: string;
+}
+
+type ConsumptionValidationResult = ValidationSuccess | ValidationFailure;
 
 function normalizeSearchValue(value: string) {
   return value
@@ -65,6 +88,20 @@ function getRankedMatches<T>(items: T[], query: string, getFields: (item: T) => 
     .map(match => match.item);
 }
 
+function parseQuantityInput(value: string) {
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return null;
+
+  const quantity = Number(trimmedValue);
+  if (!Number.isFinite(quantity)) return null;
+
+  return quantity;
+}
+
+function isValidCost(cost: number) {
+  return Number.isFinite(cost) && cost >= 0;
+}
+
 export default function ConsumptionsPage() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
@@ -92,6 +129,7 @@ export default function ConsumptionsPage() {
   const [productCodeInput, setProductCodeInput] = useState('');
   const [debouncedProductCodeInput, setDebouncedProductCodeInput] = useState('');
   const productCodeInputRef = useRef<HTMLInputElement>(null);
+  const previousWarehouseIdRef = useRef<string | undefined>(undefined);
   
   const [pendingVouchers, setPendingVouchers] = useState<PendingVoucher[]>([]);
   const [reviewingVoucher, setReviewingVoucher] = useState<PendingVoucher | null>(null);
@@ -124,10 +162,229 @@ export default function ConsumptionsPage() {
     }));
   }, [physicalInventoryInWarehouse, pendingVouchers, warehouseIdToFilter]);
 
+  const getSpecificWarehouseId = (warehouseId = warehouseIdToFilter) => {
+    if (!warehouseId || warehouseId === 'all') return null;
+    return warehouseId;
+  };
+
+  const showValidationError = (description: string) => {
+    toast({
+      variant: 'destructive',
+      title: t('error'),
+      description,
+    });
+  };
+
+  const validateQuantity = (rawValue: string, availableStock: number): ValidationFailure | { valid: true; quantity: number } => {
+    if (!rawValue.trim()) {
+      return { valid: false, message: 'La cantidad no puede estar vacía.' };
+    }
+
+    const quantity = parseQuantityInput(rawValue);
+
+    if (quantity === null) {
+      return { valid: false, message: 'La cantidad debe ser numérica.' };
+    }
+
+    if (quantity <= 0) {
+      return { valid: false, message: 'La cantidad debe ser mayor que cero.' };
+    }
+
+    if (quantity > availableStock) {
+      return { valid: false, message: 'Stock insuficiente en la bodega activa.' };
+    }
+
+    return { valid: true, quantity };
+  };
+
+  const validateConsumptionDraft = (): ConsumptionValidationResult => {
+    const warehouseId = getSpecificWarehouseId();
+    if (!warehouseId) {
+      return { valid: false, message: SELECT_SPECIFIC_WAREHOUSE_MESSAGE };
+    }
+
+    if (!selectedWorker) {
+      return { valid: false, message: 'Selecciona un trabajador válido.' };
+    }
+
+    const currentWorker = workers.find(worker => worker.id === selectedWorker.id);
+    if (!currentWorker) {
+      return { valid: false, message: 'El trabajador seleccionado ya no existe. Selecciona un trabajador válido.' };
+    }
+
+    if (!selectedProject) {
+      return { valid: false, message: 'Selecciona un proyecto válido.' };
+    }
+
+    const currentProject = projects.find(project => project.id === selectedProject.id);
+    if (!currentProject) {
+      return { valid: false, message: 'El proyecto seleccionado ya no existe. Selecciona un proyecto válido.' };
+    }
+
+    if (selectedItems.length === 0) {
+      return { valid: false, message: 'Agrega al menos un producto.' };
+    }
+
+    const validatedItems: ValidatedConsumptionItem[] = [];
+    let validatedTotalCost = 0;
+
+    for (const selectedItem of selectedItems) {
+      if (selectedItem.warehouseId !== warehouseId) {
+        return { valid: false, message: 'El producto seleccionado ya no existe o pertenece a otra bodega.' };
+      }
+
+      const currentItem = inventory.find(item => item.id === selectedItem.id && item.warehouseId === warehouseId);
+      const availableItem = virtualInventory.find(item => item.id === selectedItem.id && item.warehouseId === warehouseId);
+
+      if (!currentItem || !availableItem) {
+        return { valid: false, message: 'El producto seleccionado ya no existe o pertenece a otra bodega.' };
+      }
+
+      if (availableItem.quantity <= 0) {
+        return { valid: false, message: 'No puedes consumir un producto con stock cero.' };
+      }
+
+      const quantityValidation = validateQuantity(selectedItem.consumeQuantityInput, availableItem.quantity);
+      if (!quantityValidation.valid) return quantityValidation;
+
+      if (!isValidCost(currentItem.cost)) {
+        return { valid: false, message: 'El costo unitario del producto es inválido.' };
+      }
+
+      validatedTotalCost += currentItem.cost * quantityValidation.quantity;
+      validatedItems.push({ currentItem, quantity: quantityValidation.quantity });
+    }
+
+    if (!Number.isFinite(validatedTotalCost) || validatedTotalCost < 0) {
+      return { valid: false, message: 'El total del consumo es inválido.' };
+    }
+
+    return {
+      valid: true,
+      warehouseId,
+      worker: currentWorker,
+      project: currentProject,
+      items: validatedItems,
+      totalCost: validatedTotalCost,
+    };
+  };
+
+  const validateVoucherBeforeRegister = (voucher: PendingVoucher): ConsumptionValidationResult => {
+    const activeWarehouseId = getSpecificWarehouseId();
+    if (!activeWarehouseId) {
+      return { valid: false, message: SELECT_SPECIFIC_WAREHOUSE_MESSAGE };
+    }
+
+    if (voucher.warehouseId !== activeWarehouseId) {
+      return { valid: false, message: 'El vale pertenece a otra bodega. Selecciona la bodega correcta o crea un nuevo consumo.' };
+    }
+
+    if (!voucher.worker) {
+      return { valid: false, message: 'Selecciona un trabajador válido.' };
+    }
+
+    const currentWorker = workers.find(worker => worker.id === voucher.worker?.id);
+    if (!currentWorker) {
+      return { valid: false, message: 'El trabajador seleccionado ya no existe. Selecciona un trabajador válido.' };
+    }
+
+    if (!voucher.project) {
+      return { valid: false, message: 'Selecciona un proyecto válido.' };
+    }
+
+    const currentProject = projects.find(project => project.id === voucher.project?.id);
+    if (!currentProject) {
+      return { valid: false, message: 'El proyecto seleccionado ya no existe. Selecciona un proyecto válido.' };
+    }
+
+    if (voucher.items.length === 0) {
+      return { valid: false, message: 'Agrega al menos un producto.' };
+    }
+
+    const validatedItems: ValidatedConsumptionItem[] = [];
+    let validatedTotalCost = 0;
+
+    for (const voucherItem of voucher.items) {
+      if (voucherItem.warehouseId !== voucher.warehouseId) {
+        return { valid: false, message: 'El producto seleccionado ya no existe o pertenece a otra bodega.' };
+      }
+
+      const currentItem = inventory.find(item => item.id === voucherItem.id && item.warehouseId === voucher.warehouseId);
+      if (!currentItem) {
+        return { valid: false, message: 'El producto seleccionado ya no existe o pertenece a otra bodega.' };
+      }
+
+      if (currentItem.quantity <= 0) {
+        return { valid: false, message: 'No puedes consumir un producto con stock cero.' };
+      }
+
+      const quantityValidation = validateQuantity(voucherItem.consumeQuantityInput, currentItem.quantity);
+      if (!quantityValidation.valid) return quantityValidation;
+
+      if (!isValidCost(currentItem.cost)) {
+        return { valid: false, message: 'El costo unitario del producto es inválido.' };
+      }
+
+      validatedTotalCost += currentItem.cost * quantityValidation.quantity;
+      validatedItems.push({ currentItem, quantity: quantityValidation.quantity });
+    }
+
+    if (!Number.isFinite(validatedTotalCost) || validatedTotalCost < 0) {
+      return { valid: false, message: 'El total del consumo es inválido.' };
+    }
+
+    return {
+      valid: true,
+      warehouseId: voucher.warehouseId,
+      worker: currentWorker,
+      project: currentProject,
+      items: validatedItems,
+      totalCost: validatedTotalCost,
+    };
+  };
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setDebouncedWorkerRutInput(workerRutInput), 180);
     return () => window.clearTimeout(timeoutId);
   }, [workerRutInput]);
+
+  useEffect(() => {
+    const previousWarehouseId = previousWarehouseIdRef.current;
+    previousWarehouseIdRef.current = warehouseIdToFilter;
+
+    if (previousWarehouseId === undefined || previousWarehouseId === warehouseIdToFilter) {
+      return;
+    }
+
+    const currentWarehouseId = getSpecificWarehouseId();
+    const hasSelectedItemsFromOtherWarehouse = selectedItems.some(item => !currentWarehouseId || item.warehouseId !== currentWarehouseId);
+    const hasPendingVouchersFromOtherWarehouse = pendingVouchers.some(voucher => !currentWarehouseId || voucher.warehouseId !== currentWarehouseId);
+    const hasReviewingVoucherFromOtherWarehouse = Boolean(reviewingVoucher && (!currentWarehouseId || reviewingVoucher.warehouseId !== currentWarehouseId));
+    const removedOutOfScopeData = hasSelectedItemsFromOtherWarehouse || hasPendingVouchersFromOtherWarehouse || hasReviewingVoucherFromOtherWarehouse;
+
+    setSelectedItems(prev => {
+      const nextItems = currentWarehouseId ? prev.filter(item => item.warehouseId === currentWarehouseId) : [];
+      return nextItems;
+    });
+
+    setPendingVouchers(prev => {
+      const nextVouchers = currentWarehouseId ? prev.filter(voucher => voucher.warehouseId === currentWarehouseId) : [];
+      return nextVouchers;
+    });
+
+    setReviewingVoucher(prev => {
+      if (!prev) return prev;
+      if (currentWarehouseId && prev.warehouseId === currentWarehouseId) return prev;
+      return null;
+    });
+
+    if (removedOutOfScopeData) {
+      toast({
+        title: t('warehouse'),
+        description: 'Se limpiaron productos o vales pendientes que pertenecían a otra bodega.',
+      });
+    }
+  }, [pendingVouchers, reviewingVoucher, selectedItems, warehouseIdToFilter, t, toast]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => setDebouncedProjectIdInput(projectIdInput), 180);
@@ -185,27 +442,43 @@ export default function ConsumptionsPage() {
   };
 
   const addProductToSelection = (itemInPhysicalInventory: InventoryItem) => {
-    if (!warehouseIdToFilter || warehouseIdToFilter === 'all') {
+    const warehouseId = getSpecificWarehouseId();
+
+    if (!warehouseId) {
       toast({
         variant: 'destructive',
         title: t('no_warehouse_selected'),
-        description: 'Debes seleccionar una bodega para continuar. Usa el selector de la esquina superior izquierda.',
+        description: 'Selecciona una bodega específica antes de agregar productos.',
+      });
+      return;
+    }
+
+    if (itemInPhysicalInventory.warehouseId !== warehouseId) {
+      toast({
+        variant: 'destructive',
+        title: t('error'),
+        description: 'El producto seleccionado ya no existe o pertenece a otra bodega.',
       });
       return;
     }
     
-    if (selectedItems.some(i => i.id === itemInPhysicalInventory.id)) {
+    if (selectedItems.some(i => i.id === itemInPhysicalInventory.id && i.warehouseId === warehouseId)) {
       toast({ variant: 'destructive', title: t('error'), description: t('product_already_added') });
       return;
     }
     
-    const itemInVirtualInventory = virtualInventory.find(item => item.id === itemInPhysicalInventory.id);
+    const itemInVirtualInventory = virtualInventory.find(item => item.id === itemInPhysicalInventory.id && item.warehouseId === warehouseId);
     if (!itemInVirtualInventory || itemInVirtualInventory.quantity <= 0) {
-      toast({ variant: 'destructive', title: t('error'), description: t('stock_exceeded') });
+      toast({ variant: 'destructive', title: t('error'), description: 'No puedes consumir un producto con stock cero.' });
       return;
     }
 
-    setSelectedItems(prev => [...prev, { ...itemInVirtualInventory, consumeQuantity: 1 }]);
+    if (!isValidCost(itemInVirtualInventory.cost)) {
+      toast({ variant: 'destructive', title: t('error'), description: 'El costo unitario del producto es inválido.' });
+      return;
+    }
+
+    setSelectedItems(prev => [...prev, { ...itemInVirtualInventory, consumeQuantity: 1, consumeQuantityInput: '1' }]);
     if (productCodeInputRef.current) {
         productCodeInputRef.current.value = '';
     }
@@ -217,6 +490,15 @@ export default function ConsumptionsPage() {
     const code = productCodeInput.trim();
     if (!code) return;
 
+    if (!getSpecificWarehouseId()) {
+      toast({
+        variant: 'destructive',
+        title: t('no_warehouse_selected'),
+        description: 'Selecciona una bodega específica antes de agregar productos.',
+      });
+      return;
+    }
+
     const itemInPhysicalInventory = getRankedMatches(physicalInventoryInWarehouse, code, item => [item.code, item.description, item.size])[0];
 
     if (!itemInPhysicalInventory) {
@@ -227,16 +509,30 @@ export default function ConsumptionsPage() {
     addProductToSelection(itemInPhysicalInventory);
   };
   
-  const handleQuantityChange = (itemId: string, newQuantityValue: number) => {
-    const newQuantity = isNaN(newQuantityValue) ? 1 : newQuantityValue;
-    
-    const itemInVirtualStock = virtualInventory.find(i => i.id === itemId);
+  const handleQuantityChange = (itemId: string, warehouseId: string, newQuantityValue: string) => {
+    const itemInVirtualStock = virtualInventory.find(i => i.id === itemId && i.warehouseId === warehouseId);
     const availableStock = itemInVirtualStock?.quantity || 0;
-    
-    let finalQuantity = Math.max(1, newQuantity);
+    const quantity = parseQuantityInput(newQuantityValue);
 
-    if (finalQuantity > availableStock) {
-      finalQuantity = availableStock;
+    if (newQuantityValue.trim() === '') {
+      toast({
+        variant: 'destructive',
+        title: t('error'),
+        description: 'La cantidad no puede estar vacía.',
+      });
+    } else if (quantity === null) {
+      toast({
+        variant: 'destructive',
+        title: t('error'),
+        description: 'La cantidad debe ser numérica.',
+      });
+    } else if (quantity <= 0) {
+      toast({
+        variant: 'destructive',
+        title: t('error'),
+        description: 'La cantidad debe ser mayor que cero.',
+      });
+    } else if (quantity > availableStock) {
       toast({
         variant: 'destructive',
         title: t('stock_exceeded'),
@@ -246,7 +542,9 @@ export default function ConsumptionsPage() {
 
     setSelectedItems(prev =>
       prev.map(item =>
-        item.id === itemId ? { ...item, consumeQuantity: finalQuantity } : item
+        item.id === itemId && item.warehouseId === warehouseId
+          ? { ...item, consumeQuantity: quantity ?? 0, consumeQuantityInput: newQuantityValue }
+          : item
       )
     );
   };
@@ -256,7 +554,12 @@ export default function ConsumptionsPage() {
   };
   
   const totalCost = useMemo(() => {
-    return selectedItems.reduce((acc, item) => acc + item.cost * item.consumeQuantity, 0);
+    return selectedItems.reduce((acc, item) => {
+      const quantity = parseQuantityInput(item.consumeQuantityInput);
+      if (quantity === null || quantity <= 0 || !isValidCost(item.cost)) return acc;
+
+      return acc + item.cost * quantity;
+    }, 0);
   }, [selectedItems]);
 
   const consumptionDataForVoucher = useMemo(() => ({
@@ -280,19 +583,25 @@ export default function ConsumptionsPage() {
   };
 
   const handleSendToPending = () => {
-     if (!isFormComplete) {
-      toast({ variant: 'destructive', title: t('error'), description: t('please_fill_all_fields') });
+    const validation = validateConsumptionDraft();
+    if (!validation.valid) {
+      showValidationError(validation.message);
       return;
     }
+
     const newPendingVoucher: PendingVoucher = {
         id: `VC-${Date.now()}`,
         date: new Date(),
-        worker: selectedWorker,
-        project: selectedProject,
-        items: selectedItems,
-        totalCost,
-        warehouseId: warehouseIdToFilter!,
-        warehouseName: warehouses.find(w => w.id === warehouseIdToFilter)?.name || 'N/A',
+        worker: validation.worker,
+        project: validation.project,
+        items: validation.items.map(({ currentItem, quantity }) => ({
+          ...currentItem,
+          consumeQuantity: quantity,
+          consumeQuantityInput: String(quantity),
+        })),
+        totalCost: validation.totalCost,
+        warehouseId: validation.warehouseId,
+        warehouseName: warehouses.find(w => w.id === validation.warehouseId)?.name || 'N/A',
         deliveredBy: user?.name || 'N/A',
     };
     setPendingVouchers(prev => [newPendingVoucher, ...prev]);
@@ -301,26 +610,26 @@ export default function ConsumptionsPage() {
   };
 
   const handleRegisterConsumption = (voucher: PendingVoucher) => {
-    // 1. Update inventory
-    voucher.items.forEach(consumedItem => {
-      const originalItem = inventory.find(i => i.id === consumedItem.id && i.warehouseId === voucher.warehouseId);
-      if (originalItem) {
-        updateInventoryItemQuantity(consumedItem.id, voucher.warehouseId, originalItem.quantity - consumedItem.consumeQuantity);
-      }
+    const validation = validateVoucherBeforeRegister(voucher);
+    if (!validation.valid) {
+      showValidationError(validation.message);
+      return;
+    }
+
+    validation.items.forEach(({ currentItem, quantity }) => {
+      updateInventoryItemQuantity(currentItem.id, validation.warehouseId, currentItem.quantity - quantity);
     });
     
-    // 2. Create consumption record
     const newRecord: ConsumptionRecord = {
         id: voucher.id,
         date: voucher.date,
-        workerId: voucher.worker!.id,
-        projectId: voucher.project!.id,
-        items: voucher.items.map(i => ({ itemId: i.id, quantity: i.consumeQuantity })),
-        warehouseId: voucher.warehouseId,
+        workerId: validation.worker.id,
+        projectId: validation.project.id,
+        items: validation.items.map(({ currentItem, quantity }) => ({ itemId: currentItem.id, quantity })),
+        warehouseId: validation.warehouseId,
     };
     addConsumptionRecord(newRecord);
 
-    // 3. Remove from pending list
     setPendingVouchers(prev => prev.filter(v => v.id !== voucher.id));
 
     toast({ title: t('consumption_registered'), description: t('stock_updated_successfully') });
@@ -328,10 +637,16 @@ export default function ConsumptionsPage() {
 
  const handlePreview = (voucher?: PendingVoucher) => {
     if (voucher) {
+      const validation = validateVoucherBeforeRegister(voucher);
+      if (!validation.valid) {
+        showValidationError(validation.message);
+        return;
+      }
       setReviewingVoucher(voucher);
     } else {
-       if (!isFormComplete) {
-        toast({ variant: 'destructive', title: t('error'), description: t('please_fill_all_fields') });
+      const validation = validateConsumptionDraft();
+      if (!validation.valid) {
+        showValidationError(validation.message);
         return;
       }
       setReviewingVoucher(null); // Use current form data
@@ -379,8 +694,6 @@ export default function ConsumptionsPage() {
         }
     }, 100);
   };
-  const isFormComplete = !!selectedWorker && !!selectedProject && selectedItems.length > 0;
-
   return (
     <>
     <div className="flex flex-col gap-4">
@@ -532,29 +845,36 @@ export default function ConsumptionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {selectedItems.length > 0 ? selectedItems.map(item => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.code}</TableCell>
-                  <TableCell>{item.description}</TableCell>
-                  <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      value={item.consumeQuantity}
-                      onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value, 10))}
-                      className="w-20 float-right"
-                      min="1"
-                      max={item.quantity}
-                    />
-                  </TableCell>
-                  <TableCell className="text-right">${item.cost.toLocaleString(language)}</TableCell>
-                  <TableCell className="text-right">${(item.cost * item.consumeQuantity).toLocaleString(language)}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )) : (
+              {selectedItems.length > 0 ? selectedItems.map(item => {
+                const quantity = parseQuantityInput(item.consumeQuantityInput);
+                const lineTotal = quantity !== null && quantity > 0 && isValidCost(item.cost)
+                  ? item.cost * quantity
+                  : 0;
+
+                return (
+                  <TableRow key={`${item.id}-${item.warehouseId}`}>
+                    <TableCell>{item.code}</TableCell>
+                    <TableCell>{item.description}</TableCell>
+                    <TableCell className="text-right">
+                      <Input
+                        type="number"
+                        value={item.consumeQuantityInput}
+                        onChange={(e) => handleQuantityChange(item.id, item.warehouseId, e.target.value)}
+                        className="w-20 float-right"
+                        min="1"
+                        max={item.quantity}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">${item.cost.toLocaleString(language)}</TableCell>
+                    <TableCell className="text-right">${lineTotal.toLocaleString(language)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(item.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              }) : (
                 <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">{t('no_products_added')}</TableCell>
                 </TableRow>
@@ -567,11 +887,11 @@ export default function ConsumptionsPage() {
         </CardFooter>
       </Card>
       <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => handlePreview()} disabled={!isFormComplete}>
+          <Button variant="outline" onClick={() => handlePreview()}>
             <Eye className="mr-2" />
             {t('preview_voucher')}
           </Button>
-          <Button onClick={handleSendToPending} disabled={!isFormComplete}>
+          <Button onClick={handleSendToPending}>
               <Hourglass className="mr-2" />
               {t('send_to_pending')}
           </Button>
