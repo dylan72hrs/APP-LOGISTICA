@@ -14,7 +14,8 @@ interface ValeConsumoData {
     id: string;
     date: Date;
     worker: { name: string; rut: string; } | null;
-    project: { name: string; id: string; } | null;
+    project?: { name: string; id: string; } | null;
+    requesterReference?: string;
     items: {
         code: string;
         description: string;
@@ -67,7 +68,12 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
                 <div>
                     <p><strong>{t('worker')}:</strong> {data.worker?.name}</p>
                     <p><strong>{t('rut')}:</strong> {data.worker?.rut}</p>
-                    <p><strong>{t('project')}:</strong> {data.project?.name} ({data.project?.id})</p>
+                    {data.project ? (
+                        <p><strong>{t('project')}:</strong> {data.project.name} ({data.project.id})</p>
+                    ) : null}
+                    {data.requesterReference ? (
+                        <p><strong>Centro/Faena/Area:</strong> {data.requesterReference}</p>
+                    ) : null}
                 </div>
             </section>
 

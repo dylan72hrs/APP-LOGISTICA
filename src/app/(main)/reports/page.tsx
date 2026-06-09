@@ -100,7 +100,7 @@ export default function ReportsPage() {
             return recordDate >= startDate && recordDate <= endDate;
         });
 
-        const projectIdsInReport = [...new Set(filteredConsumptions.map(c => c.projectId))];
+        const projectIdsInReport = [...new Set(filteredConsumptions.map(c => c.projectId).filter(Boolean))];
         const projectsInReport = projects.filter(p => projectIdsInReport.includes(p.id)).sort((a, b) => a.id.localeCompare(b.id));
 
         const itemIdsInReport = [...new Set(filteredConsumptions.flatMap(c => c.items.map(i => i.itemId)))];
@@ -114,6 +114,8 @@ export default function ReportsPage() {
         const dataMatrix: Record<string, Record<string, number>> = {}; 
 
         for (const consumption of filteredConsumptions) {
+            if (!consumption.projectId) continue;
+
             for (const consumedItem of consumption.items) {
                 const itemCode = inventory.find(i => i.id === consumedItem.itemId)?.code;
                 if (!itemCode) continue;

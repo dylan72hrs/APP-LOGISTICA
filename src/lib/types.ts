@@ -47,7 +47,8 @@ export interface ConsumptionRecord {
   id: string;
   date: Date;
   workerId: string;
-  projectId: string;
+  projectId?: string;
+  requesterReference?: string; // centro de costo / faena / area solicitante
   items: {
     itemId: string;
     quantity: number;
