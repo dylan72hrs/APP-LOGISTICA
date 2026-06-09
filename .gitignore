@@ -51,5 +51,3 @@ node_modules/
 tsconfig.tsbuildinfo
 .vercel/
 dist/
-
-*.exe
