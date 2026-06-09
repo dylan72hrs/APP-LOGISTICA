@@ -1,23 +1,43 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-import { Boxes, Truck, AlertCircle, Users, CalendarDays, Calendar } from "lucide-react";
+import { Boxes, Truck, AlertCircle } from "lucide-react";
 import { useLanguage } from "@/lib/hooks/use-language";
 import { useState, useMemo } from "react";
 import { useWarehouse } from "@/lib/hooks/use-warehouse";
 import { useData } from "@/lib/hooks/use-data";
 import { useAuth } from "@/lib/hooks/use-auth";
-import { isThisMonth, isThisYear, isWithinInterval, subDays, getWeekOfMonth, getMonth } from "date-fns";
+import { isThisMonth, isThisYear, isWithinInterval, subDays, getWeekOfMonth } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import dynamic from 'next/dynamic';
+
+const DashboardCharts = dynamic(() => import('./dashboard-charts'), {
+    ssr: false,
+    loading: () => (
+        <>
+            {[0, 1, 2].map((index) => (
+                <div key={index} className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+                    <Card className="col-span-1 md:col-span-2 lg:col-span-7">
+                        <CardHeader>
+                            <div className="h-6 w-48 animate-pulse rounded bg-muted" />
+                            {index === 0 ? <div className="h-4 w-80 animate-pulse rounded bg-muted" /> : null}
+                        </CardHeader>
+                        <CardContent className="pl-2">
+                            <div className="h-[200px] animate-pulse rounded bg-muted" />
+                        </CardContent>
+                    </Card>
+                </div>
+            ))}
+        </>
+    ),
+});
 
 export default function DashboardPage() {
     const { t, language } = useLanguage();
     const { user } = useAuth();
     const { selectedWarehouseId, availableWarehouses } = useWarehouse();
-    const { inventory, consumptionRecords, workers } = useData();
+    const { inventory, consumptionRecords } = useData();
 
     const [isLowStockDialogOpen, setIsLowStockDialogOpen] = useState(false);
 
@@ -200,82 +220,15 @@ export default function DashboardPage() {
                     </DialogContent>
                 </Dialog>
             </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-1 md:col-span-2 lg:col-span-7">
-                    <CardHeader>
-                        <CardTitle>{t('weekly_consumption_summary')}</CardTitle>
-                        <CardDescription>{t('quantity_of_items_consumed_per_day_last_7_days')}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={weeklyChartData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                                <Tooltip
-                                    cursor={{fill: 'hsl(var(--background))'}}
-                                    contentStyle={{
-                                        backgroundColor: 'hsl(var(--popover))',
-                                        borderColor: 'hsl(var(--border))',
-                                        borderRadius: 'var(--radius)'
-                                    }}
-                                />
-                                <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            </div>
-             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-1 md:col-span-2 lg:col-span-7">
-                    <CardHeader>
-                        <CardTitle>{t('consumptions_this_month')}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={monthlyChartData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                                <Tooltip
-                                    cursor={{fill: 'hsl(var(--background))'}}
-                                    contentStyle={{
-                                        backgroundColor: 'hsl(var(--popover))',
-                                        borderColor: 'hsl(var(--border))',
-                                        borderRadius: 'var(--radius)'
-                                    }}
-                                />
-                                <Bar dataKey="total" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                 <Card className="col-span-1 md:col-span-2 lg:col-span-7">
-                    <CardHeader>
-                        <CardTitle>{t('consumptions_this_year')}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <ResponsiveContainer width="100%" height={200}>
-                            <BarChart data={yearlyChartData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                                <Tooltip
-                                    cursor={{fill: 'hsl(var(--background))'}}
-                                    contentStyle={{
-                                        backgroundColor: 'hsl(var(--popover))',
-                                        borderColor: 'hsl(var(--border))',
-                                        borderRadius: 'var(--radius)'
-                                    }}
-                                />
-                                <Bar dataKey="total" fill="hsl(var(--chart-3))" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            </div>
+            <DashboardCharts
+                weeklyChartData={weeklyChartData}
+                monthlyChartData={monthlyChartData}
+                yearlyChartData={yearlyChartData}
+                weeklyTitle={t('weekly_consumption_summary')}
+                weeklyDescription={t('quantity_of_items_consumed_per_day_last_7_days')}
+                monthlyTitle={t('consumptions_this_month')}
+                yearlyTitle={t('consumptions_this_year')}
+            />
         </div>
     );
 
