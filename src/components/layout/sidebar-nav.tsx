@@ -41,6 +41,9 @@ const navItems = [
   { href: '/admin/users', labelKey: 'admin', icon: Users, roles: ['admin'] },
 ];
 
+// ETAPA 4.3: keep these routes/files available, but hide them from MVP navigation.
+const hiddenFromMvpNavigation = new Set(['/projects', '/restock', '/admin/users']);
+
 export function SidebarNav() {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -48,12 +51,13 @@ export function SidebarNav() {
   const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
 
   const filteredNavItems = navItems.filter(item => {
+    if (hiddenFromMvpNavigation.has(item.href)) return false;
     if (!user) return false;
     // Special rule for reports user
     if (user.role === 'reports') {
         return item.labelKey === 'dashboard' || item.labelKey === 'reports';
     }
-    return item.roles.includes(user.role);
+    return (item.roles as UserRole[]).includes(user.role);
   });
 
   return (
