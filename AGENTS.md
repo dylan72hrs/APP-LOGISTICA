@@ -1,280 +1,313 @@
-﻿# AGENTS.md — APP-LOGISTICA / EPP Tracker 3.0
+# AGENTS.md - APP-LOGISTICA / EPP Tracker 3.0
 
-## Contexto
+## Contexto Actual
 
-APP-LOGISTICA / EPP Tracker 3.0 es una app Next.js para control de EPP. Gestiona bodegas, trabajadores, proyectos, inventario, consumos, vales, ficha de consumo, reportes y reposición con IA.
+APP-LOGISTICA / EPP Tracker 3.0 es una app Next.js para control operativo de EPP en bodega.
 
-El proyecto viene desde Firebase Studio y actualmente está en estado de prototipo avanzado. Tiene módulos funcionales, pero no debe considerarse productivo todavía.
+El proyecto viene desde Firebase Studio y ya no debe crecer como ERP completo, sistema financiero, motor de IA, sistema multi-pais ni plataforma avanzada de roles. El foco actual del MVP es resolver el proceso real de entrega y consumo de EPP en bodega:
 
-Problemas actuales conocidos:
-- El proyecto tiene errores TypeScript/build pendientes.
-- Existen datos mock/en memoria.
-- La app pierde datos al refrescar.
-- Firebase no está implementado realmente.
-- Auth está simulada con localStorage.
-- Roles son visuales, no seguridad real.
-- Logo externo roto.
-- Reportes inconsistentes.
-- Falta vale formal.
-- Falta stock reservado.
-- Falta separación clara entre mock data y datos reales.
+- Inventario EPP.
+- Trabajadores internos e invitados.
+- Registro de consumo.
+- Descuento de stock.
+- Vale de Entrega de EPP imprimible.
+- Ficha/historial de consumo imprimible.
+- Reportes operativos por bodega, trabajador, EPP/producto y periodo.
+- Excel import/export.
+- Futuro backend MySQL/cPanel.
 
-## Regla principal
+Estado de clasificacion actual:
 
-No agregar funciones nuevas antes de estabilizar la base técnica.
+- DEMO: OK.
+- PILOTO: con condiciones fuertes.
+- PRODUCCION: no apta todavia.
 
-La prioridad actual es ETAPA 1 — Estabilización técnica base.
+## Estado Real del Proyecto
 
-## ETAPAS DEL PROYECTO
+Etapas recientes cerradas y subidas a GitHub:
 
-### ETAPA 1 — Estabilización técnica base
-Corregir lo que impide trabajar bien:
-- TypeScript.
-- Build.
-- Dashboard roto.
-- Calendar.
-- selectedWarehouseId.
-- reportData.
-- Traducciones.
-- Errores visibles de compilación.
+- ETAPA 1 - Estabilizacion tecnica base.
+- ETAPA 2 - Separacion mock/data.
+- ETAPA 3 - Persistencia local minima.
+- ETAPA 3.5 - UX y branding operativo.
+- ETAPA 3.6 - Hotfix IA/perfil/login.
+- ETAPA 4 - Flujo critico de consumo.
+- ETAPA 4.1a - xlsx dinamico.
+- ETAPA 4.1b - dashboard charts dinamicos.
+- ETAPA 4.2 - Reajuste de alcance MVP/TI.
+- ETAPA 4.3 - Ocultar modulos fuera de alcance.
+- ETAPA 4.4 - Consumo MVP sin proyecto obligatorio.
+- ETAPA 4.5 - Vale y ficha imprimible MVP.
+- ETAPA 4.6A - Hardening pre-piloto sin backend.
+- ETAPA 4.6B - Reportes operativos MVP.
 
-No agregar funciones nuevas todavía.
+Tags recientes relevantes:
 
-### ETAPA 2 — Separación de datos mock y datos reales
-- Separar mock data.
-- Marcar modo demo.
-- Preparar data provider.
-- Preparar repository layer.
-- Evitar que datos de prueba parezcan reales.
+- v0.4.5-etapa4.5.
+- v0.4.6a-etapa4.6a.
+- v0.4.6b-etapa4.6b.
 
-### ETAPA 3 — Persistencia mínima piloto
-- Trabajadores.
-- Proyectos.
-- Inventario.
+Estado tecnico actual:
+
+- Typecheck OK.
+- Build OK.
+- Login demo con usuario `admin` y contrasena `admin`.
+- Auth sigue siendo demo; no es seguridad real.
+- La sesion sigue usando `localStorage`.
+- Los datos siguen usando mock/localStorage.
+- No hay backend.
+- No hay MySQL.
+- No hay API routes.
+- No hay auditoria real.
+- `/projects`, `/restock` y `/admin/users` estan ocultos o neutralizados, pero las rutas pueden existir.
+- `/admin/users` esta neutralizado; no es CRUD real de usuarios.
+- `/register` esta neutralizado.
+- Proyecto ya no es obligatorio en consumos.
+- `projectId` es opcional para compatibilidad historica.
+- `requesterReference` existe como texto opcional para centro de costo / faena / area solicitante.
+- Vale imprimible no muestra costos como foco.
+- Reportes ya no se centran en proyectos.
+- Excel tiene sanitizacion basica contra formula injection.
+- `document.write` fue eliminado en impresion de vale/ficha.
+- Headers basicos de seguridad fueron agregados.
+- `localStorage` sigue siendo una limitacion fuerte.
+
+## Alcance MVP Actual
+
+Mantener el MVP enfocado en bodega:
+
+- Dashboard operativo acotado.
+- Inventario de bodega.
 - Bodegas.
-- Vales.
-- Consumos.
-- Movimientos de stock.
+- Trabajadores internos e invitados.
+- Registro de consumo de EPP.
+- Validacion de bodega, trabajador, producto, cantidad y stock.
+- Descuento de stock cuando el consumo es valido.
+- Vale de Entrega de EPP imprimible.
+- Ficha/historial de consumo imprimible.
+- Reportes operativos por bodega, trabajador, EPP/producto y periodo.
+- Importacion/exportacion Excel.
+- Preparacion futura para hosting cPanel + MySQL.
 
-### ETAPA 4 — Flujo crítico de consumo
-- Bodega obligatoria.
-- Trabajador obligatorio.
-- Proyecto obligatorio.
-- Producto obligatorio.
-- Cantidad validada.
-- Stock disponible validado.
-- Costo visible antes de aprobar.
+## Fuera de Alcance Actual
 
-### ETAPA 5 — Vale de consumo y stock reservado
-- Correlativo único de vale.
-- Estado del vale.
-- Vale pendiente.
-- Vale aprobado.
-- Vale cancelado.
-- Vale registrado.
-- Stock reservado.
-- Stock consumido definitivo.
-- Devolución de stock si se cancela.
+No implementar ni reactivar como foco del MVP:
 
-### ETAPA 6 — Trabajadores, invitados y RRHH
-- Trabajador interno.
-- Trabajador externo.
-- Invitado.
-- Validación RUT.
-- Plantilla RRHH.
-- Estado activo/inactivo.
-- Cargo.
-- Sección.
-- Centro de costo base referencial.
-
-El centro de costo real lo debe mandar el proyecto, no el trabajador.
-
-### ETAPA 7 — Proyectos y dimensión financiera
-- ID de proyecto.
-- Nombre de proyecto.
-- Dimensión financiera.
-- Administrador.
-- Aprobador principal.
-- Aprobador interino.
-- Estado del proyecto.
-- Plantilla de carga.
-
-La dimensión financiera debe guardarse como texto, no como número.
-
-### ETAPA 8 — Reportes y ficha de consumo
-- Reporte por proyecto.
-- Reporte por bodega.
-- Reporte por trabajador.
-- Exportación Excel.
-- Ficha de consumo imprimible.
-- Formato para respaldo/faena.
-- Rango de fechas.
-- Datos persistentes.
-
-### ETAPA 9 — Plantillas Excel e importaciones
-- Plantilla trabajadores.
-- Plantilla proyectos.
-- Plantilla inventario.
-- Plantilla stock mínimo/máximo.
-- Validación por fila.
-- Deduplicación.
-- Actualización de existentes.
-- Resumen de carga.
-- Errores por fila.
-
-### ETAPA 10 — Usuarios, roles y permisos reales
+- Proyectos como modulo central.
+- Dimension financiera.
+- Aprobadores.
+- Aprobaciones formales.
+- Reposicion inteligente IA.
+- Usuarios/roles complejos por pais/bodega.
+- Picking.
+- Escaneo.
+- Solicitud movil.
+- Multi-pais.
+- Produccion real.
+- Backend real.
+- MySQL real.
+- API routes reales.
 - Auth real.
-- Admin global.
-- Admin país.
-- Operador bodega.
-- Usuario reportes.
-- Proveedor solo lectura.
-- Permisos por país.
-- Permisos por bodega.
-- Protección de rutas.
-- Seguridad en base de datos.
+- Firestore/Firebase como backend productivo.
 
-Ocultar botones no es seguridad.
+## Flujo Funcional Actual de Consumo
 
-### ETAPA 11 — Dashboard operativo
-- Consumo semanal.
-- Consumo mensual.
-- Consumo anual.
-- Consumo por proyecto.
-- Consumo por bodega.
-- Tendencias.
-- Stock bajo.
-- Vales pendientes.
-- Alertas.
+El consumo MVP debe mantener estas reglas:
 
-### ETAPA 12 — Reposición inteligente / IA
-- Consumo histórico.
-- Stock actual.
-- Stock reservado.
-- Lead time.
-- Días de cobertura.
-- Tendencia de consumo.
-- Sugerencia de reposición.
-- Explicación IA.
+- Bodega especifica obligatoria; no permitir operar con "Todas las bodegas".
+- Trabajador valido obligatorio.
+- Proyecto no obligatorio.
+- `projectId` opcional para compatibilidad con consumos historicos.
+- `requesterReference` opcional como centro de costo / faena / area solicitante.
+- Al menos un producto obligatorio.
+- Producto debe pertenecer a la bodega activa.
+- Cantidad debe ser valida y mayor a cero.
+- Stock suficiente obligatorio.
+- Costo unitario puede existir internamente, pero no debe ser foco del vale ni reportes MVP.
+- No debe haber descuento parcial.
+- El registro de consumo y el descuento de stock ocurren solo si todo el consumo es valido.
+- El vale/ficha debe funcionar aunque no exista `projectId`.
 
-La IA debe sugerir, no decidir ni comprar automáticamente.
+## Rutas
 
-### ETAPA 13 — UI crítica y branding
-- Logo local.
-- Sidebar profesional.
-- Colores blanco/azul.
-- Selector de bodegas coherente.
-- Responsive.
-- Mejor navegación.
+Rutas visibles en el MVP:
 
-### ETAPA 14 — Ambiente piloto / staging
-- URL estable.
-- Hosting con factura.
-- Base de datos persistente.
-- Usuarios de prueba.
-- Logs.
-- Backups.
-- Pruebas con usuarios reales.
-- Documentación de despliegue.
+- `/dashboard`
+- `/inventory`
+- `/workers`
+- `/warehouses`
+- `/consumptions`
+- `/consumption-sheet`
+- `/reports`
 
-No llamarlo producción todavía.
+Rutas existentes pero fuera del foco MVP o neutralizadas:
 
-### ETAPA 15 — Cierre mensual y proveedor
-- Cierre mensual.
-- Periodo de consumo.
-- Reporte facturable.
-- Proveedor solo lectura.
-- Exportación Excel/PDF.
-- Bloqueo o marca de periodo cerrado.
-- Historial de cierre.
+- `/projects` existe, pero no debe ser eje funcional actual.
+- `/restock` existe, pero IA/reposicion inteligente esta fuera de alcance actual.
+- `/admin/users` existe, pero esta neutralizada y no es CRUD real.
+- `/register` existe, pero esta neutralizada.
 
-### ETAPA 16 — Aprobaciones internas
-- Aprobador real.
-- Estado aprobado/rechazado.
-- Historial de aprobación.
-- Microsoft Teams Approvals.
-- Power Automate.
-- Notificaciones internas.
+Rutas principales que no deben romperse:
 
-No usar WhatsApp como aprobación formal principal.
+- `/dashboard`
+- `/inventory`
+- `/workers`
+- `/projects`
+- `/consumptions`
+- `/consumption-sheet`
+- `/reports`
+- `/restock`
+- `/warehouses`
+- `/admin/users`
 
-### ETAPA 17 — Lector de código / escaneo básico
-- Input de escaneo.
-- Lector USB tipo teclado.
-- Búsqueda por código interno.
-- Agregar producto al vale.
-- Validar código inexistente.
-- Mantener foco automático.
+## Riesgos Pendientes Reales
 
-### ETAPA 18 — Versión futura 4.0: picking y solicitud móvil
-- Solicitud desde celular.
-- Lista de picking.
-- Zona física de preparación.
-- Pedido listo.
-- Notificación al usuario.
-- Retiro.
-- Firma/aprobación.
-- Escaneo móvil.
+- No hay backend real.
+- No hay MySQL.
+- No hay API routes.
+- No hay auth real.
+- No hay roles/permisos reales.
+- Ocultar botones o rutas no es seguridad.
+- Sesion en `localStorage`.
+- Datos en mock/localStorage.
+- Sin auditoria real de acciones.
+- Sin logs reales.
+- Sin backups reales.
+- Sin control concurrente.
+- Sin separacion productiva de usuarios/datos.
+- Sin proteccion de datos empresariales.
+- Excel es cliente-side.
+- Reportes son cliente-side.
+- cPanel/MySQL aun no estan disenados ni implementados.
 
-Esto es futuro, no ahora.
+## Roadmap Actualizado
 
-## Restricciones actuales
+### ETAPA 4.7A - Diseno tecnico MySQL / cPanel
 
-En ETAPA 1 NO hacer:
-- No implementar Firebase.
-- No implementar Firestore.
-- No implementar Auth real.
-- No cambiar roles.
-- No rediseñar la app.
-- No agregar funciones nuevas.
-- No agregar dependencias salvo que sea estrictamente necesario.
-- No borrar mocks.
-- No tocar lógica de negocio salvo corrección técnica necesaria.
-- No ocultar errores con ignoreBuildErrors.
-- No tocar node_modules.
-- No tocar .next.
-- No subir .env.
+Solo diagnostico y diseno. No implementar backend todavia.
 
-## Comandos
+- Revisar restricciones de hosting cPanel.
+- Definir si el backend sera PHP, Node o alternativa soportada.
+- Definir conexion MySQL.
+- Definir estrategia de despliegue.
+- Definir variables de entorno.
+- Definir riesgos de seguridad.
+- No tocar flujo funcional salvo documentacion o diagnostico aprobado.
 
-Usar en Windows PowerShell:
+### ETAPA 4.7B - Preparar arquitectura repository/API sin activar backend real
 
-npm.cmd install
-npm.cmd run dev
-npm.cmd run typecheck
-npm.cmd run build
+- Preparar contratos e interfaces.
+- Separar llamadas de datos para futura API.
+- Mantener mock/localStorage funcionando.
+- No activar backend real.
+- No romper demo.
 
-## Rutas principales que no deben romperse
+### ETAPA 4.7C - Esquema MySQL
 
-- /dashboard
-- /inventory
-- /workers
-- /projects
-- /consumptions
-- /consumption-sheet
-- /reports
-- /restock
-- /warehouses
-- /admin/users
+- Disenar tablas MVP.
+- Bodegas.
+- Trabajadores/invitados.
+- Inventario.
+- Consumos.
+- Detalle de consumo.
+- Usuarios basicos para auth futura.
+- Auditoria minima.
+- No migrar datos reales sin aprobacion.
 
-## Definition of Done — ETAPA 1
+### ETAPA 4.7D - API minima para inventario, trabajadores y consumos
 
-La ETAPA 1 se considera terminada solo si:
-- npm.cmd run typecheck pasa.
-- npm.cmd run build pasa o se documenta exactamente el bloqueo.
-- No se agregaron funciones nuevas.
-- No se rediseñó la app.
-- No se rompieron rutas principales.
-- Se entrega resumen de archivos modificados.
-- Se entrega lista de riesgos pendientes para ETAPA 2.
+- Endpoints minimos para inventario.
+- Endpoints minimos para trabajadores.
+- Endpoints minimos para consumos.
+- Validaciones server-side equivalentes al flujo MVP.
+- Sin roles avanzados.
+- Sin aprobaciones.
 
-## Forma de trabajo para Codex
+### ETAPA 4.8 - Auth real y seguridad minima piloto
+
+- Login real.
+- Sesion real.
+- Hash de contrasenas.
+- Proteccion de rutas.
+- Roles minimos.
+- Auditoria basica.
+- No venderlo como produccion.
+
+### ETAPA 4.9 - Pruebas reales con usuarios
+
+- Pruebas controladas con usuarios de bodega.
+- Datos piloto acotados.
+- Revision de errores.
+- Ajustes de usabilidad.
+- Checklist antes de piloto ampliado.
+
+## Reglas de Trabajo Para Codex
 
 Antes de modificar:
+
 1. Crear plan corto.
 2. Listar archivos a revisar.
-3. No modificar más de 5 archivos sin aprobación.
-4. Validar con typecheck/build.
-5. Entregar resumen técnico.
+3. No modificar mas de 8 archivos sin aprobacion.
+4. Validar con typecheck/build cuando el cambio toque codigo o build.
+5. Entregar resumen tecnico y riesgos pendientes.
 
-Ser crítico. No complacer. No hacer cambios grandes por iniciativa propia.
+Restricciones permanentes:
+
+- No implementar MySQL sin aprobacion explicita.
+- No implementar backend sin aprobacion explicita.
+- No implementar API routes sin aprobacion explicita.
+- No implementar auth real sin aprobacion explicita.
+- No implementar roles reales sin aprobacion explicita.
+- No reactivar `/projects` como foco sin aprobacion.
+- No reactivar `/restock` IA sin aprobacion.
+- No agregar dependencias salvo aprobacion explicita.
+- No ejecutar `npm audit fix`.
+- No usar `git add .`.
+- No tocar `node_modules`.
+- No tocar `.next`.
+- No subir `.env`.
+- No subir respaldos `bodega360`.
+- No subir `.exe`.
+- No romper rutas principales.
+- No inventar seguridad real si aun no existe backend.
+- Ser critico. No complacer. No hacer cambios grandes por iniciativa propia.
+
+## Comandos Windows
+
+Usar en PowerShell:
+
+```powershell
+npm.cmd run typecheck
+npm.cmd run build
+npm.cmd run dev
+```
+
+`npm.cmd install` solo cuando sea necesario y aprobado por el contexto.
+
+## Flujo de Carpetas
+
+- Codex trabaja en `APP-LOGISTICA-main`.
+- GitHub se sube desde `APP-LOGISTICA- etapa 1`.
+- Auditorias externas usan `APP-LOGISTICA-AUDIT`.
+
+No mezclar carpetas ni asumir que una auditoria externa modifica automaticamente el workspace de Codex.
+
+## Definition of Done General
+
+Una tarea se considera lista solo si:
+
+- Se respeto el alcance solicitado.
+- Se listan archivos modificados.
+- Se listan archivos creados.
+- `npm.cmd run typecheck` pasa cuando aplica.
+- `npm.cmd run build` pasa cuando aplica.
+- No se rompen rutas principales.
+- No se inventa seguridad real si aun no existe backend.
+- Se documentan riesgos pendientes.
+- Se confirma explicitamente si la etapa puede aprobarse.
+
+Para cambios solo documentales:
+
+- No es obligatorio ejecutar build.
+- Confirmar que no se modifico codigo fuente.
+- Confirmar que el documento queda alineado al estado actual del proyecto.
