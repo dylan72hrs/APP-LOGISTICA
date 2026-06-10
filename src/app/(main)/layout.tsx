@@ -41,12 +41,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <SidebarProvider>
-      <Sidebar>
+      <Sidebar className="print:hidden">
         <SidebarNav />
       </Sidebar>
       <SidebarInset>
-        <Header />
-        <main className="p-4 lg:p-6">{children}</main>
+        <div className="print:hidden">
+          <Header />
+        </div>
+        <main className="p-4 print:p-0 lg:p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

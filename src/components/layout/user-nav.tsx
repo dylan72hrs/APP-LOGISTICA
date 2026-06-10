@@ -49,9 +49,7 @@ export function UserNav() {
     return null;
   }
 
-  const avatarSrc = user.email.toLowerCase() === 'imaulen@masterdrilling.com'
-    ? '/branding/imaulen.webp'
-    : undefined;
+  const avatarSrc: string | undefined = undefined;
   const roleLabel = user.role === 'admin'
     ? 'Admin General'
     : user.role === 'operator'

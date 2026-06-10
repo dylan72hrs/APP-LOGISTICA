@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useData } from '@/lib/hooks/use-data';
+import { sanitizeExcelRow, sanitizeExcelString } from '@/lib/excel-security';
 
 export default function InventoryPage() {
     const { toast } = useToast();
@@ -162,7 +163,7 @@ export default function InventoryPage() {
     const handleDownloadTemplate = async () => {
         const XLSX = await import('xlsx');
         const headers = [['Código', 'Descripción', 'Talla / U. Medida', 'Cantidad', 'Costo Unitario']];
-        const ws = XLSX.utils.aoa_to_sheet(headers);
+        const ws = XLSX.utils.aoa_to_sheet(headers.map(row => sanitizeExcelRow(row)));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
         XLSX.writeFile(wb, 'plantilla_productos_epp.xlsx');
@@ -226,9 +227,9 @@ export default function InventoryPage() {
 
                     processedRowCount++;
 
-                    const code = String(row[0]);
-                    const description = String(row[1]);
-                    const size = String(row[2]);
+                    const code = sanitizeExcelString(row[0]).trim();
+                    const description = sanitizeExcelString(row[1]).trim();
+                    const size = sanitizeExcelString(row[2]).trim();
                     const quantity = parseInt(row[3], 10);
                     const cost = parseFloat(row[4]);
                     

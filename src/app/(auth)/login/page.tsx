@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,23 +13,30 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import { Bot } from 'lucide-react';
 
 export default function LoginPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const { t } = useLanguage();
   const { login } = useAuth();
-  const [email, setEmail] = useState('Imaulen@masterdrilling.com');
-  const [password, setPassword] = useState('123456');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('');
   const companyLogo = PlaceHolderImages.find(p => p.id === 'company-logo');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email && password) {
-      login(email);
-    } else {
+    if (!username || !password) {
       toast({
-        variant: "destructive",
+        variant: 'destructive',
         title: t('error'),
         description: t('please_enter_email_password'),
+      });
+      return;
+    }
+
+    const isValidLogin = login(username, password);
+    if (!isValidLogin) {
+      toast({
+        variant: 'destructive',
+        title: t('error'),
+        description: 'Credenciales demo invalidas.',
       });
     }
   };
@@ -52,41 +58,46 @@ export default function LoginPage() {
         <Card className="w-full shadow-2xl">
           <CardHeader className="text-center">
             {companyLogo && (
-                <Image
-                    src={companyLogo.imageUrl}
-                    alt={companyLogo.description}
-                    width={84}
-                    height={84}
-                    className="mx-auto mb-4"
-                    data-ai-hint={companyLogo.imageHint}
-                    priority
-                />
-            )}
-          <CardTitle className="text-3xl font-bold">EPP Tracker 3.0</CardTitle>
-          <CardDescription>{t('epp_management_control')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">{t('email')}</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="admin@stockflow.com"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+              <Image
+                src={companyLogo.imageUrl}
+                alt={companyLogo.description}
+                width={84}
+                height={84}
+                className="mx-auto mb-4"
+                data-ai-hint={companyLogo.imageHint}
+                priority
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">{t('password')}</Label>
-              <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} maxLength={8} />
-            </div>
-            <Button type="submit" className="w-full">
-              {t('login')}
-            </Button>
-          </form>
-        </CardContent>
+            )}
+            <CardTitle className="text-3xl font-bold">EPP Tracker 3.0</CardTitle>
+            <CardDescription>{t('epp_management_control')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Usuario</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">{t('password')}</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                {t('login')}
+              </Button>
+            </form>
+          </CardContent>
         </Card>
       </div>
     </div>

@@ -15,6 +15,7 @@ import { useLanguage } from '@/lib/hooks/use-language';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useData } from '@/lib/hooks/use-data';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
+import { sanitizeExcelRow, sanitizeExcelString } from '@/lib/excel-security';
 
 export default function WorkersPage() {
     const { toast } = useToast();
@@ -127,7 +128,7 @@ export default function WorkersPage() {
     const handleDownloadTemplate = async () => {
         const XLSX = await import('xlsx');
         const headers = [['RUT', 'Nombre Completo', 'Cargo', 'Sección']];
-        const ws = XLSX.utils.aoa_to_sheet(headers);
+        const ws = XLSX.utils.aoa_to_sheet(headers.map(row => sanitizeExcelRow(row)));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Plantilla Trabajadores');
         XLSX.writeFile(wb, 'plantilla_trabajadores.xlsx');
@@ -176,27 +177,27 @@ export default function WorkersPage() {
                 // Skip header row (index 0)
                 for (let i = 1; i < json.length; i++) {
                     const row = json[i];
-                    const rut = row[0];
-                    const name = row[1];
-                    const position = row[2];
-                    const department = row[3];
+                    const rut = sanitizeExcelString(row[0]).trim();
+                    const name = sanitizeExcelString(row[1]).trim();
+                    const position = sanitizeExcelString(row[2]).trim();
+                    const department = sanitizeExcelString(row[3]).trim();
                     
                     if (!rut || !name || !position || !department) {
                         console.warn('Skipping invalid row:', row);
                         continue;
                     }
 
-                    if (existingRUTs.has(String(rut).toLowerCase())) {
+                    if (existingRUTs.has(rut.toLowerCase())) {
                        console.warn(`Skipping existing RUT: ${rut}`);
                        continue;
                     }
 
                     const newWorker: Worker = {
-                        id: String(rut),
-                        rut: String(rut),
-                        name: String(name),
-                        position: String(position),
-                        department: String(department),
+                        id: rut,
+                        rut,
+                        name,
+                        position,
+                        department,
                         warehouseId: warehouseIdForUpload,
                     };
                     addWorker(newWorker);

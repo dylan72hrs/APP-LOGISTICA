@@ -136,43 +136,12 @@ export default function ConsumptionSheetPage() {
 
   const handlePrint = () => {
     if (!reportData) return;
-    const printContent = document.getElementById('printable-content')?.innerHTML;
-    if (printContent) {
-      const printWindow = window.open('', '_blank', 'width=800,height=600');
-      if (printWindow) {
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>${t('consumption_sheet')}</title>
-              <script src="https://cdn.tailwindcss.com"></script>
-              <style>
-                body { font-family: Arial, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                @media print {
-                  @page {
-                    size: A4;
-                    margin: 1cm;
-                  }
-                  .no-print { display: none; }
-                }
-              </style>
-            </head>
-            <body class="bg-white">
-              ${printContent}
-              <div class="fixed bottom-4 right-4 no-print">
-                <button onclick="window.print()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700">
-                  ${t('print')}
-                </button>
-              </div>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-      }
-    }
+    window.print();
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <>
+    <div className="flex flex-col gap-4 print:hidden">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{t('consumption_sheet')}</h1>
@@ -257,9 +226,6 @@ export default function ConsumptionSheetPage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="hidden">
-                 <ReporteTrabajador data={reportData} />
-            </div>
              <div className="border rounded-md">
                 <Table>
                     <TableHeader>
@@ -308,5 +274,11 @@ export default function ConsumptionSheetPage() {
         </Card>
       )}
     </div>
+    {reportData && (
+      <div className="hidden bg-white text-black print:block">
+        <ReporteTrabajador data={reportData} />
+      </div>
+    )}
+    </>
   );
 }

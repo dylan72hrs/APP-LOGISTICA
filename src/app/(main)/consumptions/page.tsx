@@ -606,50 +606,12 @@ export default function ConsumptionsPage() {
     }
     
     setTimeout(() => {
-        const valeContent = document.getElementById('vale-for-print')?.innerHTML;
-        if (valeContent) {
-        const valeWindow = window.open('', '_blank', 'width=800,height=600');
-        if (valeWindow) {
-            valeWindow.document.write(`
-            <html>
-                <head>
-                <title>${t('consumption_voucher_preview')}</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-                <style>
-                    body { font-family: Arial, sans-serif; }
-                    @media print {
-                    #print-button { display: none; }
-                    @page { 
-                        size: auto;
-                        margin: 1.5cm; 
-                    }
-                    body {
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
-                    }
-                    }
-                </style>
-                </head>
-                <body class="bg-white">
-                <div class="max-w-4xl mx-auto p-8">
-                    ${valeContent}
-                    <div class="mt-8 text-center">
-                    <button id="print-button" onclick="window.print()" class="bg-blue-600 text-white font-bold py-2 px-4 rounded hover:bg-blue-700">
-                        ${t('print')}
-                    </button>
-                    </div>
-                </div>
-                </body>
-            </html>
-            `);
-            valeWindow.document.close();
-        }
-        }
+      window.print();
     }, 100);
   };
   return (
     <>
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 print:hidden">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
               <h1 className="text-2xl font-bold tracking-tight">{t('consumption_record')}</h1>
@@ -869,9 +831,8 @@ export default function ConsumptionsPage() {
       </Card>
     </div>
     
-    {/* Hidden component to generate HTML for printing */}
-    <div className="hidden">
-      <div id="vale-for-print">
+    <div className="hidden bg-white text-black print:block">
+      <div id="vale-for-print" className="mx-auto max-w-4xl">
         <ValeConsumo data={consumptionDataForVoucher} />
       </div>
     </div>
