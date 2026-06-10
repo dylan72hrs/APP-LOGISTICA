@@ -1,24 +1,77 @@
 'use client';
-import { useState, useEffect } from 'react';
-import React from 'react';
+
+import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Calendar as CalendarIcon, Download, FileText } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, parseISO } from 'date-fns';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Calendar as CalendarIcon, Download, FileText } from 'lucide-react';
+import {
+  endOfDay,
+  endOfMonth,
+  endOfWeek,
+  endOfYear,
+  format,
+  parseISO,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  startOfYear,
+} from 'date-fns';
+import { es as esLocale, enUS as enLocale, fr as frLocale } from 'date-fns/locale';
 import { useData } from '@/lib/hooks/use-data';
 import { useLanguage } from '@/lib/hooks/use-language';
-import { es as esLocale, enUS as enLocale, fr as frLocale } from 'date-fns/locale';
-import type { ConsumptionRecord, InventoryItem, Project, Warehouse, Worker } from '@/lib/types';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-
+import { sanitizeExcelRow } from '@/lib/excel-security';
 
 type FilterType = 'week' | 'month' | 'year' | 'range';
-type ReportType = 'byProject' | 'totalByWarehouse' | 'byWorker';
-type XlsxRange = import('xlsx').Range;
+type ReportType = 'warehouse' | 'worker' | 'product' | 'period';
+type ReportCell = string | number | null;
+
+interface ReportLine {
+  recordId: string;
+  date: Date;
+  dateKey: string;
+  dateLabel: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseCountry: string;
+  workerId: string;
+  workerRut: string;
+  workerName: string;
+  workerPosition: string;
+  workerDepartment: string;
+  itemKey: string;
+  itemCode: string;
+  itemDescription: string;
+  itemSize: string;
+  quantity: number;
+  requesterReference: string;
+}
+
+interface ReportSummary {
+  title: string;
+  description: string;
+  headers: string[];
+  rows: ReportCell[][];
+}
+
+interface AggregateBucket {
+  label: string;
+  country?: string;
+  rut?: string;
+  position?: string;
+  department?: string;
+  size?: string;
+  quantity: number;
+  records: Set<string>;
+  workers: Set<string>;
+  warehouses: Set<string>;
+  products: Set<string>;
+  references: Set<string>;
+}
 
 const dateLocales = {
   es: esLocale,
@@ -26,474 +79,525 @@ const dateLocales = {
   fr: frLocale,
 };
 
-interface ProjectReportData {
-    type: 'byProject';
-    headers: (string | null)[][];
-    merges: XlsxRange[];
-    data: (string | number)[][];
-    projectsInReport: Project[];
+const reportTypeLabels: Record<ReportType, string> = {
+  warehouse: 'Reporte por bodega',
+  worker: 'Reporte por trabajador',
+  product: 'Reporte por EPP/producto',
+  period: 'Reporte por fecha/periodo',
+};
+
+const emptyValue = 'N/A';
+
+function toDate(value: Date | string) {
+  return typeof value === 'string' ? parseISO(value) : value;
 }
 
-interface WarehouseReportData {
-    type: 'totalByWarehouse';
-    headers: (string | null)[][];
-    data: (string | number)[][];
+function addReference(bucket: AggregateBucket, reference: string) {
+  if (reference) bucket.references.add(reference);
 }
 
-interface WorkerReportData {
-    type: 'byWorker';
-    headers: (string | null)[][];
-    data: (string | number)[][];
+function formatReferenceList(references: Set<string>) {
+  return references.size > 0 ? Array.from(references).join(' | ') : 'Sin referencia';
 }
 
-type ReportData = ProjectReportData | WarehouseReportData | WorkerReportData | null;
+function createBucket(label: string): AggregateBucket {
+  return {
+    label,
+    quantity: 0,
+    records: new Set(),
+    workers: new Set(),
+    warehouses: new Set(),
+    products: new Set(),
+    references: new Set(),
+  };
+}
 
+function sortRowsByLabel(rows: ReportCell[][]) {
+  return rows.sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+}
 
 export default function ReportsPage() {
-    const { consumptionRecords, inventory, projects, warehouses, workers } = useData();
-    const { t, language } = useLanguage();
+  const { consumptionRecords, inventory, warehouses, workers } = useData();
+  const { language } = useLanguage();
 
-    const [startDate, setStartDate] = useState<Date | undefined>();
-    const [endDate, setEndDate] = useState<Date | undefined>();
-    const [filterType, setFilterType] = useState<FilterType>('month');
-    const [reportType, setReportType] = useState<ReportType>('byProject');
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [filterType, setFilterType] = useState<FilterType>('month');
+  const [reportType, setReportType] = useState<ReportType>('warehouse');
 
-    const [reportData, setReportData] = useState<ReportData | null>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
+  useEffect(() => {
+    const now = new Date();
+    setStartDate(startOfMonth(now));
+    setEndDate(endOfMonth(now));
+  }, []);
 
-    const handleFilterTypeChange = (type: FilterType) => {
-        setFilterType(type);
-        const now = new Date();
-        let start, end;
-        switch (type) {
-            case 'week':
-                start = startOfWeek(now, { weekStartsOn: 1 });
-                end = endOfWeek(now, { weekStartsOn: 1 });
-                break;
-            case 'month':
-                start = startOfMonth(now);
-                end = endOfMonth(now);
-                break;
-            case 'year':
-                start = startOfYear(now);
-                end = endOfYear(now);
-                break;
-            case 'range':
-                start = startDate;
-                end = endDate;
-                break;
-        }
-        setStartDate(start);
-        setEndDate(end);
-        setReportData(null); 
+  const periodLabel = useMemo(() => {
+    if (!startDate || !endDate) return 'Periodo no definido';
+    return `${format(startDate, 'dd-MM-yyyy')} al ${format(endDate, 'dd-MM-yyyy')}`;
+  }, [startDate, endDate]);
+
+  const inventoryLookup = useMemo(() => {
+    const byWarehouseAndId = new Map<string, (typeof inventory)[number]>();
+    const byId = new Map<string, (typeof inventory)[number]>();
+
+    inventory.forEach(item => {
+      byWarehouseAndId.set(`${item.warehouseId}:${item.id}`, item);
+      if (!byId.has(item.id)) byId.set(item.id, item);
+    });
+
+    return { byWarehouseAndId, byId };
+  }, [inventory]);
+
+  const reportLines = useMemo<ReportLine[]>(() => {
+    if (!startDate || !endDate) return [];
+
+    const rangeStart = startOfDay(startDate);
+    const rangeEnd = endOfDay(endDate);
+
+    return consumptionRecords
+      .filter(record => {
+        const recordDate = toDate(record.date);
+        return recordDate >= rangeStart && recordDate <= rangeEnd;
+      })
+      .flatMap(record => {
+        const recordDate = toDate(record.date);
+        const warehouse = warehouses.find(item => item.id === record.warehouseId);
+        const worker = workers.find(item => item.id === record.workerId);
+
+        return record.items.map(consumedItem => {
+          const inventoryItem =
+            inventoryLookup.byWarehouseAndId.get(`${record.warehouseId}:${consumedItem.itemId}`) ||
+            inventoryLookup.byId.get(consumedItem.itemId);
+
+          const itemCode = inventoryItem?.code || consumedItem.itemId;
+          const itemDescription = inventoryItem?.description || emptyValue;
+          const itemSize = inventoryItem?.size || emptyValue;
+
+          return {
+            recordId: record.id,
+            date: recordDate,
+            dateKey: format(recordDate, 'yyyy-MM-dd'),
+            dateLabel: format(recordDate, 'dd-MM-yyyy HH:mm'),
+            warehouseId: record.warehouseId,
+            warehouseName: warehouse?.name || emptyValue,
+            warehouseCountry: warehouse?.country || emptyValue,
+            workerId: record.workerId,
+            workerRut: worker?.rut || emptyValue,
+            workerName: worker?.name || emptyValue,
+            workerPosition: worker?.position || emptyValue,
+            workerDepartment: worker?.department || emptyValue,
+            itemKey: `${itemCode}|${itemDescription}|${itemSize}`,
+            itemCode,
+            itemDescription,
+            itemSize,
+            quantity: consumedItem.quantity,
+            requesterReference: record.requesterReference?.trim() || '',
+          };
+        });
+      })
+      .sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [consumptionRecords, endDate, inventoryLookup, startDate, warehouses, workers]);
+
+  const metrics = useMemo(() => {
+    return {
+      totalRecords: new Set(reportLines.map(line => line.recordId)).size,
+      totalQuantity: reportLines.reduce((sum, line) => sum + line.quantity, 0),
+      totalWorkers: new Set(reportLines.map(line => line.workerId)).size,
+      totalProducts: new Set(reportLines.map(line => line.itemKey)).size,
+      totalWarehouses: new Set(reportLines.map(line => line.warehouseId)).size,
     };
-    
-    useEffect(() => {
-        handleFilterTypeChange('month');
-    }, []);
+  }, [reportLines]);
 
-    const processProjectReportData = (): ProjectReportData | null => {
-        if (!startDate || !endDate) return null;
+  const reportSummary = useMemo<ReportSummary>(() => {
+    if (reportType === 'warehouse') {
+      const buckets = new Map<string, AggregateBucket>();
 
-        const filteredConsumptions = consumptionRecords.filter(record => {
-            const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
-            return recordDate >= startDate && recordDate <= endDate;
-        });
+      reportLines.forEach(line => {
+        const bucket = buckets.get(line.warehouseId) || createBucket(line.warehouseName);
+        bucket.country = line.warehouseCountry;
+        bucket.quantity += line.quantity;
+        bucket.records.add(line.recordId);
+        bucket.workers.add(line.workerId);
+        bucket.products.add(line.itemKey);
+        addReference(bucket, line.requesterReference);
+        buckets.set(line.warehouseId, bucket);
+      });
 
-        const projectIdsInReport = [...new Set(filteredConsumptions.map(c => c.projectId).filter(Boolean))];
-        const projectsInReport = projects.filter(p => projectIdsInReport.includes(p.id)).sort((a, b) => a.id.localeCompare(b.id));
-
-        const itemIdsInReport = [...new Set(filteredConsumptions.flatMap(c => c.items.map(i => i.itemId)))];
-        const itemsInReport = inventory
-            .filter(item => itemIdsInReport.includes(item.id))
-            .filter((item, index, self) => 
-                index === self.findIndex(t => t.code === item.code)
-            )
-            .sort((a, b) => a.description.localeCompare(b.description));
-
-        const dataMatrix: Record<string, Record<string, number>> = {}; 
-
-        for (const consumption of filteredConsumptions) {
-            if (!consumption.projectId) continue;
-
-            for (const consumedItem of consumption.items) {
-                const itemCode = inventory.find(i => i.id === consumedItem.itemId)?.code;
-                if (!itemCode) continue;
-
-                if (!dataMatrix[itemCode]) {
-                    dataMatrix[itemCode] = {};
-                }
-                const currentQuantity = dataMatrix[itemCode][consumption.projectId] || 0;
-                dataMatrix[itemCode][consumption.projectId] = currentQuantity + consumedItem.quantity;
-            }
-        }
-        
-        const headers: (string | null)[][] = [];
-        const merges: XlsxRange[] = [];
-        
-        const formattedStartDate = format(startDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
-        const formattedEndDate = format(endDate, 'dd-MMMM-yyyy', { locale: dateLocales[language] }).toUpperCase();
-        
-        headers.push([`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`]);
-        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 + projectsInReport.length * 2 } });
-        headers.push([]);
-
-        const projectNamesRow: (string|null)[] = [t('epp_item_description'), null, null, null, ...projectsInReport.map(p => p.name)];
-        const projectIdsRow: (string|null)[] = [null, null, null, null, ...projectsInReport.map(p => p.id)];
-        const subHeaderRow = [t('description'), t('size_unit'), t('code'), t('price_unit_cost')];
-        
-        const projectNameMerges: XlsxRange[] = [];
-        projectsInReport.forEach((_, index) => {
-            const startCol = 4 + index * 2;
-            projectNameMerges.push({ s: { r: 2, c: startCol }, e: { r: 2, c: startCol + 1 } });
-            projectNameMerges.push({ s: { r: 3, c: startCol }, e: { r: 3, c: startCol + 1 } });
-            subHeaderRow.push("CANT", "VALOR");
-        });
-        
-        const topRow: (string|null)[] = [t('epp_item_description'), null, null];
-        const secondRow: (string|null)[] = [null, null, null];
-        projectsInReport.forEach(proj => {
-            topRow.push(proj.name, null);
-            secondRow.push(proj.id, null);
-        });
-
-        headers.push(
-            [t('epp_item_description'), null, ...projectsInReport.map(p => p.name)],
-            [null, null, ...projectsInReport.map(p => p.id)],
-            [t('description'), t('size_unit'), t('code'), t('price_unit_cost'), ...Array(projectsInReport.length * 2).fill(null).map((_, i) => i % 2 === 0 ? 'CANT' : 'VALOR')]
-        );
-        headers[2] = [t('epp_item_description'), null, null];
-        projectsInReport.forEach(p => headers[2].push(p.name, null));
-
-        const finalHeaders: (string | null)[][] = [
-            [`CONSUMO EPP PERÍODO DEL ${formattedStartDate} AL ${formattedEndDate}`],
-            [],
-            [t('epp_item_description'), null, null, ...projectsInReport.flatMap(p => [p.name, null])],
-            [null, null, null, ...projectsInReport.flatMap(p => [p.id, null])],
-            [t('description'), t('size_unit'), t('code'), t('price_unit_cost'), ...Array(projectsInReport.length * 2).fill(null).map((_, i) => i % 2 === 0 ? 'CANT' : 'VALOR')]
-        ];
-
-        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 2 + projectsInReport.length * 2 } });
-        merges.push({ s: { r: 2, c: 0 }, e: { r: 4, c: 2 } });
-        projectsInReport.forEach((p, i) => {
-            merges.push({ s: { r: 2, c: 3 + i * 2 }, e: { r: 2, c: 4 + i * 2 } });
-            merges.push({ s: { r: 3, c: 3 + i * 2 }, e: { r: 3, c: 4 + i * 2 } });
-        });
-
-
-        const data: (string | number)[][] = [];
-        itemsInReport.forEach(item => {
-            const row: (string | number)[] = [
-                item.description,
-                item.size,
-                item.code,
-                item.cost,
-            ];
-            projectsInReport.forEach(proj => {
-                const quantity = dataMatrix[item.code]?.[proj.id] || 0;
-                const value = quantity * item.cost;
-                row.push(quantity, value);
-            });
-            data.push(row);
-        });
-
-        return { type: 'byProject', headers: finalHeaders, merges, data, projectsInReport };
+      return {
+        title: 'Consumo por bodega',
+        description: 'Agrupa consumo operativo por bodega activa, sin dimension financiera.',
+        headers: ['Bodega', 'Pais', 'Vales', 'Trabajadores', 'EPP distintos', 'Cantidad total', 'Referencia opcional'],
+        rows: sortRowsByLabel(Array.from(buckets.values()).map(bucket => [
+          bucket.label,
+          bucket.country || emptyValue,
+          bucket.records.size,
+          bucket.workers.size,
+          bucket.products.size,
+          bucket.quantity,
+          formatReferenceList(bucket.references),
+        ])),
+      };
     }
 
-    const processWarehouseReportData = (): WarehouseReportData | null => {
-        if (!startDate || !endDate) return null;
-    
-        const filteredConsumptions = consumptionRecords.filter(record => {
-            const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
-            return recordDate >= startDate && recordDate <= endDate;
-        });
-    
-        const headers = [[t('month'), t('country'), t('warehouse'), t('project_id'), t('project_name'), t('worker'), t('code'), t('description'), t('quantity')]];
-        const data: (string | number)[][] = [];
+    if (reportType === 'worker') {
+      const buckets = new Map<string, AggregateBucket>();
 
-        for (const record of filteredConsumptions) {
-            const warehouse = warehouses.find(w => w.id === record.warehouseId);
-            const project = projects.find(p => p.id === record.projectId);
-            const worker = workers.find(w => w.id === record.workerId);
-            const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
+      reportLines.forEach(line => {
+        const bucket = buckets.get(line.workerId) || createBucket(line.workerName);
+        bucket.rut = line.workerRut;
+        bucket.position = line.workerPosition;
+        bucket.department = line.workerDepartment;
+        bucket.quantity += line.quantity;
+        bucket.records.add(line.recordId);
+        bucket.warehouses.add(line.warehouseId);
+        bucket.products.add(line.itemKey);
+        addReference(bucket, line.requesterReference);
+        buckets.set(line.workerId, bucket);
+      });
 
-            for (const consumedItem of record.items) {
-                const item = inventory.find(i => i.id === consumedItem.itemId);
-                
-                data.push([
-                    format(recordDate, 'MMMM', { locale: dateLocales[language] }),
-                    warehouse?.country || 'N/A',
-                    warehouse?.name || 'N/A',
-                    project?.id || 'N/A',
-                    project?.name || 'N/A',
-                    worker?.name || 'N/A',
-                    item?.code || 'N/A',
-                    item?.description || 'N/A',
-                    consumedItem.quantity,
-                ]);
-            }
-        }
-        
-        data.sort((a,b) => String(a[1]).localeCompare(String(b[1])) || String(a[3]).localeCompare(String(b[3])));
-    
-        return { type: 'totalByWarehouse', headers, data };
-    };
-
-    const processWorkerReportData = (): WorkerReportData | null => {
-        if (!startDate || !endDate) return null;
-
-        const filteredConsumptions = consumptionRecords.filter(record => {
-            const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
-            return recordDate >= startDate && recordDate <= endDate;
-        });
-
-        const headers = [[t('month'), t('country'), t('warehouse'), t('project_id'), t('project_name'), t('worker_rut'), t('worker_name'), t('worker_position'), t('code'), t('description'), t('quantity')]];
-        const data: (string | number)[][] = [];
-
-        for (const record of filteredConsumptions) {
-            const warehouse = warehouses.find(w => w.id === record.warehouseId);
-            const project = projects.find(p => p.id === record.projectId);
-            const worker = workers.find(w => w.id === record.workerId);
-            const recordDate = typeof record.date === 'string' ? parseISO(record.date) : record.date;
-
-            for (const consumedItem of record.items) {
-                const item = inventory.find(i => i.id === consumedItem.itemId);
-
-                data.push([
-                    format(recordDate, 'MMMM', { locale: dateLocales[language] }),
-                    warehouse?.country || 'N/A',
-                    warehouse?.name || 'N/A',
-                    project?.id || 'N/A',
-                    project?.name || 'N/A',
-                    worker?.rut || 'N/A',
-                    worker?.name || 'N/A',
-                    worker?.position || 'N/A',
-                    item?.code || 'N/A',
-                    item?.description || 'N/A',
-                    consumedItem.quantity,
-                ]);
-            }
-        }
-
-        data.sort((a, b) => String(a[5]).localeCompare(String(b[5]))); // Sort by worker RUT
-
-        return { type: 'byWorker', headers, data };
-    };
-
-    const handleGenerateReport = () => {
-        setIsGenerating(true);
-        let processedData: ReportData = null;
-        if (reportType === 'byProject') {
-            processedData = processProjectReportData();
-        } else if (reportType === 'totalByWarehouse') {
-            processedData = processWarehouseReportData();
-        } else if (reportType === 'byWorker') {
-            processedData = processWorkerReportData();
-        }
-        setReportData(processedData);
-        setIsGenerating(false);
+      return {
+        title: 'Consumo por trabajador',
+        description: 'Agrupa EPP entregado a cada trabajador/invitado del periodo.',
+        headers: ['Trabajador', 'Identificador', 'Cargo', 'Departamento', 'Bodegas', 'EPP distintos', 'Cantidad total', 'Referencia opcional'],
+        rows: sortRowsByLabel(Array.from(buckets.values()).map(bucket => [
+          bucket.label,
+          bucket.rut || emptyValue,
+          bucket.position || emptyValue,
+          bucket.department || emptyValue,
+          bucket.warehouses.size,
+          bucket.products.size,
+          bucket.quantity,
+          formatReferenceList(bucket.references),
+        ])),
+      };
     }
-    
-    const handleDownloadReport = async () => {
-        if (!reportData) return;
-        
-        const XLSX = await import('xlsx');
-        let sheetData: (string|number|null)[][];
-        const wb = XLSX.utils.book_new();
-        const fileName = reportType === 'byProject' 
-            ? `Consumo_EPP_por_Proyecto_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
-            : reportType === 'totalByWarehouse'
-            ? `Consumo_Total_por_Bodega_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
-            : `Consumo_por_Trabajador_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
 
+    if (reportType === 'product') {
+      const buckets = new Map<string, AggregateBucket>();
 
-        if (reportData.type === 'byProject') {
-             sheetData = [
-                ...reportData.headers,
-                ...reportData.data
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(sheetData);
-            ws['!merges'] = reportData.merges;
-            XLSX.utils.book_append_sheet(wb, ws, 'Reporte Proyecto');
+      reportLines.forEach(line => {
+        const bucket = buckets.get(line.itemKey) || createBucket(line.itemCode);
+        bucket.size = line.itemSize;
+        bucket.country = line.itemDescription;
+        bucket.quantity += line.quantity;
+        bucket.records.add(line.recordId);
+        bucket.workers.add(line.workerId);
+        bucket.warehouses.add(line.warehouseId);
+        addReference(bucket, line.requesterReference);
+        buckets.set(line.itemKey, bucket);
+      });
 
-        } else { // warehouse or worker report
-            sheetData = [...reportData.headers, ...reportData.data];
-            const ws = XLSX.utils.aoa_to_sheet(sheetData);
-            XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
-        }
+      return {
+        title: 'Consumo por EPP/producto',
+        description: 'Agrupa cantidades entregadas por SKU/producto, sin valores monetarios.',
+        headers: ['Codigo/SKU', 'Producto', 'Unidad/Talla', 'Bodegas', 'Trabajadores', 'Vales', 'Cantidad total', 'Referencia opcional'],
+        rows: sortRowsByLabel(Array.from(buckets.values()).map(bucket => [
+          bucket.label,
+          bucket.country || emptyValue,
+          bucket.size || emptyValue,
+          bucket.warehouses.size,
+          bucket.workers.size,
+          bucket.records.size,
+          bucket.quantity,
+          formatReferenceList(bucket.references),
+        ])),
+      };
+    }
 
-        XLSX.writeFile(wb, fileName);
+    const buckets = new Map<string, AggregateBucket>();
+
+    reportLines.forEach(line => {
+      const bucket = buckets.get(line.dateKey) || createBucket(format(line.date, 'dd-MM-yyyy'));
+      bucket.quantity += line.quantity;
+      bucket.records.add(line.recordId);
+      bucket.workers.add(line.workerId);
+      bucket.warehouses.add(line.warehouseId);
+      bucket.products.add(line.itemKey);
+      addReference(bucket, line.requesterReference);
+      buckets.set(line.dateKey, bucket);
+    });
+
+    return {
+      title: 'Consumo por fecha/periodo',
+      description: 'Resume entregas por fecha dentro del periodo seleccionado.',
+      headers: ['Fecha', 'Vales', 'Bodegas', 'Trabajadores', 'EPP distintos', 'Cantidad total', 'Referencia opcional'],
+      rows: sortRowsByLabel(Array.from(buckets.values()).map(bucket => [
+        bucket.label,
+        bucket.records.size,
+        bucket.warehouses.size,
+        bucket.workers.size,
+        bucket.products.size,
+        bucket.quantity,
+        formatReferenceList(bucket.references),
+      ])),
     };
+  }, [reportLines, reportType]);
 
-    return (
-        <div className="flex flex-col gap-4">
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight">{t('reports')}</h1>
-                <CardDescription>{t('generate_view_export_reports')}</CardDescription>
+  const detailHeaders = [
+    'Vale',
+    'Fecha y hora',
+    'Bodega',
+    'Trabajador',
+    'Identificador',
+    'Codigo/SKU',
+    'Producto',
+    'Unidad/Talla',
+    'Cantidad',
+    'Referencia opcional',
+  ];
+
+  const detailRows = useMemo<ReportCell[][]>(() => {
+    return reportLines.map(line => [
+      line.recordId,
+      line.dateLabel,
+      line.warehouseName,
+      line.workerName,
+      line.workerRut,
+      line.itemCode,
+      line.itemDescription,
+      line.itemSize,
+      line.quantity,
+      line.requesterReference || 'Sin referencia',
+    ]);
+  }, [reportLines]);
+
+  const handleFilterTypeChange = (type: FilterType) => {
+    setFilterType(type);
+    const now = new Date();
+
+    if (type === 'week') {
+      setStartDate(startOfWeek(now, { weekStartsOn: 1 }));
+      setEndDate(endOfWeek(now, { weekStartsOn: 1 }));
+      return;
+    }
+
+    if (type === 'month') {
+      setStartDate(startOfMonth(now));
+      setEndDate(endOfMonth(now));
+      return;
+    }
+
+    if (type === 'year') {
+      setStartDate(startOfYear(now));
+      setEndDate(endOfYear(now));
+    }
+  };
+
+  const handleDownloadReport = async () => {
+    const XLSX = await import('xlsx');
+    const workbook = XLSX.utils.book_new();
+    const sheetData: ReportCell[][] = [
+      ['Reporte operativo de consumo EPP'],
+      ['Periodo', periodLabel],
+      ['Vista', reportTypeLabels[reportType]],
+      [],
+      reportSummary.headers,
+      ...reportSummary.rows,
+      [],
+      ['Detalle operativo'],
+      detailHeaders,
+      ...detailRows,
+    ];
+
+    const sanitizedSheetData = sheetData.map(row => sanitizeExcelRow(row));
+    const worksheet = XLSX.utils.aoa_to_sheet(sanitizedSheetData);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte operativo');
+    XLSX.writeFile(workbook, `reporte_operativo_epp_${reportType}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Reportes operativos</h1>
+        <CardDescription>
+          Consumo de EPP por bodega, trabajador, producto y periodo para control operativo de bodega.
+        </CardDescription>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtros</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-6">
+          <div className="flex flex-wrap items-start gap-8">
+            <div className="space-y-2">
+              <Label>Periodo</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant={filterType === 'week' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('week')}>
+                  Semana
+                </Button>
+                <Button variant={filterType === 'month' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('month')}>
+                  Mes
+                </Button>
+                <Button variant={filterType === 'year' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('year')}>
+                  Ano
+                </Button>
+                <Button variant={filterType === 'range' ? 'default' : 'outline'} onClick={() => setFilterType('range')}>
+                  Rango
+                </Button>
+
+                {filterType === 'range' && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="date"
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal sm:w-[300px]"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate && endDate ? periodLabel : <span>Selecciona fechas</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={startDate}
+                        selected={{ from: startDate, to: endDate }}
+                        onSelect={(range) => {
+                          setStartDate(range?.from);
+                          setEndDate(range?.to);
+                        }}
+                        numberOfMonths={2}
+                        locale={dateLocales[language]}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
             </div>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle>{t('filters')}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-6">
-                    <div className="flex flex-wrap items-start gap-8">
-                        <div className="space-y-2">
-                            <Label>{t('date_range')}</Label>
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Button variant={filterType === 'week' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('week')}>{t('week')}</Button>
-                                <Button variant={filterType === 'month' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('month')}>{t('month')}</Button>
-                                <Button variant={filterType === 'year' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('year')}>{t('year')}</Button>
-                                <Button variant={filterType === 'range' ? 'default' : 'outline'} onClick={() => handleFilterTypeChange('range')}>{t('range')}</Button>
-                                
-                                {filterType === 'range' && (
-                                    <Popover>
-                                        <PopoverTrigger asChild>
-                                            <Button
-                                                id="date"
-                                                variant={"outline"}
-                                                className="w-full sm:w-[300px] justify-start text-left font-normal"
-                                            >
-                                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                                {startDate && endDate ? (
-                                                    <>
-                                                        {format(startDate, "LLL dd, y", { locale: dateLocales[language] })} - {format(endDate, "LLL dd, y", { locale: dateLocales[language] })}
-                                                    </>
-                                                ) : (
-                                                    <span>{t('pick_a_date')}</span>
-                                                )}
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-auto p-0" align="start">
-                                            <Calendar
-                                                initialFocus
-                                                mode="range"
-                                                defaultMonth={startDate}
-                                                selected={{ from: startDate, to: endDate }}
-                                                onSelect={(range) => { setStartDate(range?.from); setEndDate(range?.to); setReportData(null); }}
-                                                numberOfMonths={2}
-                                                locale={dateLocales[language]}
-                                            />
-                                        </PopoverContent>
-                                    </Popover>
-                                )}
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>{t('report_type')}</Label>
-                            <RadioGroup value={reportType} onValueChange={(val: any) => { setReportType(val); setReportData(null); }} className="flex flex-col sm:flex-row gap-4">
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="byProject" id="byProject" />
-                                    <Label htmlFor="byProject">{t('consumption_by_project')}</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="totalByWarehouse" id="totalByWarehouse" />
-                                    <Label htmlFor="totalByWarehouse">{t('total_consumption_by_warehouse')}</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="byWorker" id="byWorker" />
-                                    <Label htmlFor="byWorker">{t('consumption_by_worker')}</Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-                    </div>
-                     <div className="flex gap-2">
-                        <Button onClick={handleGenerateReport} disabled={!startDate || !endDate || isGenerating}>
-                            {t('generate_report')}
-                        </Button>
-                        <Button onClick={handleDownloadReport} disabled={!reportData}>
-                            <Download className="mr-2" />
-                            {t('download_xlsx')}
-                        </Button>
-                     </div>
-                </CardContent>
-            </Card>
 
-            {reportData?.type === 'byProject' ? (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{t('report_preview')}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="overflow-x-auto">
-                        <Table className="border">
-                           <TableHeader>
-                                <TableRow>
-                                    <TableHead className="border text-center font-bold bg-muted/50 p-2" colSpan={4} rowSpan={2}>{t('epp_item_description')}</TableHead>
-                                    {reportData.projectsInReport.map((proj, index) => (
-                                        <TableHead key={`proj-h-${index}`} className="border text-center font-bold bg-muted/50 p-2" colSpan={2}>{proj.name}</TableHead>
-                                    ))}
-                                </TableRow>
-                                <TableRow>
-                                     {reportData.projectsInReport.map((proj, index) => (
-                                        <TableHead key={`proj-id-h-${index}`} className="border text-center font-bold bg-muted/50 p-2" colSpan={2}>{proj.id}</TableHead>
-                                    ))}
-                                </TableRow>
-                                 <TableRow>
-                                     <TableHead className="border font-bold bg-muted/50 p-2">Descripción</TableHead>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">Talla</TableHead>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">Cód. AX</TableHead>
-                                    <TableHead className="border font-bold bg-muted/50 p-2">Precio ($)</TableHead>
-                                    {reportData.projectsInReport.map((_, index) => (
-                                        <React.Fragment key={`sub-h-${index}`}>
-                                            <TableHead className="border text-center font-bold bg-muted/50 p-2">CANT</TableHead>
-                                            <TableHead className="border text-center font-bold bg-muted/50 p-2">VALOR</TableHead>
-                                        </React.Fragment>
-                                    ))}
-                                </TableRow>
-                           </TableHeader>
-                           <TableBody>
-                                {reportData.data.map((row, rowIndex) => (
-                                    <TableRow key={`data-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => (
-                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className={`border p-2 ${cellIndex >= 3 ? 'text-right' : ''}`}>
-                                                {typeof cell === 'number' ? cell.toLocaleString(language) : cell}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                           </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            ) : reportData?.type === 'totalByWarehouse' || reportData?.type === 'byWorker' ? (
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>{t('report_preview')}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="overflow-x-auto">
-                        <Table className="border">
-                           <TableHeader>
-                                <TableRow>
-                                    {reportData.headers[0].map((header, index) => (
-                                        <TableHead key={index} className="border text-left font-bold bg-muted/50 p-2">{header}</TableHead>
-                                    ))}
-                                </TableRow>
-                           </TableHeader>
-                           <TableBody>
-                                {reportData.data.map((row, rowIndex) => (
-                                    <TableRow key={`data-${rowIndex}`}>
-                                        {row.map((cell, cellIndex) => (
-                                            <TableCell key={`data-${rowIndex}-${cellIndex}`} className={`border p-2 ${cellIndex > 7 ? 'text-right' : ''}`}>
-                                                {typeof cell === 'number' ? cell.toLocaleString(language) : String(cell)}
-                                            </TableCell>
-                                        ))}
-                                    </TableRow>
-                                ))}
-                           </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-            ) : (
-                <Card>
-                    <CardContent className="pt-6">
-                        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
-                            <FileText className="h-16 w-16 text-muted-foreground/50" />
-                            <p className="mt-4 text-lg font-semibold text-muted-foreground">{t('select_dates_and_generate')}</p>
-                            <p className="mt-2 text-sm text-muted-foreground/80">{t('report_will_be_displayed_here')}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-        </div>
-    );
+            <div className="space-y-2">
+              <Label>Tipo de reporte</Label>
+              <RadioGroup
+                value={reportType}
+                onValueChange={(value) => setReportType(value as ReportType)}
+                className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+              >
+                {Object.entries(reportTypeLabels).map(([value, label]) => (
+                  <div key={value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={value} id={value} />
+                    <Label htmlFor={value}>{label}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button onClick={handleDownloadReport} disabled={!startDate || !endDate || reportLines.length === 0}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar Excel operativo
+            </Button>
+            <span className="text-sm text-muted-foreground">Periodo actual: {periodLabel}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <MetricCard title="Vales" value={metrics.totalRecords} />
+        <MetricCard title="Cantidad EPP" value={metrics.totalQuantity} />
+        <MetricCard title="Trabajadores" value={metrics.totalWorkers} />
+        <MetricCard title="Productos" value={metrics.totalProducts} />
+        <MetricCard title="Bodegas" value={metrics.totalWarehouses} />
+      </div>
+
+      {reportLines.length > 0 ? (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>{reportSummary.title}</CardTitle>
+              <CardDescription>{reportSummary.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table className="border">
+                <TableHeader>
+                  <TableRow>
+                    {reportSummary.headers.map(header => (
+                      <TableHead key={header} className="border bg-muted/50 p-2 font-bold">
+                        {header}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {reportSummary.rows.map((row, rowIndex) => (
+                    <TableRow key={`summary-${rowIndex}`}>
+                      {row.map((cell, cellIndex) => (
+                        <TableCell
+                          key={`summary-${rowIndex}-${cellIndex}`}
+                          className={`border p-2 ${typeof cell === 'number' ? 'text-right tabular-nums' : ''}`}
+                        >
+                          {typeof cell === 'number' ? cell.toLocaleString(language) : cell}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Detalle operativo exportable</CardTitle>
+              <CardDescription>
+                Incluye referencia opcional centro de costo / faena / area solicitante cuando exista.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table className="border">
+                <TableHeader>
+                  <TableRow>
+                    {detailHeaders.map(header => (
+                      <TableHead key={header} className="border bg-muted/50 p-2 font-bold">
+                        {header}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detailRows.map((row, rowIndex) => (
+                    <TableRow key={`detail-${rowIndex}`}>
+                      {row.map((cell, cellIndex) => (
+                        <TableCell
+                          key={`detail-${rowIndex}-${cellIndex}`}
+                          className={`border p-2 ${typeof cell === 'number' ? 'text-right tabular-nums' : ''}`}
+                        >
+                          {typeof cell === 'number' ? cell.toLocaleString(language) : cell}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </>
+      ) : (
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex min-h-[320px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/20 p-8 text-center">
+              <FileText className="h-16 w-16 text-muted-foreground/50" />
+              <p className="mt-4 text-lg font-semibold text-muted-foreground">Sin consumos para el periodo seleccionado</p>
+              <p className="mt-2 text-sm text-muted-foreground/80">
+                Ajusta el rango de fechas o registra consumos para visualizar reportes operativos.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function MetricCard({ title, value }: { title: string; value: number }) {
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardDescription>{title}</CardDescription>
+        <CardTitle className="text-2xl tabular-nums">{value.toLocaleString()}</CardTitle>
+      </CardHeader>
+    </Card>
+  );
 }
