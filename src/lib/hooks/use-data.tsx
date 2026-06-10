@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { localStorageRepository } from '@/lib/data/local-storage-repository';
+import { getDataRepository } from '@/lib/data/repository-factory';
 import { createMockDataSnapshot } from '@/lib/data/mock-repository';
 import type { ConsumptionRecord, InventoryItem, Project, UserProfile, Warehouse, Worker } from '@/lib/types';
 
@@ -43,6 +43,7 @@ interface DataContextType {
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
+const dataRepository = getDataRepository();
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [seedData] = useState(createMockDataSnapshot);
@@ -55,7 +56,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [consumptionRecords, setConsumptionRecords] = useState<ConsumptionRecord[]>(seedData.consumptionRecords);
 
   useEffect(() => {
-    const storedData = localStorageRepository.load(seedData);
+    const storedData = dataRepository.load(seedData);
 
     setWarehouses(storedData.warehouses);
     setInventory(storedData.inventory);
@@ -68,7 +69,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isPilotStorageReady) return;
 
-    localStorageRepository.save({
+    dataRepository.save({
       warehouses,
       inventory,
       projects,
