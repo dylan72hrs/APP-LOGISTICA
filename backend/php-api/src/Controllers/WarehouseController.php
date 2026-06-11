@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Database\DatabaseNotConfiguredException;
+use App\Http\ApiException;
 use App\Http\Response;
 use App\Repositories\WarehouseRepository;
-use RuntimeException;
+use Throwable;
 
 final class WarehouseController
 {
@@ -21,21 +23,25 @@ final class WarehouseController
     {
         try {
             Response::json([
-                'warehouses' => $this->repository->all(),
+                'warehouses' => $this->repository->all($_GET),
             ]);
-        } catch (RuntimeException $exception) {
-            $this->databaseNotConfigured();
+        } catch (Throwable $exception) {
+            $this->handleException($exception);
         }
     }
 
-    private function databaseNotConfigured(): void
+    private function handleException(Throwable $exception): void
     {
-        Response::json([
-            'error' => [
-                'code' => 'DATABASE_NOT_CONFIGURED',
-                'message' => 'Database backend not configured.',
-                'details' => (object) [],
-            ],
-        ], 501);
+        if ($exception instanceof DatabaseNotConfiguredException) {
+            Response::error('DATABASE_NOT_CONFIGURED', 'Database backend not configured.', 501);
+            return;
+        }
+
+        if ($exception instanceof ApiException) {
+            Response::error($exception->getErrorCode(), $exception->getMessage(), $exception->getStatusCode(), $exception->getDetails());
+            return;
+        }
+
+        Response::error('INTERNAL_ERROR', 'Internal server error.', 500);
     }
 }
