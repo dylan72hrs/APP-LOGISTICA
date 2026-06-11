@@ -51,3 +51,10 @@ node_modules/
 tsconfig.tsbuildinfo
 .vercel/
 dist/
+
+# backend PHP local secrets
+backend/php-api/.env
+backend/php-api/.env.local
+backend/php-api/config.local.php
+backend/php-api/src/Config/DatabaseConfig.php
+backend/php-api/src/Config/*.local.php

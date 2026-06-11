@@ -4,18 +4,16 @@ declare(strict_types=1);
 
 namespace App\Repositories;
 
-use RuntimeException;
+use App\Database\Connection;
+use App\Database\DatabaseNotConfiguredException;
 
 final class WorkerRepository
 {
     // Prepared for a future PDO/MySQL implementation. No queries run in this stage.
     public function all(): array
     {
-        $this->databaseNotConfigured();
-    }
+        Connection::create();
 
-    private function databaseNotConfigured(): void
-    {
-        throw new RuntimeException('Database backend not configured.');
+        throw DatabaseNotConfiguredException::connectionDisabled();
     }
 }

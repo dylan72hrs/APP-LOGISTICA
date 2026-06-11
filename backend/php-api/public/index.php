@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../src/Http/Response.php';
 require_once __DIR__ . '/../src/Http/Router.php';
+require_once __DIR__ . '/../src/Config/DatabaseConfigLoader.php';
+require_once __DIR__ . '/../src/Database/DatabaseNotConfiguredException.php';
+require_once __DIR__ . '/../src/Database/Connection.php';
 require_once __DIR__ . '/../src/Repositories/WarehouseRepository.php';
 require_once __DIR__ . '/../src/Repositories/WorkerRepository.php';
 require_once __DIR__ . '/../src/Repositories/InventoryRepository.php';
