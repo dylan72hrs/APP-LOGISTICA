@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Worker, InventoryItem, ConsumptionRecord } from '@/lib/types';
+import type { Worker, InventoryItem, ConsumptionRecord, Project } from '@/lib/types';
 import { useWarehouse } from '@/lib/hooks/use-warehouse';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, Hourglass, CheckCircle, UserSearch, PackageSearch, Trash2 } from 'lucide-react';
+import { Eye, Hourglass, CheckCircle, UserSearch, PackageSearch, Trash2, FolderSearch } from 'lucide-react';
 import { ValeConsumo } from '@/components/vale-consumo';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { useData } from '@/lib/hooks/use-data';
@@ -24,6 +24,7 @@ interface PendingVoucher {
     id: string;
     date: Date;
     worker: Worker | null;
+    project: Project | null;
     requesterReference?: string;
     items: SelectedItem[];
     totalCost: number;
@@ -44,6 +45,7 @@ interface ValidationSuccess {
   valid: true;
   warehouseId: string;
   worker: Worker;
+  project: Project;
   requesterReference?: string;
   items: ValidatedConsumptionItem[];
   totalCost: number;
@@ -107,9 +109,10 @@ export default function ConsumptionsPage() {
   const { toast } = useToast();
   const { user } = useAuth();
   const { selectedWarehouseId } = useWarehouse();
-  const { 
-    workers, 
-    inventory, 
+  const {
+    workers,
+    inventory,
+    projects,
     addConsumptionRecord,
     updateInventoryItemQuantity,
     warehouses
@@ -118,7 +121,11 @@ export default function ConsumptionsPage() {
   const [workerRutInput, setWorkerRutInput] = useState('');
   const [debouncedWorkerRutInput, setDebouncedWorkerRutInput] = useState('');
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
-  
+
+  const [projectQueryInput, setProjectQueryInput] = useState('');
+  const [debouncedProjectQueryInput, setDebouncedProjectQueryInput] = useState('');
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
   const [requesterReferenceInput, setRequesterReferenceInput] = useState('');
 
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
@@ -194,6 +201,25 @@ export default function ConsumptionsPage() {
     return { valid: true, quantity };
   };
 
+  // ETAPA 4.7K: el proyecto es obligatorio para registrar consumos.
+  // requesterReference se mantiene como referencia libre y NO reemplaza al proyecto.
+  const validateProjectSelection = (project: Project | null): ValidationFailure | { valid: true; project: Project } => {
+    if (!project) {
+      return { valid: false, message: 'Selecciona un proyecto válido. El consumo debe quedar asociado a un proyecto.' };
+    }
+
+    const currentProject = projects.find(p => p.id === project.id);
+    if (!currentProject) {
+      return { valid: false, message: 'El proyecto seleccionado ya no existe. Selecciona un proyecto válido.' };
+    }
+
+    if (currentProject.status !== 'active') {
+      return { valid: false, message: 'El proyecto seleccionado está inactivo. Selecciona un proyecto activo.' };
+    }
+
+    return { valid: true, project: currentProject };
+  };
+
   const validateConsumptionDraft = (): ConsumptionValidationResult => {
     const warehouseId = getSpecificWarehouseId();
     if (!warehouseId) {
@@ -207,6 +233,11 @@ export default function ConsumptionsPage() {
     const currentWorker = workers.find(worker => worker.id === selectedWorker.id);
     if (!currentWorker) {
       return { valid: false, message: 'El trabajador seleccionado ya no existe. Selecciona un trabajador válido.' };
+    }
+
+    const projectValidation = validateProjectSelection(selectedProject);
+    if (!projectValidation.valid) {
+      return projectValidation;
     }
 
     if (selectedItems.length === 0) {
@@ -251,6 +282,7 @@ export default function ConsumptionsPage() {
       valid: true,
       warehouseId,
       worker: currentWorker,
+      project: projectValidation.project,
       requesterReference: requesterReferenceInput.trim() || undefined,
       items: validatedItems,
       totalCost: validatedTotalCost,
@@ -274,6 +306,11 @@ export default function ConsumptionsPage() {
     const currentWorker = workers.find(worker => worker.id === voucher.worker?.id);
     if (!currentWorker) {
       return { valid: false, message: 'El trabajador seleccionado ya no existe. Selecciona un trabajador válido.' };
+    }
+
+    const projectValidation = validateProjectSelection(voucher.project);
+    if (!projectValidation.valid) {
+      return projectValidation;
     }
 
     if (voucher.items.length === 0) {
@@ -316,6 +353,7 @@ export default function ConsumptionsPage() {
       valid: true,
       warehouseId: voucher.warehouseId,
       worker: currentWorker,
+      project: projectValidation.project,
       requesterReference: voucher.requesterReference,
       items: validatedItems,
       totalCost: validatedTotalCost,
@@ -370,10 +408,27 @@ export default function ConsumptionsPage() {
     return () => window.clearTimeout(timeoutId);
   }, [productCodeInput]);
 
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedProjectQueryInput(projectQueryInput), 180);
+    return () => window.clearTimeout(timeoutId);
+  }, [projectQueryInput]);
+
   const workerSuggestions = useMemo(() => {
     if (!debouncedWorkerRutInput || selectedWorker) return [];
     return getRankedMatches(workers, debouncedWorkerRutInput, worker => [worker.rut, worker.name, worker.id]);
   }, [debouncedWorkerRutInput, selectedWorker, workers]);
+
+  const activeProjects = useMemo(() => projects.filter(project => project.status === 'active'), [projects]);
+
+  const projectSuggestions = useMemo(() => {
+    if (!debouncedProjectQueryInput || selectedProject) return [];
+    return getRankedMatches(activeProjects, debouncedProjectQueryInput, project => [
+      project.projectCode,
+      project.name,
+      project.costCenter,
+      project.financialDimension,
+    ]);
+  }, [activeProjects, debouncedProjectQueryInput, selectedProject]);
 
   const productSuggestions = useMemo(() => {
     if (!debouncedProductCodeInput || !warehouseIdToFilter || warehouseIdToFilter === 'all') return [];
@@ -392,6 +447,27 @@ export default function ConsumptionsPage() {
     } else {
       setSelectedWorker(null);
       toast({ variant: 'destructive', title: t('error'), description: t('worker_not_found') });
+    }
+  };
+
+  const selectProject = (project: Project) => {
+    setSelectedProject(project);
+    setProjectQueryInput(`${project.projectCode} · ${project.name}`);
+  };
+
+  const handleProjectSearch = () => {
+    const foundProject = getRankedMatches(activeProjects, projectQueryInput, project => [
+      project.projectCode,
+      project.name,
+      project.costCenter,
+      project.financialDimension,
+    ])[0];
+
+    if (foundProject) {
+      selectProject(foundProject);
+    } else {
+      setSelectedProject(null);
+      toast({ variant: 'destructive', title: t('error'), description: t('project_not_found') });
     }
   };
   
@@ -520,16 +596,19 @@ export default function ConsumptionsPage() {
     id: reviewingVoucher?.id || `VC-${Date.now()}`,
     date: reviewingVoucher?.date || new Date(),
     worker: reviewingVoucher?.worker || selectedWorker,
+    project: reviewingVoucher?.project || selectedProject,
     requesterReference: reviewingVoucher?.requesterReference || requesterReferenceInput.trim() || undefined,
     items: reviewingVoucher?.items || selectedItems,
     totalCost: reviewingVoucher?.totalCost || totalCost,
     warehouse: reviewingVoucher?.warehouseName || (warehouseIdToFilter ? warehouses.find(w => w.id === warehouseIdToFilter)?.name || 'N/A' : 'N/A'),
     deliveredBy: reviewingVoucher?.deliveredBy || user?.name || 'N/A',
-  }), [reviewingVoucher, selectedWorker, requesterReferenceInput, selectedItems, totalCost, warehouseIdToFilter, user?.name, warehouses]);
+  }), [reviewingVoucher, selectedWorker, selectedProject, requesterReferenceInput, selectedItems, totalCost, warehouseIdToFilter, user?.name, warehouses]);
 
   const resetForm = () => {
     setWorkerRutInput('');
     setSelectedWorker(null);
+    setProjectQueryInput('');
+    setSelectedProject(null);
     setRequesterReferenceInput('');
     setProductCodeInput('');
     setSelectedItems([]);
@@ -546,6 +625,7 @@ export default function ConsumptionsPage() {
         id: `VC-${Date.now()}`,
         date: new Date(),
         worker: validation.worker,
+        project: validation.project,
         requesterReference: validation.requesterReference,
         items: validation.items.map(({ currentItem, quantity }) => ({
           ...currentItem,
@@ -577,6 +657,11 @@ export default function ConsumptionsPage() {
         id: voucher.id,
         date: voucher.date,
         workerId: validation.worker.id,
+        projectId: validation.project.id,
+        projectCode: validation.project.projectCode,
+        projectName: validation.project.name,
+        costCenter: validation.project.costCenter,
+        financialDimension: validation.project.financialDimension,
         requesterReference: validation.requesterReference,
         items: validation.items.map(({ currentItem, quantity }) => ({ itemId: currentItem.id, quantity })),
         warehouseId: validation.warehouseId,
@@ -665,17 +750,63 @@ export default function ConsumptionsPage() {
                 )}
             </div>
             <div className="space-y-2">
-                <Label htmlFor='requester-reference-input'>Centro de costo / faena / area solicitante</Label>
-                <Input
-                    id="requester-reference-input"
-                    value={requesterReferenceInput}
-                    onChange={e => setRequesterReferenceInput(e.target.value)}
-                    placeholder="Opcional"
-                    maxLength={120}
-                />
-                <p className="text-xs text-muted-foreground">
-                    Campo opcional para referencia operativa del vale. No crea un maestro nuevo.
-                </p>
+                <Label htmlFor='project-query-input'>Proyecto (obligatorio)</Label>
+                <div className='flex gap-2'>
+                    <Input
+                        id="project-query-input"
+                        value={projectQueryInput}
+                        onChange={e => {
+                            setProjectQueryInput(e.target.value);
+                            setSelectedProject(null);
+                        }}
+                        placeholder="Buscar por código, nombre, centro de costo o dimensión financiera"
+                        onKeyDown={(e) => e.key === 'Enter' && handleProjectSearch()}
+                    />
+                    <Button onClick={handleProjectSearch} variant="outline" size="icon">
+                        <FolderSearch />
+                    </Button>
+                </div>
+                {projectSuggestions.length > 0 && (
+                    <div className="rounded-md border bg-background shadow-sm">
+                        {projectSuggestions.map(project => (
+                            <button
+                                key={project.id}
+                                type="button"
+                                className="flex w-full flex-col px-3 py-2 text-left text-sm hover:bg-muted"
+                                onClick={() => selectProject(project)}
+                            >
+                                <span className="font-medium">{project.projectCode} · {project.name}</span>
+                                <span className="text-xs text-muted-foreground">CC: {project.costCenter} · Dim. financiera: {project.financialDimension}</span>
+                            </button>
+                        ))}
+                    </div>
+                )}
+                {selectedProject ? (
+                    <div className='mt-2 text-sm text-muted-foreground p-3 bg-muted rounded-md space-y-1'>
+                        <p><strong>Proyecto:</strong> {selectedProject.name} ({selectedProject.projectCode})</p>
+                        <p><strong>{t('cost_center')}:</strong> {selectedProject.costCenter}</p>
+                        <p><strong>{t('financial_dimension')}:</strong> {selectedProject.financialDimension}</p>
+                        <p><strong>{t('project_manager')}:</strong> {selectedProject.manager || 'N/A'}</p>
+                        <p><strong>{t('project_approver')}:</strong> {selectedProject.approver || 'N/A'}</p>
+                    </div>
+                ) : (
+                    <p className="text-xs text-destructive">
+                        Debes seleccionar el proyecto desde el cual viene el trabajador antes de registrar el consumo.
+                    </p>
+                )}
+                <div className="space-y-2 pt-2">
+                    <Label htmlFor='requester-reference-input'>Referencia solicitante (opcional)</Label>
+                    <Input
+                        id="requester-reference-input"
+                        value={requesterReferenceInput}
+                        onChange={e => setRequesterReferenceInput(e.target.value)}
+                        placeholder="Referencia libre del vale (no reemplaza al proyecto)"
+                        maxLength={120}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Referencia libre opcional para el vale. No reemplaza al proyecto ni crea un maestro nuevo.
+                    </p>
+                </div>
             </div>
         </CardContent>
       </Card>
@@ -796,7 +927,8 @@ export default function ConsumptionsPage() {
               <TableRow>
                 <TableHead>{t('date')}</TableHead>
                 <TableHead>{t('worker')}</TableHead>
-                <TableHead>Centro/Faena/Area</TableHead>
+                <TableHead>{t('project')}</TableHead>
+                <TableHead>Referencia</TableHead>
                 <TableHead>{t('warehouse')}</TableHead>
                 <TableHead className="text-right">{t('total_cost')}</TableHead>
                 <TableHead className="text-right">{t('actions')}</TableHead>
@@ -807,6 +939,7 @@ export default function ConsumptionsPage() {
                 <TableRow key={voucher.id}>
                   <TableCell>{new Date(voucher.date).toLocaleDateString(language)}</TableCell>
                   <TableCell>{voucher.worker?.name}</TableCell>
+                  <TableCell>{voucher.project ? `${voucher.project.projectCode} · ${voucher.project.name}` : 'Sin proyecto'}</TableCell>
                   <TableCell>{voucher.requesterReference || 'Sin referencia'}</TableCell>
                   <TableCell>{voucher.warehouseName}</TableCell>
                   <TableCell className="text-right font-medium">${voucher.totalCost.toLocaleString(language)}</TableCell>
@@ -822,7 +955,7 @@ export default function ConsumptionsPage() {
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">{t('no_pending_vouchers')}</TableCell>
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">{t('no_pending_vouchers')}</TableCell>
                 </TableRow>
               )}
             </TableBody>

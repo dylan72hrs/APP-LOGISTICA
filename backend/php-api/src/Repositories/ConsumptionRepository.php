@@ -40,7 +40,12 @@ final class ConsumptionRepository
             $params['toDate'] = $this->normalizeDateFilter((string) $filters['to'], 'to');
         }
 
-        $sql = 'SELECT id, voucher_number, warehouse_id, worker_id, requester_reference, project_id_legacy, delivered_by_user_id, consumed_at, notes, created_at, updated_at
+        if (!empty($filters['projectId'])) {
+            $where[] = 'project_id = :projectId';
+            $params['projectId'] = (string) $filters['projectId'];
+        }
+
+        $sql = 'SELECT id, voucher_number, warehouse_id, worker_id, project_id, project_code_snapshot, project_name_snapshot, cost_center_snapshot, financial_dimension_snapshot, requester_reference, project_id_legacy, delivered_by_user_id, consumed_at, notes, created_at, updated_at
                 FROM consumption_records';
 
         if ($where !== []) {
@@ -60,7 +65,7 @@ final class ConsumptionRepository
     {
         $pdo = Connection::create();
         $statement = $pdo->prepare(
-            'SELECT id, voucher_number, warehouse_id, worker_id, requester_reference, project_id_legacy, delivered_by_user_id, consumed_at, notes, created_at, updated_at
+            'SELECT id, voucher_number, warehouse_id, worker_id, project_id, project_code_snapshot, project_name_snapshot, cost_center_snapshot, financial_dimension_snapshot, requester_reference, project_id_legacy, delivered_by_user_id, consumed_at, notes, created_at, updated_at
              FROM consumption_records
              WHERE id = :id
              LIMIT 1'
@@ -88,6 +93,11 @@ final class ConsumptionRepository
             'voucherNumber' => $row['voucher_number'] === null ? null : (string) $row['voucher_number'],
             'warehouseId' => (string) $row['warehouse_id'],
             'workerId' => (string) $row['worker_id'],
+            'projectId' => $row['project_id'] === null ? null : (string) $row['project_id'],
+            'projectCodeSnapshot' => $row['project_code_snapshot'] === null ? null : (string) $row['project_code_snapshot'],
+            'projectNameSnapshot' => $row['project_name_snapshot'] === null ? null : (string) $row['project_name_snapshot'],
+            'costCenterSnapshot' => $row['cost_center_snapshot'] === null ? null : (string) $row['cost_center_snapshot'],
+            'financialDimensionSnapshot' => $row['financial_dimension_snapshot'] === null ? null : (string) $row['financial_dimension_snapshot'],
             'requesterReference' => $row['requester_reference'] === null ? null : (string) $row['requester_reference'],
             'projectIdLegacy' => $row['project_id_legacy'] === null ? null : (string) $row['project_id_legacy'],
             'deliveredByUserId' => $row['delivered_by_user_id'] === null ? null : (string) $row['delivered_by_user_id'],

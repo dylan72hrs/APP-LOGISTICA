@@ -26,7 +26,7 @@ const dateLocales = {
 };
 
 export default function ConsumptionSheetPage() {
-  const { workers, consumptionRecords, inventory } = useData();
+  const { workers, consumptionRecords, inventory, projects } = useData();
   const { t, language } = useLanguage();
   const { toast } = useToast();
 
@@ -109,17 +109,28 @@ export default function ConsumptionSheetPage() {
       return;
     }
 
-    const consumedItems = workerConsumptions.flatMap(record =>
-      record.items.map(item => {
+    const consumedItems = workerConsumptions.flatMap(record => {
+      // ETAPA 4.7K: la ficha muestra el proyecto del consumo. Usa el snapshot del
+      // registro y cae al maestro de proyectos para datos historicos sin snapshot.
+      const project = record.projectId ? projects.find(p => p.id === record.projectId) : undefined;
+      const projectCode = record.projectCode || project?.projectCode || record.projectId || '';
+      const projectName = record.projectName || project?.name || '';
+      const costCenter = record.costCenter || project?.costCenter || '';
+      const financialDimension = record.financialDimension || project?.financialDimension || '';
+
+      return record.items.map(item => {
         const inventoryItem = inventory.find(inv => inv.id === item.itemId);
         return {
           date: typeof record.date === 'string' ? parseISO(record.date) : record.date,
           code: inventoryItem?.code || 'N/A',
           description: inventoryItem?.description || 'N/A',
           quantity: item.quantity,
+          projectLabel: projectCode ? (projectName ? `${projectCode} · ${projectName}` : projectCode) : 'Sin proyecto',
+          costCenter: costCenter || 'N/A',
+          financialDimension: financialDimension || 'N/A',
         };
-      })
-    ).sort((a, b) => a.date.getTime() - b.date.getTime());
+      });
+    }).sort((a, b) => a.date.getTime() - b.date.getTime());
 
     const totalItemsConsumed = consumedItems.reduce((acc, item) => acc + item.quantity, 0);
 
@@ -233,6 +244,8 @@ export default function ConsumptionSheetPage() {
                             <TableHead>{t('date')}</TableHead>
                             <TableHead>{t('code')}</TableHead>
                             <TableHead>{t('description')}</TableHead>
+                            <TableHead>{t('project')}</TableHead>
+                            <TableHead>{t('cost_center')} / {t('financial_dimension')}</TableHead>
                             <TableHead className='text-right'>{t('quantity')}</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -242,6 +255,8 @@ export default function ConsumptionSheetPage() {
                                 <TableCell>{item.date.toLocaleDateString(language)}</TableCell>
                                 <TableCell>{item.code}</TableCell>
                                 <TableCell>{item.description}</TableCell>
+                                <TableCell>{item.projectLabel}</TableCell>
+                                <TableCell>{item.costCenter} / {item.financialDimension}</TableCell>
                                 <TableCell className='text-right'>{item.quantity}</TableCell>
                             </TableRow>
                         ))}

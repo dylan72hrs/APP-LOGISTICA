@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar as CalendarIcon, Download, FileText } from 'lucide-react';
 import {
@@ -27,7 +28,7 @@ import { useLanguage } from '@/lib/hooks/use-language';
 import { sanitizeExcelRow } from '@/lib/excel-security';
 
 type FilterType = 'week' | 'month' | 'year' | 'range';
-type ReportType = 'warehouse' | 'worker' | 'product' | 'period';
+type ReportType = 'warehouse' | 'worker' | 'product' | 'project' | 'period';
 type ReportCell = string | number | null;
 
 interface ReportLine {
@@ -49,6 +50,12 @@ interface ReportLine {
   itemSize: string;
   quantity: number;
   requesterReference: string;
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  projectLabel: string;
+  costCenter: string;
+  financialDimension: string;
 }
 
 interface ReportSummary {
@@ -65,6 +72,8 @@ interface AggregateBucket {
   position?: string;
   department?: string;
   size?: string;
+  costCenter?: string;
+  financialDimension?: string;
   quantity: number;
   records: Set<string>;
   workers: Set<string>;
@@ -83,6 +92,7 @@ const reportTypeLabels: Record<ReportType, string> = {
   warehouse: 'Reporte por bodega',
   worker: 'Reporte por trabajador',
   product: 'Reporte por EPP/producto',
+  project: 'Reporte por proyecto',
   period: 'Reporte por fecha/periodo',
 };
 
@@ -117,13 +127,14 @@ function sortRowsByLabel(rows: ReportCell[][]) {
 }
 
 export default function ReportsPage() {
-  const { consumptionRecords, inventory, warehouses, workers } = useData();
+  const { consumptionRecords, inventory, warehouses, workers, projects } = useData();
   const { language } = useLanguage();
 
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [filterType, setFilterType] = useState<FilterType>('month');
   const [reportType, setReportType] = useState<ReportType>('warehouse');
+  const [projectFilter, setProjectFilter] = useState<string>('all');
 
   useEffect(() => {
     const now = new Date();
@@ -157,12 +168,21 @@ export default function ReportsPage() {
     return consumptionRecords
       .filter(record => {
         const recordDate = toDate(record.date);
-        return recordDate >= rangeStart && recordDate <= rangeEnd;
+        if (recordDate < rangeStart || recordDate > rangeEnd) return false;
+        if (projectFilter !== 'all' && (record.projectId || '') !== projectFilter) return false;
+        return true;
       })
       .flatMap(record => {
         const recordDate = toDate(record.date);
         const warehouse = warehouses.find(item => item.id === record.warehouseId);
         const worker = workers.find(item => item.id === record.workerId);
+        // ETAPA 4.7K: usa snapshot del registro; cae al maestro de proyectos
+        // para registros historicos sin snapshot.
+        const project = record.projectId ? projects.find(item => item.id === record.projectId) : undefined;
+        const projectCode = record.projectCode || project?.projectCode || record.projectId || '';
+        const projectName = record.projectName || project?.name || '';
+        const costCenter = record.costCenter || project?.costCenter || '';
+        const financialDimension = record.financialDimension || project?.financialDimension || '';
 
         return record.items.map(consumedItem => {
           const inventoryItem =
@@ -192,11 +212,17 @@ export default function ReportsPage() {
             itemSize,
             quantity: consumedItem.quantity,
             requesterReference: record.requesterReference?.trim() || '',
+            projectId: record.projectId || '',
+            projectCode,
+            projectName,
+            projectLabel: projectCode ? (projectName ? `${projectCode} · ${projectName}` : projectCode) : 'Sin proyecto',
+            costCenter,
+            financialDimension,
           };
         });
       })
       .sort((a, b) => a.date.getTime() - b.date.getTime());
-  }, [consumptionRecords, endDate, inventoryLookup, startDate, warehouses, workers]);
+  }, [consumptionRecords, endDate, inventoryLookup, projectFilter, projects, startDate, warehouses, workers]);
 
   const metrics = useMemo(() => {
     return {
@@ -304,6 +330,41 @@ export default function ReportsPage() {
       };
     }
 
+    if (reportType === 'project') {
+      const buckets = new Map<string, AggregateBucket>();
+
+      reportLines.forEach(line => {
+        const bucketKey = line.projectId || 'sin-proyecto';
+        const bucket = buckets.get(bucketKey) || createBucket(line.projectLabel);
+        bucket.costCenter = line.costCenter || bucket.costCenter;
+        bucket.financialDimension = line.financialDimension || bucket.financialDimension;
+        bucket.quantity += line.quantity;
+        bucket.records.add(line.recordId);
+        bucket.workers.add(line.workerId);
+        bucket.warehouses.add(line.warehouseId);
+        bucket.products.add(line.itemKey);
+        addReference(bucket, line.requesterReference);
+        buckets.set(bucketKey, bucket);
+      });
+
+      return {
+        title: 'Consumo por proyecto',
+        description: 'Agrupa consumo operativo por proyecto, con centro de costo y dimensión financiera. Sin foco financiero.',
+        headers: ['Proyecto', 'Centro de costo', 'Dimensión financiera', 'Vales', 'Trabajadores', 'Bodegas', 'EPP distintos', 'Cantidad total', 'Referencia opcional'],
+        rows: sortRowsByLabel(Array.from(buckets.values()).map(bucket => [
+          bucket.label,
+          bucket.costCenter || emptyValue,
+          bucket.financialDimension || emptyValue,
+          bucket.records.size,
+          bucket.workers.size,
+          bucket.warehouses.size,
+          bucket.products.size,
+          bucket.quantity,
+          formatReferenceList(bucket.references),
+        ])),
+      };
+    }
+
     const buckets = new Map<string, AggregateBucket>();
 
     reportLines.forEach(line => {
@@ -343,6 +404,10 @@ export default function ReportsPage() {
     'Producto',
     'Unidad/Talla',
     'Cantidad',
+    'Proyecto',
+    'Codigo proyecto',
+    'Centro de costo',
+    'Dimension financiera',
     'Referencia opcional',
   ];
 
@@ -357,6 +422,10 @@ export default function ReportsPage() {
       line.itemDescription,
       line.itemSize,
       line.quantity,
+      line.projectName || (line.projectCode ? line.projectCode : 'Sin proyecto'),
+      line.projectCode || emptyValue,
+      line.costCenter || emptyValue,
+      line.financialDimension || emptyValue,
       line.requesterReference || 'Sin referencia',
     ]);
   }, [reportLines]);
@@ -468,6 +537,23 @@ export default function ReportsPage() {
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="project-filter">Proyecto</Label>
+              <Select value={projectFilter} onValueChange={setProjectFilter}>
+                <SelectTrigger id="project-filter" className="w-full sm:w-[280px]">
+                  <SelectValue placeholder="Todos los proyectos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los proyectos</SelectItem>
+                  {projects.map(project => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.projectCode} · {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <Label>Tipo de reporte</Label>
               <RadioGroup
                 value={reportType}
@@ -542,7 +628,7 @@ export default function ReportsPage() {
             <CardHeader>
               <CardTitle>Detalle operativo exportable</CardTitle>
               <CardDescription>
-                Incluye referencia opcional centro de costo / faena / area solicitante cuando exista.
+                Incluye proyecto, código, centro de costo y dimensión financiera del consumo, más la referencia libre opcional cuando exista.
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">

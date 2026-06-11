@@ -12,6 +12,10 @@ interface ConsumedItem {
     code: string;
     description: string;
     quantity: number;
+    // ETAPA 4.7K: proyecto operativo asociado al consumo (snapshot o maestro).
+    projectLabel: string;
+    costCenter: string;
+    financialDimension: string;
 }
 
 export interface WorkerReportData {
@@ -99,6 +103,8 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
                                 <TableHead className="text-black font-bold border-r border-black">Fecha</TableHead>
                                 <TableHead className="text-black font-bold border-r border-black">Código</TableHead>
                                 <TableHead className="text-black font-bold border-r border-black">Descripción</TableHead>
+                                <TableHead className="text-black font-bold border-r border-black">Proyecto</TableHead>
+                                <TableHead className="text-black font-bold border-r border-black">CC / Dim. Financiera</TableHead>
                                 <TableHead className="text-black font-bold border-r border-black text-right">Cantidad</TableHead>
                                 <TableHead className="text-black font-bold text-center">Recibido</TableHead>
                             </TableRow>
@@ -109,6 +115,8 @@ export const ReporteTrabajador = React.forwardRef<HTMLDivElement, ReporteTrabaja
                                     <TableCell className="border-r border-black">{item.date.toLocaleDateString(language)}</TableCell>
                                     <TableCell className="border-r border-black">{item.code}</TableCell>
                                     <TableCell className="border-r border-black">{item.description}</TableCell>
+                                    <TableCell className="border-r border-black">{item.projectLabel}</TableCell>
+                                    <TableCell className="border-r border-black">{item.costCenter} / {item.financialDimension}</TableCell>
                                     <TableCell className="border-r border-black text-right font-medium">{item.quantity}</TableCell>
                                     <TableCell className="text-center border-l border-black"></TableCell>
                                 </TableRow>

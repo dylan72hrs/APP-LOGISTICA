@@ -26,12 +26,20 @@ export interface InventoryItem {
   warehouseId: string;
 }
 
+export type ProjectStatus = 'active' | 'inactive';
+
 export interface Project {
-  id: string;
-  financialDimension?: string;
+  id: string; // Same as projectCode for locally created projects (e.g. CL01).
+  projectCode: string;
   name: string;
+  financialDimension: string;
+  costCenter: string;
   manager: string;
   approver: string;
+  status: ProjectStatus;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Worker {
@@ -47,8 +55,16 @@ export interface ConsumptionRecord {
   id: string;
   date: Date;
   workerId: string;
+  // ETAPA 4.7K: projectId es el dato operativo real del proyecto y es obligatorio
+  // para registrar consumos nuevos (la UI lo exige). Se mantiene opcional en el tipo
+  // solo por compatibilidad con registros historicos previos a esta etapa.
   projectId?: string;
-  requesterReference?: string; // centro de costo / faena / area solicitante
+  projectCode?: string; // snapshot al momento del consumo
+  projectName?: string; // snapshot al momento del consumo
+  costCenter?: string; // snapshot al momento del consumo
+  financialDimension?: string; // snapshot al momento del consumo
+  // requesterReference es una referencia libre opcional; NO reemplaza al proyecto.
+  requesterReference?: string;
   items: {
     itemId: string;
     quantity: number;

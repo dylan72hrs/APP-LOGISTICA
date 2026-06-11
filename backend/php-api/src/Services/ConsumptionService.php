@@ -26,9 +26,12 @@ final class ConsumptionService
     {
         $warehouseId = $this->requiredString($payload, 'warehouseId');
         $workerId = $this->requiredString($payload, 'workerId');
+        // ETAPA 4.7K: projectId es obligatorio. requesterReference sigue siendo
+        // una referencia libre opcional y no reemplaza al proyecto.
+        $projectId = $this->requiredString($payload, 'projectId');
         $items = $this->normalizeItems($payload['items'] ?? null);
         $requesterReference = $this->nullableString($payload['requesterReference'] ?? null, 180);
-        $projectIdLegacy = $this->nullableString($payload['projectIdLegacy'] ?? $payload['projectId'] ?? null, 80);
+        $projectIdLegacy = $this->nullableString($payload['projectIdLegacy'] ?? null, 80);
         $notes = $this->nullableString($payload['notes'] ?? null, 2000) ?? '';
 
         $pdo = Connection::create();
@@ -38,6 +41,7 @@ final class ConsumptionService
 
             $this->assertWarehouseExists($pdo, $warehouseId);
             $this->assertWorkerExists($pdo, $workerId);
+            $project = $this->fetchActiveProject($pdo, $projectId);
             $inventoryById = $this->lockInventory($pdo, array_keys($this->aggregateQuantities($items)));
             $this->assertInventoryCanBeConsumed($inventoryById, $items, $warehouseId);
 
@@ -45,7 +49,7 @@ final class ConsumptionService
             $voucherNumber = $this->voucherNumber($consumptionId);
             $consumedAt = gmdate('Y-m-d H:i:s');
 
-            $this->insertRecord($pdo, $consumptionId, $voucherNumber, $warehouseId, $workerId, $requesterReference, $projectIdLegacy, $notes, $consumedAt);
+            $this->insertRecord($pdo, $consumptionId, $voucherNumber, $warehouseId, $workerId, $project, $requesterReference, $projectIdLegacy, $notes, $consumedAt);
             $createdItems = $this->insertItemsAndDiscountStock($pdo, $consumptionId, $items, $inventoryById);
 
             $consumption = [
@@ -53,6 +57,11 @@ final class ConsumptionService
                 'voucherNumber' => $voucherNumber,
                 'warehouseId' => $warehouseId,
                 'workerId' => $workerId,
+                'projectId' => (string) $project['id'],
+                'projectCodeSnapshot' => (string) $project['project_code'],
+                'projectNameSnapshot' => (string) $project['name'],
+                'costCenterSnapshot' => $project['cost_center'] === null ? null : (string) $project['cost_center'],
+                'financialDimensionSnapshot' => $project['financial_dimension'] === null ? null : (string) $project['financial_dimension'],
                 'requesterReference' => $requesterReference,
                 'projectIdLegacy' => $projectIdLegacy,
                 'deliveredByUserId' => null,
@@ -179,6 +188,43 @@ final class ConsumptionService
         }
     }
 
+    /**
+     * Valida que el proyecto exista y este activo. Devuelve la fila para snapshots.
+     *
+     * @return array<string, mixed>
+     */
+    private function fetchActiveProject(PDO $pdo, string $projectId): array
+    {
+        $statement = $pdo->prepare(
+            'SELECT id, project_code, name, financial_dimension, cost_center, status, active
+             FROM projects
+             WHERE (id = :id OR project_code = :code)
+             LIMIT 1'
+        );
+        $statement->execute(['id' => $projectId, 'code' => $projectId]);
+        $project = $statement->fetch();
+
+        if (!$project) {
+            throw new ApiException('VALIDATION_ERROR', 'Proyecto invalido.', 400, [
+                [
+                    'field' => 'projectId',
+                    'message' => 'El proyecto no existe.',
+                ],
+            ]);
+        }
+
+        if ((string) $project['status'] !== 'active' || !(bool) $project['active']) {
+            throw new ApiException('VALIDATION_ERROR', 'Proyecto inactivo.', 400, [
+                [
+                    'field' => 'projectId',
+                    'message' => 'El proyecto no esta activo/aprobado para consumos.',
+                ],
+            ]);
+        }
+
+        return $project;
+    }
+
     private function assertWorkerExists(PDO $pdo, string $workerId): void
     {
         $statement = $pdo->prepare('SELECT id FROM workers WHERE id = :id AND active = 1 LIMIT 1');
@@ -270,20 +316,24 @@ final class ConsumptionService
         }
     }
 
+    /**
+     * @param array<string, mixed> $project
+     */
     private function insertRecord(
         PDO $pdo,
         string $consumptionId,
         string $voucherNumber,
         string $warehouseId,
         string $workerId,
+        array $project,
         ?string $requesterReference,
         ?string $projectIdLegacy,
         string $notes,
         string $consumedAt
     ): void {
         $statement = $pdo->prepare(
-            'INSERT INTO consumption_records (id, voucher_number, warehouse_id, worker_id, requester_reference, project_id_legacy, delivered_by_user_id, consumed_at, notes)
-             VALUES (:id, :voucherNumber, :warehouseId, :workerId, :requesterReference, :projectIdLegacy, NULL, :consumedAt, :notes)'
+            'INSERT INTO consumption_records (id, voucher_number, warehouse_id, worker_id, project_id, project_code_snapshot, project_name_snapshot, cost_center_snapshot, financial_dimension_snapshot, requester_reference, project_id_legacy, delivered_by_user_id, consumed_at, notes)
+             VALUES (:id, :voucherNumber, :warehouseId, :workerId, :projectId, :projectCodeSnapshot, :projectNameSnapshot, :costCenterSnapshot, :financialDimensionSnapshot, :requesterReference, :projectIdLegacy, NULL, :consumedAt, :notes)'
         );
 
         $statement->execute([
@@ -291,6 +341,11 @@ final class ConsumptionService
             'voucherNumber' => $voucherNumber,
             'warehouseId' => $warehouseId,
             'workerId' => $workerId,
+            'projectId' => (string) $project['id'],
+            'projectCodeSnapshot' => (string) $project['project_code'],
+            'projectNameSnapshot' => (string) $project['name'],
+            'costCenterSnapshot' => $project['cost_center'] === null ? null : (string) $project['cost_center'],
+            'financialDimensionSnapshot' => $project['financial_dimension'] === null ? null : (string) $project['financial_dimension'],
             'requesterReference' => $requesterReference,
             'projectIdLegacy' => $projectIdLegacy,
             'consumedAt' => $consumedAt,

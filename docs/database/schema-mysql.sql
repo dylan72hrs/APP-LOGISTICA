@@ -1,5 +1,7 @@
 -- APP-LOGISTICA / EPP Tracker 3.0
 -- ETAPA 4.7C - Base schema for future MySQL/MariaDB backend.
+-- ETAPA 4.7K - Projects restored as operational entity: adds `projects` table and
+--              project_id + project snapshots on consumption_records.
 --
 -- This script is documentation/preparation only. It is not connected to the app yet.
 -- IDs use CHAR(36) so the application/backend can store UUID values.
@@ -93,13 +95,43 @@ CREATE TABLE IF NOT EXISTS inventory_items (
     ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ETAPA 4.7K: operational projects master. The consumption flow requires the
+-- project the worker comes from (code, cost center, financial dimension).
+-- `status` is the operational approved/active state; `active` is the soft-delete flag.
+CREATE TABLE IF NOT EXISTS projects (
+  id CHAR(36) NOT NULL,
+  project_code VARCHAR(50) NOT NULL,
+  name VARCHAR(180) NOT NULL,
+  financial_dimension VARCHAR(120) NULL,
+  cost_center VARCHAR(120) NULL,
+  manager VARCHAR(160) NULL,
+  approver VARCHAR(160) NULL,
+  status ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  description VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_projects_code (project_code),
+  KEY idx_projects_status (status),
+  KEY idx_projects_active (active),
+  KEY idx_projects_cost_center (cost_center)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS consumption_records (
   id CHAR(36) NOT NULL,
   voucher_number VARCHAR(80) NULL,
   warehouse_id CHAR(36) NOT NULL,
   worker_id CHAR(36) NOT NULL,
-  requester_reference VARCHAR(180) NULL,
-  project_id_legacy VARCHAR(80) NULL COMMENT 'Optional legacy compatibility only; project is not required in MVP.',
+  -- ETAPA 4.7K: project_id is the real operational project of the consumption.
+  -- Required for new consumptions (enforced by the API); NULL only for historical rows.
+  project_id CHAR(36) NULL,
+  project_code_snapshot VARCHAR(50) NULL,
+  project_name_snapshot VARCHAR(180) NULL,
+  cost_center_snapshot VARCHAR(120) NULL,
+  financial_dimension_snapshot VARCHAR(120) NULL,
+  requester_reference VARCHAR(180) NULL COMMENT 'Free-form optional reference; it does NOT replace project_id.',
+  project_id_legacy VARCHAR(80) NULL COMMENT 'Historical compatibility only (pre-4.7K records). Superseded by project_id.',
   delivered_by_user_id CHAR(36) NULL,
   consumed_at DATETIME NOT NULL,
   notes TEXT NULL,
@@ -110,6 +142,7 @@ CREATE TABLE IF NOT EXISTS consumption_records (
   KEY idx_consumption_warehouse_id (warehouse_id),
   KEY idx_consumption_worker_id (worker_id),
   KEY idx_consumption_consumed_at (consumed_at),
+  KEY idx_consumption_project_id (project_id),
   KEY idx_consumption_requester_reference (requester_reference),
   KEY idx_consumption_project_id_legacy (project_id_legacy),
   KEY idx_consumption_delivered_by_user_id (delivered_by_user_id),
@@ -119,6 +152,10 @@ CREATE TABLE IF NOT EXISTS consumption_records (
     ON DELETE RESTRICT,
   CONSTRAINT fk_consumption_worker
     FOREIGN KEY (worker_id) REFERENCES workers (id)
+    ON UPDATE CASCADE
+    ON DELETE RESTRICT,
+  CONSTRAINT fk_consumption_project
+    FOREIGN KEY (project_id) REFERENCES projects (id)
     ON UPDATE CASCADE
     ON DELETE RESTRICT,
   CONSTRAINT fk_consumption_delivered_by_user
@@ -179,3 +216,24 @@ CREATE TABLE IF NOT EXISTS audit_log (
     ON UPDATE CASCADE
     ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ---------------------------------------------------------------------------
+-- ETAPA 4.7K migration notes (for staging databases created before this stage).
+-- Non-destructive: only CREATE TABLE / ADD COLUMN / ADD KEY. No data is dropped.
+-- Run the CREATE TABLE projects statement above first, then:
+--
+-- ALTER TABLE consumption_records
+--   ADD COLUMN project_id CHAR(36) NULL AFTER worker_id,
+--   ADD COLUMN project_code_snapshot VARCHAR(50) NULL AFTER project_id,
+--   ADD COLUMN project_name_snapshot VARCHAR(180) NULL AFTER project_code_snapshot,
+--   ADD COLUMN cost_center_snapshot VARCHAR(120) NULL AFTER project_name_snapshot,
+--   ADD COLUMN financial_dimension_snapshot VARCHAR(120) NULL AFTER cost_center_snapshot,
+--   ADD KEY idx_consumption_project_id (project_id),
+--   ADD CONSTRAINT fk_consumption_project
+--     FOREIGN KEY (project_id) REFERENCES projects (id)
+--     ON UPDATE CASCADE
+--     ON DELETE RESTRICT;
+--
+-- Historical rows keep project_id = NULL (and possibly project_id_legacy).
+-- New consumptions created through the API always carry project_id + snapshots.
+-- ---------------------------------------------------------------------------

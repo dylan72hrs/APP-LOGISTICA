@@ -7,8 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Project } from '@/lib/types';
-import { PlusCircle, MoreHorizontal, Pencil, Trash2, Upload, Download } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { Project, ProjectStatus } from '@/lib/types';
+import { PlusCircle, MoreHorizontal, Pencil, Trash2, Upload, Download, Power } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/lib/hooks/use-language';
@@ -25,33 +27,39 @@ export default function ProjectsPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSaveProject = (formData: FormData) => {
-        const project: Omit<Project, 'id'> & { id?: string } = {
-            id: formData.get('id') as string,
-            financialDimension: formData.get('financialDimension') as string,
-            name: formData.get('name') as string,
-            manager: formData.get('manager') as string,
-            approver: formData.get('approver') as string,
-        };
+        const projectCode = String(formData.get('projectCode') ?? '').trim();
+        const name = String(formData.get('name') ?? '').trim();
+        const financialDimension = String(formData.get('financialDimension') ?? '').trim();
+        const costCenter = String(formData.get('costCenter') ?? '').trim();
+        const manager = String(formData.get('manager') ?? '').trim();
+        const approver = String(formData.get('approver') ?? '').trim();
+        const status: ProjectStatus = formData.get('status') === 'inactive' ? 'inactive' : 'active';
 
-        if (!project.id || !project.name || !project.manager || !project.approver) {
+        if (!projectCode || !name || !costCenter || !financialDimension) {
             toast({
                 variant: 'destructive',
                 title: t('error'),
-                description: t('please_fill_all_fields_correctly')
+                description: 'Código, nombre, centro de costo y dimensión financiera son obligatorios.'
             });
             return;
         }
 
         const finalProject: Project = {
-            ...project,
-            id: editingProject?.id || project.id,
+            id: editingProject?.id || projectCode,
+            projectCode,
+            name,
+            financialDimension,
+            costCenter,
+            manager,
+            approver,
+            status,
         };
 
         if (editingProject) {
             updateProject(finalProject);
             toast({ title: t('project_updated'), description: t('project_updated_successfully') });
         } else {
-            if (projects.some(p => p.id.toLowerCase() === finalProject.id.toLowerCase())) {
+            if (projects.some(p => p.id.toLowerCase() === finalProject.id.toLowerCase() || p.projectCode.toLowerCase() === projectCode.toLowerCase())) {
                 toast({
                     variant: 'destructive',
                     title: t('id_error'),
@@ -62,7 +70,7 @@ export default function ProjectsPage() {
             addProject(finalProject);
             toast({ title: t('project_created'), description: t('new_project_added_successfully') });
         }
-        
+
         setIsDialogOpen(false);
         setEditingProject(null);
     };
@@ -71,10 +79,21 @@ export default function ProjectsPage() {
         setEditingProject(project);
         setIsDialogOpen(true);
     }
-    
+
     const handleAddNewClick = () => {
         setEditingProject(null);
         setIsDialogOpen(true);
+    }
+
+    const handleToggleStatus = (project: Project) => {
+        const nextStatus: ProjectStatus = project.status === 'active' ? 'inactive' : 'active';
+        updateProject({ ...project, status: nextStatus });
+        toast({
+            title: t('project_updated'),
+            description: nextStatus === 'active'
+                ? `Proyecto ${project.projectCode} activado.`
+                : `Proyecto ${project.projectCode} desactivado. No se podrá usar en consumos nuevos.`,
+        });
     }
 
     const handleDeleteClick = (id: string) => {
@@ -88,7 +107,7 @@ export default function ProjectsPage() {
 
     const handleDownloadTemplate = async () => {
         const XLSX = await import('xlsx');
-        const headers = [['ID de Proyecto', 'Dimensión Financiera', 'Nombre de Proyecto', 'Administrador/Encargado', 'Aprobador']];
+        const headers = [['Código de Proyecto', 'Nombre de Proyecto', 'Dimensión Financiera', 'Centro de Costo', 'Administrador/Encargado', 'Aprobador', 'Estado (activo/inactivo)']];
         const ws = XLSX.utils.aoa_to_sheet(headers);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Plantilla Proyectos');
@@ -115,32 +134,37 @@ export default function ProjectsPage() {
 
                 const existingIDs = new Set(projects.map(p => p.id.toLowerCase()));
                 let projectsAdded = 0;
-                
+
                 // Skip header row (index 0)
                 for (let i = 1; i < json.length; i++) {
                     const row = json[i];
-                    const id = row[0];
-                    const financialDimension = row[1];
-                    const name = row[2];
-                    const manager = row[3];
-                    const approver = row[4];
-                    
-                    if (!id || !name || !manager || !approver) {
+                    const projectCode = row[0];
+                    const name = row[1];
+                    const financialDimension = row[2];
+                    const costCenter = row[3];
+                    const manager = row[4];
+                    const approver = row[5];
+                    const statusRaw = String(row[6] ?? '').trim().toLowerCase();
+
+                    if (!projectCode || !name || !financialDimension || !costCenter) {
                         console.warn('Skipping invalid row:', row);
                         continue;
                     }
 
-                    if (existingIDs.has(String(id).toLowerCase())) {
-                       console.warn(`Skipping existing project ID: ${id}`);
+                    if (existingIDs.has(String(projectCode).toLowerCase())) {
+                       console.warn(`Skipping existing project code: ${projectCode}`);
                        continue;
                     }
 
                     const newProject: Project = {
-                        id: String(id),
-                        financialDimension: String(financialDimension),
+                        id: String(projectCode),
+                        projectCode: String(projectCode),
                         name: String(name),
-                        manager: String(manager),
-                        approver: String(approver),
+                        financialDimension: String(financialDimension),
+                        costCenter: String(costCenter),
+                        manager: manager ? String(manager) : '',
+                        approver: approver ? String(approver) : '',
+                        status: statusRaw === 'inactivo' || statusRaw === 'inactive' ? 'inactive' : 'active',
                     };
                     addProject(newProject);
                     existingIDs.add(newProject.id.toLowerCase());
@@ -197,22 +221,30 @@ export default function ProjectsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>{t('project_id')}</TableHead>
+                                <TableHead>{t('project_code')}</TableHead>
                                 <TableHead>{t('project_name')}</TableHead>
                                 <TableHead>{t('financial_dimension')}</TableHead>
+                                <TableHead>{t('cost_center')}</TableHead>
                                 <TableHead>{t('project_manager')}</TableHead>
                                 <TableHead>{t('project_approver')}</TableHead>
+                                <TableHead>{t('status')}</TableHead>
                                 <TableHead className="text-right">{t('actions')}</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {projects.map((project) => (
                                 <TableRow key={project.id}>
-                                    <TableCell className="font-medium">{project.id}</TableCell>
+                                    <TableCell className="font-medium">{project.projectCode}</TableCell>
                                     <TableCell>{project.name}</TableCell>
                                     <TableCell>{project.financialDimension}</TableCell>
-                                    <TableCell>{project.manager}</TableCell>
-                                    <TableCell>{project.approver}</TableCell>
+                                    <TableCell>{project.costCenter}</TableCell>
+                                    <TableCell>{project.manager || 'N/A'}</TableCell>
+                                    <TableCell>{project.approver || 'N/A'}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={project.status === 'active' ? 'default' : 'secondary'}>
+                                            {project.status === 'active' ? t('project_active') : t('project_inactive')}
+                                        </Badge>
+                                    </TableCell>
                                     <TableCell className="text-right">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger asChild>
@@ -224,6 +256,10 @@ export default function ProjectsPage() {
                                                 <DropdownMenuItem onClick={() => handleEditClick(project)} disabled={user?.role === 'reports'}>
                                                     <Pencil className="mr-2 h-4 w-4"/>
                                                     {t('edit')}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleToggleStatus(project)} disabled={user?.role === 'reports'}>
+                                                    <Power className="mr-2 h-4 w-4"/>
+                                                    {project.status === 'active' ? 'Desactivar' : 'Activar'}
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleDeleteClick(project.id)} className="text-destructive focus:text-destructive" disabled={user?.role === 'reports'}>
                                                     <Trash2 className="mr-2 h-4 w-4"/>
@@ -256,36 +292,52 @@ export default function ProjectsPage() {
 
 function ProjectForm({ project, onSave }: { project: Project | null, onSave: (data: FormData) => void }) {
     const { t } = useLanguage();
-    
+
     const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const formData = new FormData(event.currentTarget);
         onSave(formData);
     }
-    
+
     return (
         <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
             <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label htmlFor="id">{t('project_id')}</Label>
-                <Input id="id" name="id" defaultValue={project?.id} required disabled={!!project} />
+                <Label htmlFor="projectCode">{t('project_code')}</Label>
+                <Input id="projectCode" name="projectCode" defaultValue={project?.projectCode} placeholder="CL01" required disabled={!!project} />
             </div>
             <div className="space-y-2 col-span-2 sm:col-span-1">
-                <Label htmlFor="financialDimension">{t('financial_dimension')}</Label>
-                <Input id="financialDimension" name="financialDimension" defaultValue={project?.financialDimension} />
+                <Label htmlFor="status">{t('status')}</Label>
+                <Select name="status" defaultValue={project?.status ?? 'active'}>
+                    <SelectTrigger id="status">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="active">{t('project_active')}</SelectItem>
+                        <SelectItem value="inactive">{t('project_inactive')}</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
             <div className="space-y-2 col-span-2">
                 <Label htmlFor="name">{t('project_name')}</Label>
                 <Input id="name" name="name" defaultValue={project?.name} required />
             </div>
             <div className="space-y-2 col-span-2 sm:col-span-1">
+                <Label htmlFor="financialDimension">{t('financial_dimension')}</Label>
+                <Input id="financialDimension" name="financialDimension" defaultValue={project?.financialDimension} required />
+            </div>
+            <div className="space-y-2 col-span-2 sm:col-span-1">
+                <Label htmlFor="costCenter">{t('cost_center')}</Label>
+                <Input id="costCenter" name="costCenter" defaultValue={project?.costCenter} required />
+            </div>
+            <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label htmlFor="manager">{t('project_manager')}</Label>
-                <Input id="manager" name="manager" defaultValue={project?.manager} required />
+                <Input id="manager" name="manager" defaultValue={project?.manager} />
             </div>
             <div className="space-y-2 col-span-2 sm:col-span-1">
                 <Label htmlFor="approver">{t('project_approver')}</Label>
-                <Input id="approver" name="approver" defaultValue={project?.approver} required />
+                <Input id="approver" name="approver" defaultValue={project?.approver} />
             </div>
-            
+
             <DialogFooter className="col-span-2">
                 <DialogClose asChild>
                     <Button type="button" variant="outline">{t('cancel')}</Button>
@@ -295,5 +347,3 @@ function ProjectForm({ project, onSave }: { project: Project | null, onSave: (da
         </form>
     );
 }
-
-    

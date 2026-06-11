@@ -78,17 +78,42 @@ No incluir `password_hash`, password plano, tokens ni secretos.
 }
 ```
 
+## Project (ETAPA 4.7K)
+
+Proyecto operativo minimo. `status` es el estado operativo aprobado/activo;
+`active` es el flag de soft delete.
+
+```json
+{
+  "id": "66666666-6666-4666-8666-666666666666",
+  "projectCode": "CL01",
+  "name": "División Diamante - El Teniente",
+  "financialDimension": "FD-MIN-ELTE",
+  "costCenter": "CC-1001",
+  "manager": "Responsable Demo",
+  "approver": "Aprobador Demo",
+  "status": "active",
+  "active": true,
+  "description": "",
+  "createdAt": "2026-01-01T09:00:00.000Z",
+  "updatedAt": "2026-01-01T09:00:00.000Z"
+}
+```
+
 ## Consumption create request
 
-`projectIdLegacy` es opcional y solo para compatibilidad historica. No es obligatorio.
+ETAPA 4.7K: `projectId` es obligatorio. Es el dato operativo real del proyecto.
 
-`requesterReference` es opcional para centro de costo / faena / area solicitante.
+`projectIdLegacy` es opcional y solo para compatibilidad historica pre-4.7K.
+
+`requesterReference` es una referencia libre opcional del vale; NO reemplaza al proyecto.
 
 ```json
 {
   "warehouseId": "22222222-2222-4222-8222-222222222222",
   "workerId": "33333333-3333-4333-8333-333333333333",
-  "requesterReference": "Faena Demo",
+  "projectId": "66666666-6666-4666-8666-666666666666",
+  "requesterReference": "Referencia libre opcional",
   "projectIdLegacy": null,
   "notes": "",
   "items": [
@@ -102,13 +127,20 @@ No incluir `password_hash`, password plano, tokens ni secretos.
 
 ## Consumption response
 
+Incluye snapshots del proyecto generados server-side al momento del consumo.
+
 ```json
 {
   "id": "55555555-5555-4555-8555-555555555555",
   "voucherNumber": "VE-20260115-0001",
   "warehouseId": "22222222-2222-4222-8222-222222222222",
   "workerId": "33333333-3333-4333-8333-333333333333",
-  "requesterReference": "Faena Demo",
+  "projectId": "66666666-6666-4666-8666-666666666666",
+  "projectCodeSnapshot": "CL01",
+  "projectNameSnapshot": "División Diamante - El Teniente",
+  "costCenterSnapshot": "CC-1001",
+  "financialDimensionSnapshot": "FD-MIN-ELTE",
+  "requesterReference": "Referencia libre opcional",
   "projectIdLegacy": null,
   "deliveredByUserId": "11111111-1111-4111-8111-111111111111",
   "consumedAt": "2026-01-15T12:30:00.000Z",
@@ -215,6 +247,7 @@ Reporte operativo por bodega. No se centra en proyecto ni costos.
 - Nunca devolver password plano.
 - No usar correos reales en fixtures o documentacion.
 - No usar la credencial demo local en ejemplos.
-- `projectIdLegacy` se mantiene opcional.
-- `requesterReference` se mantiene opcional.
+- ETAPA 4.7K: `projectId` es obligatorio en consumos nuevos; los snapshots de proyecto se generan server-side.
+- `projectIdLegacy` se mantiene opcional solo para registros historicos.
+- `requesterReference` se mantiene opcional y no reemplaza al proyecto.
 - Costos existen solo como dato interno historico, no como foco MVP.

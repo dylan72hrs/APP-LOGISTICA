@@ -1,4 +1,4 @@
-import type { ConsumptionRecord } from '@/lib/types';
+import type { ConsumptionRecord, Project } from '@/lib/types';
 import type { DataRepository, PersistedDataSnapshot } from './data-repository';
 import type { MockDataSnapshot } from './mock-repository';
 import { LOCAL_STORAGE_KEYS } from './storage-keys';
@@ -22,6 +22,20 @@ function isPersistedDataSnapshot(value: unknown): value is PersistedDataSnapshot
     Array.isArray(candidate.workers) &&
     Array.isArray(candidate.consumptionRecords)
   );
+}
+
+// ETAPA 4.7K compatibility: projects persisted before this stage lack
+// projectCode/costCenter/status. Normalize them instead of discarding stored data.
+function normalizeProjects(projects: Project[]): Project[] {
+  return projects.map((project) => ({
+    ...project,
+    projectCode: project.projectCode?.trim() || project.id,
+    financialDimension: project.financialDimension ?? '',
+    costCenter: project.costCenter ?? '',
+    manager: project.manager ?? '',
+    approver: project.approver ?? '',
+    status: project.status === 'inactive' ? 'inactive' : 'active',
+  }));
 }
 
 function hydrateConsumptionRecords(records: ConsumptionRecord[]): ConsumptionRecord[] | null {
@@ -60,7 +74,7 @@ export const localStorageRepository: DataRepository = {
         ...seed,
         warehouses: parsedValue.warehouses,
         inventory: parsedValue.inventory,
-        projects: parsedValue.projects,
+        projects: normalizeProjects(parsedValue.projects),
         workers: parsedValue.workers,
         consumptionRecords,
       };

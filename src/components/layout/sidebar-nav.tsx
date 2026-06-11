@@ -42,7 +42,9 @@ const navItems = [
 ];
 
 // ETAPA 4.3: keep these routes/files available, but hide them from MVP navigation.
-const hiddenFromMvpNavigation = new Set(['/projects', '/restock', '/admin/users']);
+// ETAPA 4.7K: /projects vuelve al MVP operativo (el flujo real de bodega lo requiere).
+// /restock y /admin/users siguen fuera de alcance.
+const hiddenFromMvpNavigation = new Set(['/restock', '/admin/users']);
 
 export function SidebarNav() {
   const pathname = usePathname();

@@ -10,7 +10,15 @@ interface ValeConsumoData {
     id: string;
     date: Date;
     worker: { name: string; rut: string; position?: string; department?: string; } | null;
-    project?: { name: string; id: string; } | null;
+    // ETAPA 4.7K: proyecto operativo del consumo (codigo, centro de costo y dimension financiera).
+    project?: {
+        id: string;
+        projectCode?: string;
+        name: string;
+        costCenter?: string;
+        financialDimension?: string;
+        manager?: string;
+    } | null;
     requesterReference?: string;
     items: {
         code: string;
@@ -80,11 +88,19 @@ export const ValeConsumo = React.forwardRef<HTMLDivElement, ValeConsumoProps>(({
                 <p><strong>Identificador:</strong> {safeValue(data.worker?.rut)}</p>
                 <p><strong>Cargo:</strong> {safeValue(data.worker?.position)}</p>
                 <p><strong>Departamento:</strong> {safeValue(data.worker?.department)}</p>
-                {data.requesterReference ? (
-                    <p className="col-span-2"><strong>Centro de costo / faena / area solicitante:</strong> {data.requesterReference}</p>
-                ) : null}
                 {data.project ? (
-                    <p className="col-span-2"><strong>Referencia historica de proyecto:</strong> {data.project.name} ({data.project.id})</p>
+                    <>
+                        <p><strong>Proyecto:</strong> {data.project.name}</p>
+                        <p><strong>Código proyecto:</strong> {safeValue(data.project.projectCode || data.project.id)}</p>
+                        <p><strong>Centro de costo:</strong> {safeValue(data.project.costCenter)}</p>
+                        <p><strong>Dimensión financiera:</strong> {safeValue(data.project.financialDimension)}</p>
+                        {data.project.manager ? (
+                            <p className="col-span-2"><strong>Responsable proyecto:</strong> {data.project.manager}</p>
+                        ) : null}
+                    </>
+                ) : null}
+                {data.requesterReference ? (
+                    <p className="col-span-2"><strong>Referencia solicitante:</strong> {data.requesterReference}</p>
                 ) : null}
             </section>
 

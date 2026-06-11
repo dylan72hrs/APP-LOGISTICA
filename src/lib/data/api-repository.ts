@@ -1,4 +1,4 @@
-import type { ConsumptionRecord, InventoryItem, Warehouse, Worker } from '@/lib/types';
+import type { ConsumptionRecord, InventoryItem, Project, Warehouse, Worker } from '@/lib/types';
 import type { DataRepository, PersistedDataSnapshot } from './data-repository';
 import type { MockDataSnapshot } from './mock-repository';
 
@@ -30,12 +30,33 @@ interface ApiInventoryItem {
   unitCost?: number | null;
 }
 
+interface ApiProject {
+  id: string;
+  projectCode?: string | null;
+  code?: string | null;
+  name: string;
+  financialDimension?: string | null;
+  costCenter?: string | null;
+  manager?: string | null;
+  approver?: string | null;
+  status?: string | null;
+  active?: boolean | null;
+  description?: string | null;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
 interface ApiConsumption {
   id: string;
   warehouseId: string;
   workerId: string;
   requesterReference?: string | null;
+  projectId?: string | null;
   projectIdLegacy?: string | null;
+  projectCodeSnapshot?: string | null;
+  projectNameSnapshot?: string | null;
+  costCenterSnapshot?: string | null;
+  financialDimensionSnapshot?: string | null;
   consumedAt?: string | null;
   items: {
     inventoryItemId?: string;
@@ -148,6 +169,24 @@ function mapInventoryItem(item: ApiInventoryItem): InventoryItem {
   };
 }
 
+function mapProject(project: ApiProject): Project {
+  const status = project.status === 'inactive' || project.active === false ? 'inactive' : 'active';
+
+  return {
+    id: project.id,
+    projectCode: project.projectCode ?? project.code ?? project.id,
+    name: project.name,
+    financialDimension: project.financialDimension ?? '',
+    costCenter: project.costCenter ?? '',
+    manager: project.manager ?? '',
+    approver: project.approver ?? '',
+    status,
+    description: project.description ?? undefined,
+    createdAt: project.createdAt ?? undefined,
+    updatedAt: project.updatedAt ?? undefined,
+  };
+}
+
 function mapConsumption(consumption: ApiConsumption): ConsumptionRecord | null {
   const date = new Date(consumption.consumedAt ?? Date.now());
 
@@ -159,7 +198,11 @@ function mapConsumption(consumption: ApiConsumption): ConsumptionRecord | null {
     id: consumption.id,
     date,
     workerId: consumption.workerId,
-    projectId: consumption.projectIdLegacy ?? undefined,
+    projectId: consumption.projectId ?? consumption.projectIdLegacy ?? undefined,
+    projectCode: consumption.projectCodeSnapshot ?? undefined,
+    projectName: consumption.projectNameSnapshot ?? undefined,
+    costCenter: consumption.costCenterSnapshot ?? undefined,
+    financialDimension: consumption.financialDimensionSnapshot ?? undefined,
     requesterReference: consumption.requesterReference ?? undefined,
     warehouseId: consumption.warehouseId,
     items: consumption.items.map((item) => ({
@@ -173,6 +216,9 @@ function readApiSnapshot(seed: MockDataSnapshot): MockDataSnapshot {
   const warehousesResponse = requestSync<{ warehouses: ApiWarehouse[] }>('/warehouses?activeOnly=true');
   const workersResponse = requestSync<{ workers: ApiWorker[] }>('/workers?activeOnly=true');
   const inventoryResponse = requestSync<{ items: ApiInventoryItem[] }>('/inventory?activeOnly=true');
+  // ETAPA 4.7K: projects vuelve al flujo operativo; el selector de consumo solo
+  // muestra activos, pero aqui se cargan todos para resolver historicos.
+  const projectsResponse = requestSync<{ projects: ApiProject[] }>('/projects');
   const consumptionsResponse = requestSync<{ consumptions: ApiConsumption[] }>('/consumptions');
 
   const consumptionRecords = (consumptionsResponse?.consumptions ?? [])
@@ -185,7 +231,7 @@ function readApiSnapshot(seed: MockDataSnapshot): MockDataSnapshot {
     ...seed,
     warehouses: (warehousesResponse?.warehouses ?? []).map(mapWarehouse),
     inventory: (inventoryResponse?.items ?? []).map(mapInventoryItem),
-    projects: [],
+    projects: (projectsResponse?.projects ?? []).map(mapProject),
     workers: (workersResponse?.workers ?? []).map(mapWorker),
     consumptionRecords,
   };
@@ -200,7 +246,10 @@ function postNewConsumptions(snapshot: PersistedDataSnapshot) {
       warehouseId: record.warehouseId,
       workerId: record.workerId,
       requesterReference: record.requesterReference ?? null,
-      projectIdLegacy: record.projectId ?? null,
+      // projectId es el dato operativo real; el backend valida existencia/estado
+      // y genera sus propios snapshots server-side.
+      projectId: record.projectId ?? null,
+      projectIdLegacy: null,
       notes: '',
       items: record.items.map((item) => ({
         inventoryItemId: item.itemId,

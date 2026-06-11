@@ -14,8 +14,9 @@ Los DTO HTTP propuestos usan `camelCase` para el frontend. La base MySQL documen
 - Fechas: ISO 8601 en UTC o con zona horaria explicita.
 - IDs: UUID en string, compatible con `CHAR(36)` en MySQL.
 - Soft delete: usar `active=false` cuando aplique.
-- `projectIdLegacy` es opcional y solo para compatibilidad historica.
-- `requesterReference` es opcional y representa centro de costo / faena / area solicitante.
+- ETAPA 4.7K: `projectId` es el dato operativo real del proyecto y es obligatorio en `POST /consumptions`.
+- `projectIdLegacy` es opcional y solo para compatibilidad historica pre-4.7K. No reemplaza a `projectId`.
+- `requesterReference` es una referencia libre opcional del vale. NO reemplaza al proyecto.
 - `unitCost` y `unitCostSnapshot` son datos internos historicos, no foco MVP.
 
 ## Respuesta de error estandar
@@ -564,6 +565,82 @@ Errores esperados:
 - `CONFLICT`
 - `SERVER_ERROR`
 
+## Projects
+
+ETAPA 4.7K: Proyectos vuelve como entidad operativa del MVP. El consumo requiere
+el proyecto desde el cual viene el trabajador, y el proyecto trae centro de costo
+y dimension financiera.
+
+### GET `/api/projects`
+
+Proposito: listar proyectos operativos.
+
+Query params:
+
+- `activeOnly` opcional: `true` devuelve solo proyectos `status=active` y `active=1`.
+
+Respuesta esperada:
+
+```json
+{
+  "projects": [
+    {
+      "id": "66666666-6666-4666-8666-666666666666",
+      "projectCode": "CL01",
+      "name": "División Diamante - El Teniente",
+      "financialDimension": "FD-MIN-ELTE",
+      "costCenter": "CC-1001",
+      "manager": "Responsable Demo",
+      "approver": "Aprobador Demo",
+      "status": "active",
+      "active": true,
+      "description": "",
+      "createdAt": "2026-01-01T09:00:00.000Z",
+      "updatedAt": "2026-01-01T09:00:00.000Z"
+    }
+  ]
+}
+```
+
+Validaciones server-side minimas:
+
+- Usuario autenticado (futuro).
+- `DATABASE_NOT_CONFIGURED` si no hay DB configurada.
+
+Errores esperados:
+
+- `UNAUTHORIZED`
+- `FORBIDDEN`
+- `SERVER_ERROR`
+
+### GET `/api/projects/:id`
+
+Proposito: obtener un proyecto por id o por codigo de proyecto.
+
+Params:
+
+- `id`: UUID del proyecto o `project_code` (ej. `CL01`).
+
+Respuesta esperada:
+
+```json
+{
+  "project": {}
+}
+```
+
+Errores esperados:
+
+- `NOT_FOUND`
+- `UNAUTHORIZED`
+- `FORBIDDEN`
+- `SERVER_ERROR`
+
+### POST/PUT `/api/projects` (no implementado)
+
+La creacion/edicion de proyectos por API queda como `NOT_IMPLEMENTED` controlado en esta etapa.
+En modo `local` (default) los proyectos se administran en `/projects` con localStorage.
+
 ## Consumptions
 
 ### GET `/api/consumptions`
@@ -576,6 +653,7 @@ Query params:
 - `to` opcional, fecha ISO.
 - `warehouseId` opcional.
 - `workerId` opcional.
+- `projectId` opcional.
 - `inventoryItemId` opcional.
 
 Respuesta esperada:
@@ -609,7 +687,8 @@ Body esperado:
 {
   "warehouseId": "22222222-2222-4222-8222-222222222222",
   "workerId": "33333333-3333-4333-8333-333333333333",
-  "requesterReference": "Faena Demo",
+  "projectId": "66666666-6666-4666-8666-666666666666",
+  "requesterReference": "Referencia libre opcional",
   "projectIdLegacy": null,
   "notes": "",
   "items": [
@@ -633,8 +712,9 @@ Validaciones server-side minimas:
 
 - Bodega especifica obligatoria.
 - Trabajador valido y activo.
-- Proyecto no obligatorio.
-- `requesterReference` opcional, largo maximo.
+- ETAPA 4.7K: `projectId` obligatorio; el proyecto debe existir y estar `active`.
+- El backend guarda `project_id` y snapshots (`project_code_snapshot`, `project_name_snapshot`, `cost_center_snapshot`, `financial_dimension_snapshot`) generados server-side desde el maestro de proyectos.
+- `requesterReference` opcional, largo maximo. No reemplaza al proyecto.
 - Al menos un item.
 - Producto pertenece a la bodega.
 - Cantidad entera positiva.
